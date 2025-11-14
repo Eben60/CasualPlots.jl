@@ -1,6 +1,9 @@
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
-/Manifest*.toml
-/docs/Manifest*.toml
 /docs/build/
+.vscode/settings.json
+**Manifest*.toml
+**.DS_Store
+tmp/*
+stacktraces.txt
