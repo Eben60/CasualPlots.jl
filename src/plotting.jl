@@ -110,7 +110,7 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     # The AxisEntries object has the axis as its first field
     axis_entries = fg.grid[1, 1]
     axis = axis_entries.axis  # Access the axis field from AxisEntries
-    show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
+    Makie.update_state_before_display!(fig) # Force render to complete without needing a display
     global cp_figure = fig
     global cp_figure_ax = axis
     return (; fig, axis, fig_params = (; title, x_name, y_name, updated_show_legend=show_legend))
