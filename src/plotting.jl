@@ -21,7 +21,7 @@ function create_plot(x_data, y_data, x_name, y_name; art=Scatter)
     fig = Figure(size = (800, 600))
     ax = Axis(fig[1, 1], xlabel=x_name, ylabel=y_name, title="$(var_to_string(art)) Plot of $y_name vs $x_name")
     draw!(ax, plt)
-    show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
+    Makie.update_state_before_display!(fig) # Force render to complete without needing a display
     global cp_figure = fig
     global cp_figure_ax = ax
     return fig
