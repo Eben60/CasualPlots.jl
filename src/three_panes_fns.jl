@@ -72,15 +72,15 @@ function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, sel
     end
 end
 
-function setup_y_and_art_callback(selected_x, selected_y, selected_art, plot_observable, table_observable)
+function setup_y_and_art_callback(selected_x, selected_y, selected_art, show_legend, plot_observable, table_observable)
     # This callback handles plotting and table display
-    onany(selected_y, selected_art) do y, art_str
+    onany(selected_y, selected_art, show_legend) do y, art_str, legend_bool
         x = selected_x[]
         is_y_selected = !isnothing(y) && y != ""
 
         if is_y_selected && !isnothing(x) && x != ""
             art = art_str |> Symbol |> eval
-            fig = check_data_create_plot(x, y; art=art)
+            fig = check_data_create_plot(x, y; art=art, show_legend=legend_bool)
             if fig isa Figure
                 plot_observable[] = fig
             end
@@ -134,6 +134,7 @@ function three_panes_app()
         selected_x = Observable{Union{Nothing, String}}(nothing)
         selected_y = Observable{Union{Nothing, String}}(nothing)
         selected_art = Observable("Scatter")
+        show_legend = Observable(true)
         
         dropdown_x_node = Observable{Hyperscript.Node}(DOM.div("Click to load X variables"))
         on(dims_dict_obs) do dims_dict
@@ -153,7 +154,7 @@ function three_panes_app()
         table_observable = Observable{Any}(DOM.div("Pane 2"))
 
         setup_x_callback(dims_dict_obs, selected_x, selected_y, dropdown_y_node, plot_observable, table_observable)
-        setup_y_and_art_callback(selected_x, selected_y, selected_art, plot_observable, table_observable)
+        setup_y_and_art_callback(selected_x, selected_y, selected_art, show_legend, plot_observable, table_observable)
 
         # Create three rows with horizontal layout for the dropdowns
         x_row = DOM.div(
@@ -167,10 +168,18 @@ function three_panes_app()
         )
         art_row = DOM.div(
             "Plot art:", dropdown_art_node;
+            style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
+        )
+        
+        legend_checkbox = DOM.input(type="checkbox", checked=show_legend[];
+            onchange = js"event => $(show_legend).notify(event.target.checked)"
+        )
+        legend_row = DOM.div(
+            legend_checkbox, " Show Legend";
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
         )
         
-        pane1 = Card(DOM.div(x_row, y_row, art_row); style=Styles("background-color" => :whitesmoke, "padding" => "5px")) # Menus
+        pane1 = Card(DOM.div(x_row, y_row, art_row, legend_row); style=Styles("background-color" => :whitesmoke, "padding" => "5px")) # Menus
         pane2 = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px")) # Table
         pane3 = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px")) # Plot
 
