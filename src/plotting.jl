@@ -4,8 +4,8 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data, y_data, x_name, y_name; art=Scatter)
-    if size(x_data, 1) != size(y_data, 1)
+function create_plot(x_data::AbstractVector, y_data, x_name, y_name; art=Scatter)
+    if length(x_data) != size(y_data, 1)
         println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
         return nothing
     end
@@ -13,7 +13,7 @@ function create_plot(x_data, y_data, x_name, y_name; art=Scatter)
     n_cols = size(y_data, 2)
     x_long = repeat(x_data, n_cols)
     y_long = vec(y_data)
-    group = repeat(1:n_cols, inner=size(x_data, 1))
+    group = repeat(1:n_cols, inner=length(x_data))
     
     df = (; x=x_long, y=y_long, group=string.(group))
     plt = data(df) * mapping(:x, :y, color=:group) *  visual(art)
