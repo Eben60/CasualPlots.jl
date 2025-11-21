@@ -16,15 +16,18 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; art=Scatter
     group = repeat(1:n_cols, inner=length(x_data))
     
     df = (; x=x_long, y=y_long, group=string.(group))
-    plt = data(df) * mapping(:x, :y, color=:group) *  visual(art)
 
-    fig = Figure(size = (800, 600))
-    ax = Axis(fig[1, 1], xlabel=x_name, ylabel=y_name, title="$(var_to_string(art)) Plot of $y_name vs $x_name")
-    draw!(ax, plt)
-    show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
-    global cp_figure = fig
-    global cp_figure_ax = ax
-    return fig
+    plt = data(df) * mapping(:v => x_name, :f => y_name; color=:group) * visual(art)
+
+    # fig = Figure(size = (800, 600))
+    # ax = Axis(fig[1, 1], xlabel=x_name, ylabel=y_name, title="$(var_to_string(art)) Plot of $y_name vs $x_name")
+    fg1 = draw(plt; size=(800, 600), title="$(var_to_string(art)) Plot of $y_name vs $x_name")
+
+    show(IOBuffer(), MIME"text/html"(), fg1) # Force render to complete without needing a display
+
+    global cp_figure = fg1
+    # global cp_figure_ax = ax
+    return fg1
 end
 
 function check_data_create_plot(x_name, y_name; art=Scatter) # x, y AbstractString or Symbol
