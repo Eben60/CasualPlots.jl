@@ -7,10 +7,8 @@ Package local path: $(pathof(CasualPlots))
 """
 module CasualPlots
 
-using Bonito, Observables, Hyperscript, AlgebraOfGraphics, WGLMakie, DataFrames
+using Bonito, Observables, AlgebraOfGraphics, WGLMakie, DataFrames
 using Bonito.DOM
-
-
 
 include("electron.jl")
 
@@ -21,6 +19,7 @@ include("plotting.jl")
 include("tabs_component.jl")
 include("create_components.jl")
 include("setup_callbacks.jl")
+
 include("app.jl")
 
 export casualplots_app

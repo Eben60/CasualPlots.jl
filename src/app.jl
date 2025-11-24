@@ -19,7 +19,7 @@ function casualplots_app()
         selected_art = Observable("Scatter")
         show_legend = Observable(true)
         
-        dropdown_x_node = Observable{Hyperscript.Node}(DOM.div("Click to load X variables"))
+        dropdown_x_node = Observable(DOM.div("Click to load X variables"))
         on(dims_dict_obs) do dims_dict
             vectors_only = filter(p -> length(last(p)) == 1, dims_dict)
             array_names = string.(keys(vectors_only)) |> sort!

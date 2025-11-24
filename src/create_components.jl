@@ -9,7 +9,7 @@ function create_x_dropdown(prompt_text::String, array_names::Vector{String}, sel
 end
 
 function create_y_dropdown(prompt_text::String)
-    return Observable{Hyperscript.Node}(
+    return Observable(
         DOM.select(DOM.option(prompt_text, value="", selected=true, disabled=true); 
         disabled=true
         )
@@ -23,7 +23,7 @@ function create_art_dropdown(selected_art::Observable)
         DOM.option("Scatter", value="Scatter", selected=(current_art == "Scatter")),
         DOM.option("BarPlot", value="BarPlot", selected=(current_art == "BarPlot"))
     ]
-    return Observable{Hyperscript.Node}(
+    return Observable(
         DOM.select(art_options...;
             onchange = js"event => $(selected_art).notify(event.target.value)"
         )
