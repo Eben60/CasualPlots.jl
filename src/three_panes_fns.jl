@@ -191,7 +191,51 @@ function three_panes_app()
         ]
         
         pane1_content = create_tabs_component(tab_configs)
-        pane1 = Card(pane1_content; style=Styles("background-color" => :whitesmoke, "padding" => "5px")) # Menus
+        
+        # Observable to track if a plot is displayed
+        has_plot = Observable(false)
+        
+        # Update has_plot when plot_observable changes
+        on(plot_observable) do plot_content
+            has_plot[] = plot_content isa Figure
+        end
+        
+        # Create help section for mouse controls with reactive visibility
+        help_visibility = map(has_plot) do show_help
+            show_help ? "visible" : "hidden"
+        end
+        
+        help_text = map(help_visibility) do visibility_style
+            DOM.div(
+                DOM.div("Mouse Controls", style=Styles("font-weight" => "bold", "font-size" => "11px", "margin-bottom" => "3px")),
+                DOM.div(
+                    DOM.div("Pan: Right-click + Drag", style=Styles("font-size" => "10px", "margin-bottom" => "1px")),
+                    DOM.div("Zoom: Mouse Wheel", style=Styles("font-size" => "10px", "margin-bottom" => "1px")),
+                    DOM.div("Reset: Ctrl + Left-click", style=Styles("font-size" => "10px"))
+                );
+                style=Styles(
+                    "padding" => "5px", 
+                    "background-color" => "#f5f5f5",
+                    "visibility" => visibility_style
+                )
+            )
+        end
+        
+        # Permanent separator line and help section container
+        help_section = DOM.div(
+            DOM.div(style=Styles("border-top" => "1px solid #ccc")),  # Permanent separator line
+            help_text;  # Conditionally visible help text
+            style=Styles("flex-shrink" => "0")
+        )
+        
+        # Split pane1 vertically: tabs on top, help on bottom
+        pane1_split = DOM.div(
+            DOM.div(pane1_content, style=Styles("flex" => "1", "overflow" => "auto")),
+            help_section;
+            style=Styles("display" => "flex", "flex-direction" => "column", "height" => "100%")
+        )
+        
+        pane1 = Card(pane1_split; style=Styles("background-color" => :whitesmoke, "padding" => "5px")) # Menus
         pane2 = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px")) # Table
         pane3 = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px")) # Plot
 
