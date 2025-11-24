@@ -3,16 +3,14 @@ function casualplots_app()
         last_update = Ref(time()) # Store last update time
 
         dims_dict_obs = Observable(get_dims_of_arrays())
-        trigger_update = Observable(0)
+        trigger_update = Observable(true) # fake variable, never changes
 
         on(trigger_update) do val
-            if val > 0
-                current_time = time()
-                if current_time - last_update[] > 30
-                    # println("Refreshing variable list.")
-                    dims_dict_obs[] = get_dims_of_arrays()
-                    last_update[] = current_time
-                end
+            current_time = time()
+            if current_time - last_update[] > 30
+                # println("Refreshing variable list.")
+                dims_dict_obs[] = get_dims_of_arrays()
+                last_update[] = current_time
             end
         end
 
@@ -53,7 +51,7 @@ function casualplots_app()
         # Create three rows with horizontal layout for the dropdowns
         x_source = DOM.div(
             "Select X:", 
-            DOM.div(dropdown_x_node; onclick=js"() => $(trigger_update).notify($(trigger_update[]) + 1)");
+            DOM.div(dropdown_x_node; onclick=js"() => $(trigger_update).notify(true)");
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
         )
         y_source = DOM.div(
