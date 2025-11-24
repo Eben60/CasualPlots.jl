@@ -157,16 +157,16 @@ function three_panes_app()
         setup_y_and_art_callback(selected_x, selected_y, selected_art, show_legend, plot_observable, table_observable)
 
         # Create three rows with horizontal layout for the dropdowns
-        x_row = DOM.div(
+        x_source = DOM.div(
             "Select X:", 
             DOM.div(dropdown_x_node; onclick=js"() => $(trigger_update).notify($(trigger_update[]) + 1)");
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
         )
-        y_row = DOM.div(
+        y_source = DOM.div(
             "Select Y:", dropdown_y_node;
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
         )
-        art_row = DOM.div(
+        plot_kind = DOM.div(
             "Plot art:", dropdown_art_node;
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
         )
@@ -174,20 +174,20 @@ function three_panes_app()
         legend_checkbox = DOM.input(type="checkbox", checked=show_legend[];
             onchange = js"event => $(show_legend).notify(event.target.checked)"
         )
-        legend_row = DOM.div(
+        legend_ckgbox_container = DOM.div(
             legend_checkbox, " Show Legend";
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
         )
         
         # Organize controls into tabs
-        tab1_content = DOM.div(x_row, y_row)
-        tab2_content = DOM.div(art_row, legend_row)
-        tab3_content = DOM.div("Future features will go here")
+        t1_source_content = DOM.div(x_source, y_source)
+        t2_format_content = DOM.div(plot_kind, legend_ckgbox_container)
+        t3_save_content = DOM.div("Saving results will go here")
         
         tab_configs = [
-            (name="tab1", content=tab1_content),
-            (name="tab2", content=tab2_content),
-            (name="tab3", content=tab3_content)
+            (name="Source", content=t1_source_content),
+            (name="Format", content=t2_format_content),
+            (name="Save", content=t3_save_content)
         ]
         
         pane1_content = create_tabs_component(tab_configs)
