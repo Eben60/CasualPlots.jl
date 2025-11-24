@@ -4,7 +4,8 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data::AbstractVector, y_data, x_name, y_name; art=Scatter, show_legend=true)
+function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; art=Scatter, show_legend=true)) # x, y AbstractString or Symbol
+    (; art, show_legend) = plot_format    
     if length(x_data) != size(y_data, 1)
         println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
         return nothing
@@ -29,7 +30,7 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; art=Scatter
     return fig
 end
 
-function check_data_create_plot(x_name, y_name; art=Scatter, show_legend=true) # x, y AbstractString or Symbol
+function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol
     try
         x_data = getfield(Main, Symbol(x_name))
         y_data = getfield(Main, Symbol(y_name))
@@ -39,7 +40,7 @@ function check_data_create_plot(x_name, y_name; art=Scatter, show_legend=true) #
         end
 
         if y_data isa AbstractMatrix && x_data isa AbstractVector
-            return create_plot(x_data, y_data, x_name, y_name; art, show_legend)
+            return create_plot(x_data, y_data, x_name, y_name; plot_format)
         else
             println("Error: Unsupported data types for plotting. x must be a vector, and y can be a vector or a matrix.")
             return nothing

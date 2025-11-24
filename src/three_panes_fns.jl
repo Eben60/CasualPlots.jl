@@ -49,6 +49,29 @@ end
 
 export get_congruent_y_names
 
+function create_data_table(x::String, y::String)
+    """Extract table creation logic for reuse"""
+    x_data = getfield(Main, Symbol(x))
+    y_data = getfield(Main, Symbol(y))
+    if y_data isa AbstractVector
+        y_data = reshape(y_data, :, 1)
+    end
+    
+    num_rows = size(x_data, 1)
+    num_y_cols = size(y_data, 2)
+    
+    df = DataFrame()
+    df.Row = 1:num_rows
+    df[!, x] = x_data
+    
+    for i in 1:num_y_cols
+        col_name = num_y_cols > 1 ? "$(y)_$i" : y
+        df[!, col_name] = y_data[:, i]
+    end
+    
+    return DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
+end
+
 function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, selected_y::Observable, dropdown_y_node::Observable, plot_observable::Observable, table_observable::Observable)
     Observables.on(selected_x) do x
         # println("selected x: $x")
@@ -72,44 +95,55 @@ function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, sel
     end
 end
 
-function setup_y_and_art_callback(selected_x, selected_y, selected_art, show_legend, plot_observable, table_observable)
-    # This callback handles plotting and table display
-    onany(selected_y, selected_art, show_legend) do y, art_str, legend_bool
-        x = selected_x[]
-        is_y_selected = !isnothing(y) && y != ""
-
-        if is_y_selected && !isnothing(x) && x != ""
-            art = art_str |> Symbol |> eval
-            fig = check_data_create_plot(x, y; art=art, show_legend=legend_bool)
+function setup_source_callback(selected_x, selected_y, selected_art, show_legend,
+                                current_plot_x, current_plot_y,
+                                plot_observable, table_observable)
+    """Handle data source changes (X/Y selection)"""
+    
+    onany(selected_x, selected_y) do x, y
+        is_valid = !isnothing(y) && y != "" && !isnothing(x) && x != ""
+        
+        if is_valid
+            # Store current data for format callbacks
+            current_plot_x[] = x
+            current_plot_y[] = y
+            
+            # Create plot with current format settings
+            art = selected_art[] |> Symbol |> eval
+            fig = check_data_create_plot(x, y; plot_format = (;art=art, show_legend=show_legend[]))
             if fig isa Figure
                 plot_observable[] = fig
             end
-
-            # Create and display table
-            x_data = getfield(Main, Symbol(x))
-            y_data = getfield(Main, Symbol(y))
-            if y_data isa AbstractVector
-                y_data = reshape(y_data, :, 1)
-            end
-
-            num_rows = size(x_data, 1)
-            num_y_cols = size(y_data, 2)
-
-            df = DataFrame()
-            df.Row = 1:num_rows
-            df[!, x] = x_data
-
-            for i in 1:num_y_cols
-                col_name = num_y_cols > 1 ? "$(y)_$i" : y
-                df[!, col_name] = y_data[:, i]
-            end
             
-            table_observable[] = DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
-
+            # Create/update table (source-related only)
+            table_observable[] = create_data_table(x, y)
         else
+            # Clear everything
+            current_plot_x[] = nothing
+            current_plot_y[] = nothing
             plot_observable[] = DOM.div("Pane 3")
-            table_observable[] = DOM.div("Pane 2") # Reset table
+            table_observable[] = DOM.div("Pane 2")
         end
+    end
+end
+
+function setup_format_callback(selected_art, show_legend, current_plot_x, current_plot_y,
+                                 plot_observable)
+    """Handle format changes (plot art, legend) - replot with new settings"""
+    
+    onany(selected_art, show_legend) do art_str, legend_bool
+        x = current_plot_x[]
+        y = current_plot_y[]
+        
+        # Only replot if we have valid data
+        if !isnothing(x) && !isnothing(y)
+            art = art_str |> Symbol |> eval
+            fig = check_data_create_plot(x, y; plot_format = (; art=art, show_legend=legend_bool))
+            if fig isa Figure
+                plot_observable[] = fig
+            end
+        end
+        # Note: Table is NOT updated - it's source-dependent only
     end
 end
 
@@ -153,8 +187,17 @@ function three_panes_app()
         plot_observable = Observable{Any}(DOM.div("Pane 3"))
         table_observable = Observable{Any}(DOM.div("Pane 2"))
 
+        # Observables to track currently plotted data
+        current_plot_x = Observable{Union{Nothing, String}}(nothing)
+        current_plot_y = Observable{Union{Nothing, String}}(nothing)
+
+        # Setup callbacks with separated concerns
         setup_x_callback(dims_dict_obs, selected_x, selected_y, dropdown_y_node, plot_observable, table_observable)
-        setup_y_and_art_callback(selected_x, selected_y, selected_art, show_legend, plot_observable, table_observable)
+        setup_source_callback(selected_x, selected_y, selected_art, show_legend,
+                              current_plot_x, current_plot_y,
+                              plot_observable, table_observable)
+        setup_format_callback(selected_art, show_legend, current_plot_x, current_plot_y,
+                              plot_observable)
 
         # Create three rows with horizontal layout for the dropdowns
         x_source = DOM.div(
