@@ -16,7 +16,7 @@ isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl
 app = casualplots_app()
 
 # Electron or Browser
-ele_serve = false #true
+ele_serve = true
 
 if ele_serve
     Ele.serve_app(app)

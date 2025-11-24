@@ -12,15 +12,13 @@ using Bonito.DOM
 
 
 
-include("Ele.jl")
-
+include("electron.jl")
 
 include("collect_data.jl")
-include("create_data.jl")
+include("create_demo_data.jl")
 
 include("plotting.jl")
 include("tabs_component.jl")
-include("data_inputs.jl")
 include("create_components.jl")
 include("setup_callbacks.jl")
 include("app.jl")
