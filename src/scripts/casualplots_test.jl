@@ -1,7 +1,6 @@
 using CasualPlots
 using WGLMakie
 using Bonito
-using Bonito: Server
 
 # Creating a few vectors and matrices for the tests
 # Prefix all var names by caspl_ to avoid name conflicts
@@ -14,16 +13,16 @@ isdefined(Main, :caspl_x_100) || (caspl_x_100 = 0:0.1:10)
 isdefined(Main, :caspl_z100) || (caspl_z100 = caspl_x_100 .|> sqrt)
 isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl_x_100, 10))
 
-app = three_panes_app()
+app = casualplots_app()
 
 # Electron or Browser
-ele_serve = true
+ele_serve = false #true
 
 if ele_serve
     Ele.serve_app(app)
 else
     # this opens the GUI in browser for debugging
-    server = Server(app, "127.0.0.1", 8000)
+    server = Bonito.Server(app, "127.0.0.1", 8000)
     println("Server running at http://127.0.0.1:8000")
     println("Press Ctrl+C to stop the server")
     wait(server)

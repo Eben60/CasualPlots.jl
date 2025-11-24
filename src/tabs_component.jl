@@ -131,4 +131,3 @@ function create_tabs_component(tab_configs::Vector)
     return tabs_html
 end
 
-export create_tabs_component

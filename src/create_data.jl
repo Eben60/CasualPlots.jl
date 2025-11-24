@@ -3,6 +3,8 @@
 
 Generates a matrix with n columns based on the input vector x.
 The i-th column is calculated as x.^(0.3 + i * 0.2).
+
+Function used for demo purposes only.
 """
 function create_data_matrix(x::AbstractVector, n::Integer)
    

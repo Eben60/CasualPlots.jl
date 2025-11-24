@@ -22,8 +22,10 @@ include("plotting.jl")
 include("tabs_component.jl")
 include("data_inputs.jl")
 include("create_components.jl")
-include("three_panes_fns.jl")
+include("setup_callbacks.jl")
+include("app.jl")
 
+export casualplots_app
 export cp_figure, cp_figure_ax
 export Ele
 

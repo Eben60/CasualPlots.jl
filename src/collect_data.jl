@@ -41,8 +41,6 @@ function collect_arrays_from_main()
     return data_names
 end
 
-export collect_arrays_from_main
-
 """
     get_dims_of_arrays()
 
@@ -69,5 +67,3 @@ function get_dims_of_arrays()
     end
     return dims_dict
 end
-
-export get_dims_of_arrays
