@@ -1,5 +1,7 @@
 using CasualPlots
 using WGLMakie
+using Bonito
+using Bonito: Server
 
 # Creating a few vectors and matrices for the tests
 # Prefix all var names by caspl_ to avoid name conflicts
@@ -14,8 +16,19 @@ isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl
 
 app = three_panes_app()
 
-# this opens the GUI window using Electron
-Ele.serve_app(app)
+# Electron or Browser
+ele_serve = true
+
+if ele_serve
+    Ele.serve_app(app)
+else
+    # this opens the GUI in browser for debugging
+    server = Server(app, "127.0.0.1", 8000)
+    println("Server running at http://127.0.0.1:8000")
+    println("Press Ctrl+C to stop the server")
+    wait(server)
+end
+
 
 # the current plot is exported and accessible as `cp_figure`
 # and can be displayed in your environment by 

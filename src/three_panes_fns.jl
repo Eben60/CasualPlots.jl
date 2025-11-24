@@ -179,7 +179,19 @@ function three_panes_app()
             style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
         )
         
-        pane1 = Card(DOM.div(x_row, y_row, art_row, legend_row); style=Styles("background-color" => :whitesmoke, "padding" => "5px")) # Menus
+        # Organize controls into tabs
+        tab1_content = DOM.div(x_row, y_row)
+        tab2_content = DOM.div(art_row, legend_row)
+        tab3_content = DOM.div("Future features will go here")
+        
+        tab_configs = [
+            (name="tab1", content=tab1_content),
+            (name="tab2", content=tab2_content),
+            (name="tab3", content=tab3_content)
+        ]
+        
+        pane1_content = create_tabs_component(tab_configs)
+        pane1 = Card(pane1_content; style=Styles("background-color" => :whitesmoke, "padding" => "5px")) # Menus
         pane2 = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px")) # Table
         pane3 = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px")) # Plot
 
