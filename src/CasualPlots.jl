@@ -17,9 +17,9 @@ include("create_demo_data.jl")
 
 include("plotting.jl")
 include("tabs_component.jl")
-include("create_components.jl")
 include("setup_callbacks.jl")
 
+include("app_helpers.jl")
 include("app.jl")
 
 export casualplots_app
