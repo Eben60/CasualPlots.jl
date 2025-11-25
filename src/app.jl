@@ -8,7 +8,6 @@ function casualplots_app()
         on(trigger_update) do val
             current_time = time()
             if current_time - last_update[] > 30
-                # println("Refreshing variable list.")
                 dims_dict_obs[] = get_dims_of_arrays()
                 last_update[] = current_time
             end

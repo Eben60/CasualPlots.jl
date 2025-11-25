@@ -6,6 +6,7 @@ authors = ["Eben60"]
 [deps]
 AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
 Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Electron = "a1bb12fb-d4d1-54b4-b10a-ee7951ef7ad3"
 Hyperscript = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
@@ -14,6 +15,7 @@ WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
 Bonito = "4.1"
+ColorSchemes = "3.31.0"
 DataFrames = "1.8"
 Electron = "6.1"
 julia = "1.10"
