@@ -38,8 +38,14 @@ function initialize_app_state()
     selected_art = Observable("Scatter")
     show_legend = Observable(true)
     
+    # Text field observables for plot labels
+    xlabel_text = Observable("")
+    ylabel_text = Observable("")
+    title_text = Observable("")
+    
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, 
-              selected_art, show_legend, last_update)
+              selected_art, show_legend, last_update,
+              xlabel_text, ylabel_text, title_text)
 end
 
 # ============================================================================
@@ -173,7 +179,7 @@ end
 # ============================================================================
 
 """
-    create_control_panel_ui(dropdowns, show_legend, trigger_update)
+    create_control_panel_ui(dropdowns, show_legend, trigger_update, xlabel_text, ylabel_text, title_text)
 
 Create UI elements for the control panel (data source and format controls).
 
@@ -182,8 +188,12 @@ Returns a NamedTuple with:
 - `y_source`: Y variable selection UI
 - `plot_kind`: Plot type selection UI
 - `legend_control`: Legend visibility checkbox UI
+- `xlabel_input`: X-axis label text field
+- `ylabel_input`: Y-axis label text field
+- `title_input`: Plot title text field
 """
-function create_control_panel_ui(dropdowns, show_legend, trigger_update)
+function create_control_panel_ui(dropdowns, show_legend, trigger_update, 
+                                  xlabel_text, ylabel_text, title_text)
     x_source = DOM.div(
         "Select X:", 
         DOM.div(dropdowns.x_node; onclick=js"() => $(trigger_update).notify(true)");
@@ -208,7 +218,33 @@ function create_control_panel_ui(dropdowns, show_legend, trigger_update)
         style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
     )
     
-    return (; x_source, y_source, plot_kind, legend_control)
+    # Text input fields for plot labels
+    xlabel_input = DOM.div(
+        DOM.label("X-Axis:", style=Styles("min-width" => "60px")),
+        DOM.input(type="text", value=xlabel_text, readonly=true,
+                  style=Styles("flex" => "1", "padding" => "2px 5px"));
+        style=Styles("display" => "flex", "align-items" => "center", 
+                     "gap" => "5px", "margin-bottom" => "5px")
+    )
+    
+    ylabel_input = DOM.div(
+        DOM.label("Y-Axis:", style=Styles("min-width" => "60px")),
+        DOM.input(type="text", value=ylabel_text, readonly=true,
+                  style=Styles("flex" => "1", "padding" => "2px 5px"));
+        style=Styles("display" => "flex", "align-items" => "center",
+                     "gap" => "5px", "margin-bottom" => "5px")
+    )
+    
+    title_input = DOM.div(
+        DOM.label("Title:", style=Styles("min-width" => "60px")),
+        DOM.input(type="text", value=title_text, readonly=true,
+                  style=Styles("flex" => "1", "padding" => "2px 5px"));
+        style=Styles("display" => "flex", "align-items" => "center",
+                     "gap" => "5px", "margin-bottom" => "5px")
+    )
+    
+    return (; x_source, y_source, plot_kind, legend_control,
+              xlabel_input, ylabel_input, title_input)
 end
 
 """
@@ -224,7 +260,13 @@ Tabbed component DOM element with Source, Format, and Save tabs
 """
 function create_tab_content(control_panel)
     t1_source_content = DOM.div(control_panel.x_source, control_panel.y_source)
-    t2_format_content = DOM.div(control_panel.plot_kind, control_panel.legend_control)
+    t2_format_content = DOM.div(
+        control_panel.plot_kind, 
+        control_panel.legend_control,
+        control_panel.xlabel_input,
+        control_panel.ylabel_input,
+        control_panel.title_input
+    )
     t3_save_content = DOM.div("Saving results will go here")
     
     tab_configs = [

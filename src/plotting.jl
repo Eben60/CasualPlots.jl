@@ -18,16 +18,17 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
 
     df = (; x=x_long, y=y_long, group=string.(group))
     plt = data(df) * mapping(:x => x_name, :y => y_name, color=:group) * visual(art)
+    title="$(var_to_string(art)) Plot of $y_name vs $x_name"
     fg = draw(plt;
         figure=(; size=(800, 600)), 
         legend=(show=show_legend, ),
-        axis=(; title="$(var_to_string(art)) Plot of $y_name vs $x_name")
+        axis=(; title)
     )
 
     fig = fg.figure
     show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
     global cp_figure = fig
-    return fig
+    return (; fig, fig_params = (; title, x_name, y_name))
 end
 
 function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol

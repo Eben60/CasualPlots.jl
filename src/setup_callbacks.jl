@@ -23,7 +23,8 @@ end
 
 function setup_source_callback(selected_x, selected_y, selected_art, show_legend,
                                 current_plot_x, current_plot_y,
-                                plot_observable, table_observable)
+                                plot_observable, table_observable,
+                                xlabel_text, ylabel_text, title_text)
     """Handle data source changes (X/Y selection)"""
     
     onany(selected_x, selected_y) do x, y
@@ -37,8 +38,12 @@ function setup_source_callback(selected_x, selected_y, selected_art, show_legend
             # Create plot with current format settings
             art = selected_art[] |> Symbol |> eval
             fig = check_data_create_plot(x, y; plot_format = (;art=art, show_legend=show_legend[]))
-            if fig isa Figure
-                plot_observable[] = fig
+            if !isnothing(fig)
+                plot_observable[] = fig.fig
+                # Update text fields with plot metadata
+                xlabel_text[] = fig.fig_params.x_name
+                ylabel_text[] = fig.fig_params.y_name
+                title_text[] = fig.fig_params.title
             end
             
             # Create/update table (source-related only)
@@ -49,12 +54,17 @@ function setup_source_callback(selected_x, selected_y, selected_art, show_legend
             current_plot_y[] = nothing
             plot_observable[] = DOM.div("Pane 3")
             table_observable[] = DOM.div("Pane 2")
+            # Clear text fields
+            xlabel_text[] = ""
+            ylabel_text[] = ""
+            title_text[] = ""
         end
     end
 end
 
 function setup_format_callback(selected_art, show_legend, current_plot_x, current_plot_y,
-                                 plot_observable)
+                                 plot_observable,
+                                 xlabel_text, ylabel_text, title_text)
     """Handle format changes (plot art, legend) - replot with new settings"""
     
     onany(selected_art, show_legend) do art_str, legend_bool
@@ -65,8 +75,12 @@ function setup_format_callback(selected_art, show_legend, current_plot_x, curren
         if !isnothing(x) && !isnothing(y)
             art = art_str |> Symbol |> eval
             fig = check_data_create_plot(x, y; plot_format = (; art=art, show_legend=legend_bool))
-            if fig isa Figure
-                plot_observable[] = fig
+            if !isnothing(fig)
+                plot_observable[] = fig.fig
+                # Update text fields with updated plot metadata
+                xlabel_text[] = fig.fig_params.x_name
+                ylabel_text[] = fig.fig_params.y_name
+                title_text[] = fig.fig_params.title
             end
         end
         # Note: Table is NOT updated - it's source-dependent only
