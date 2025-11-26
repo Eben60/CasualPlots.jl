@@ -1,5 +1,5 @@
 function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, selected_y::Observable, dropdown_y_node::Observable, plot_observable::Observable, table_observable::Observable)
-    Observables.on(selected_x) do x
+    on(selected_x) do x
         # println("selected x: $x")
         selected_y[] = nothing
         plot_observable[] = DOM.div("Pane 3")
