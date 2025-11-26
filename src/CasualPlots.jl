@@ -18,6 +18,7 @@ include("create_demo_data.jl")
 include("plotting.jl")
 include("tabs_component.jl")
 include("setup_callbacks.jl")
+include("label_update_callbacks.jl")
 
 include("app_helpers.jl")
 include("app.jl")

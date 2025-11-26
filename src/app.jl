@@ -26,10 +26,16 @@ casualplots_app() = App() do session
     setup_source_callback(state.selected_x, state.selected_y, state.selected_art, 
                           state.show_legend, outputs.current_x, outputs.current_y,
                           outputs.plot, outputs.table,
-                          state.xlabel_text, state.ylabel_text, state.title_text)
+                          state.xlabel_text, state.ylabel_text, state.title_text,
+                          state.current_figure, state.current_axis)
     setup_format_callback(state.selected_art, state.show_legend, 
                           outputs.current_x, outputs.current_y, outputs.plot,
-                          state.xlabel_text, state.ylabel_text, state.title_text)
+                          state.xlabel_text, state.ylabel_text, state.title_text,
+                          state.current_axis)
+    
+    # Setup label update callbacks for editable text fields
+    setup_label_update_callbacks(state.xlabel_text, state.ylabel_text, state.title_text,
+                                  state.current_axis, outputs.plot)
     
     # Create UI components
     control_panel = create_control_panel_ui(dropdowns, state.show_legend, state.trigger_update,

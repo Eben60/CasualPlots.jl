@@ -26,9 +26,14 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     )
 
     fig = fg.figure
+    # Extract axis from FigureGrid - AlgebraOfGraphics stores AxisEntries in grid
+    # The AxisEntries object has the axis as its first field
+    axis_entries = fg.grid[1, 1]
+    axis = axis_entries.axis  # Access the axis field from AxisEntries
     show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
     global cp_figure = fig
-    return (; fig, fig_params = (; title, x_name, y_name))
+    global cp_figure_ax = axis
+    return (; fig, axis, fig_params = (; title, x_name, y_name))
 end
 
 function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol
@@ -48,6 +53,11 @@ function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractStri
         end
     catch e
         println("An error occurred during plotting: ", e)
+        println("\nStack trace:")
+        for (exc, bt) in Base.catch_stack()
+            showerror(stdout, exc, bt)
+            println()
+        end
         return nothing
     end
 end

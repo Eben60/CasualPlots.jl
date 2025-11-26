@@ -43,9 +43,14 @@ function initialize_app_state()
     ylabel_text = Observable("")
     title_text = Observable("")
     
+    # Store figure and axis for direct label manipulation
+    current_figure = Observable{Union{Nothing, Figure}}(nothing)
+    current_axis = Observable{Union{Nothing, Axis}}(nothing)
+    
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, 
               selected_art, show_legend, last_update,
-              xlabel_text, ylabel_text, title_text)
+              xlabel_text, ylabel_text, title_text,
+              current_figure, current_axis)
 end
 
 # ============================================================================
@@ -218,27 +223,60 @@ function create_control_panel_ui(dropdowns, show_legend, trigger_update,
         style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
     )
     
-    # Text input fields for plot labels
+    # Text input fields for plot labels - editable with Enter/Tab support
     xlabel_input = DOM.div(
         DOM.label("X-Axis:", style=Styles("min-width" => "60px")),
-        DOM.input(type="text", value=xlabel_text, readonly=true,
-                  style=Styles("flex" => "1", "padding" => "2px 5px"));
+        DOM.input(
+            type="text", 
+            value=xlabel_text,
+            onkeydown=js"""
+                event => {
+                    if (event.key === 'Enter' || event.key === 'Tab') {
+                        event.preventDefault();
+                        $(xlabel_text).notify(event.target.value);
+                    }
+                }
+            """,
+            style=Styles("flex" => "1", "padding" => "2px 5px")
+        );
         style=Styles("display" => "flex", "align-items" => "center", 
                      "gap" => "5px", "margin-bottom" => "5px")
     )
     
     ylabel_input = DOM.div(
         DOM.label("Y-Axis:", style=Styles("min-width" => "60px")),
-        DOM.input(type="text", value=ylabel_text, readonly=true,
-                  style=Styles("flex" => "1", "padding" => "2px 5px"));
+        DOM.input(
+            type="text", 
+            value=ylabel_text,
+            onkeydown=js"""
+                event => {
+                    if (event.key === 'Enter' || event.key === 'Tab') {
+                        event.preventDefault();
+                        $(ylabel_text).notify(event.target.value);
+                    }
+                }
+            """,
+            style=Styles("flex" => "1", "padding" => "2px 5px")
+        );
         style=Styles("display" => "flex", "align-items" => "center",
                      "gap" => "5px", "margin-bottom" => "5px")
     )
     
     title_input = DOM.div(
         DOM.label("Title:", style=Styles("min-width" => "60px")),
-        DOM.input(type="text", value=title_text, readonly=true,
-                  style=Styles("flex" => "1", "padding" => "2px 5px"));
+        DOM.input(
+            type="text", 
+            value=title_text,
+            onkeydown=js"""
+                event => {
+                    if (event.key === 'Enter' || event.key === 'Tab') {
+                        event.preventDefault();
+                        $(title_text).notify(event.target.value);
+                    }
+                }
+            """,
+            style=Styles("flex" => "1", "padding" => "2px 5px")
+        );
         style=Styles("display" => "flex", "align-items" => "center",
                      "gap" => "5px", "margin-bottom" => "5px")
     )
