@@ -81,10 +81,63 @@ function setup_dropdowns(dims_dict_obs, selected_x, selected_art)
     end
     notify(dims_dict_obs)
     
-    dropdown_y_node = create_y_dropdown("Select Y after you selected X")
-    dropdown_art_node = create_art_dropdown(selected_art)
+    dropdown_y_node = Observable(create_y_dropdown("Select Y after you selected X"))
+    dropdown_art_node = Observable(create_art_dropdown(selected_art))
     
     return (; x_node=dropdown_x_node, y_node=dropdown_y_node, art_node=dropdown_art_node)
+end
+
+"""
+    create_dropdown(options, selected_val_obs; placeholder=nothing, disabled=false)
+
+Create a generic dropdown menu.
+
+# Arguments
+- `options`: Vector of `DOM.option` elements or strings.
+- `selected_val_obs`: Observable to update when selection changes.
+- `placeholder`: Optional placeholder text (if string) or `DOM.option` (if element).
+- `disabled`: Whether the dropdown is disabled.
+
+# Returns
+DOM.select element
+"""
+function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=nothing; placeholder=nothing, disabled=false)
+    
+    final_options = []
+    current_val = isnothing(selected_val_obs) ? nothing : selected_val_obs[]
+    
+    # Handle placeholder
+    if !isnothing(placeholder)
+        if placeholder isa AbstractString
+            # Select placeholder if current_val is nothing or empty
+            is_selected = isnothing(current_val) || current_val == ""
+            push!(final_options, DOM.option(placeholder, value="", selected=is_selected, disabled=true))
+        else
+            push!(final_options, placeholder)
+        end
+    end
+    
+    # Handle options
+    for opt in options
+        if opt isa AbstractString
+            is_selected = !isnothing(current_val) && opt == current_val
+            push!(final_options, DOM.option(opt, value=opt, selected=is_selected))
+        else
+            push!(final_options, opt)
+        end
+    end
+    
+    # Setup onchange handler if observable provided
+    attributes = Dict{Symbol, Any}()
+    if disabled
+        attributes[:disabled] = true
+    end
+    
+    if !isnothing(selected_val_obs)
+        attributes[:onchange] = js"event => $(selected_val_obs).notify(event.target.value)"
+    end
+    
+    return DOM.select(final_options...; attributes...)
 end
 
 """
@@ -101,11 +154,7 @@ Create a dropdown menu for X variable selection.
 DOM.select element with onchange handler bound to selected_x
 """
 function create_x_dropdown(prompt_text::String, array_names::Vector{String}, selected_x::Observable)
-    return DOM.select(
-        DOM.option(prompt_text, value="", selected=true, disabled=true), # Placeholder
-        [DOM.option(name, value=name) for name in array_names]...;
-        onchange = js"event => $(selected_x).notify(event.target.value)"
-    )
+    return create_dropdown(array_names, selected_x; placeholder=prompt_text)
 end
 
 """
@@ -123,11 +172,7 @@ when the user selects an X variable.
 Observable containing a disabled DOM.select element
 """
 function create_y_dropdown(prompt_text::String)
-    return Observable(
-        DOM.select(DOM.option(prompt_text, value="", selected=true, disabled=true); 
-        disabled=true
-        )
-    )
+    return create_dropdown([], nothing; placeholder=prompt_text, disabled=true)
 end
 
 """
@@ -142,17 +187,8 @@ Create a dropdown menu for plot type selection.
 Observable containing DOM.select element with plot type options
 """
 function create_art_dropdown(selected_art::Observable)
-    current_art = selected_art[]
-    art_options = [
-        DOM.option("Lines", value="Lines", selected=(current_art == "Lines")),
-        DOM.option("Scatter", value="Scatter", selected=(current_art == "Scatter")),
-        DOM.option("BarPlot", value="BarPlot", selected=(current_art == "BarPlot"))
-    ]
-    return Observable(
-        DOM.select(art_options...;
-            onchange = js"event => $(selected_art).notify(event.target.value)"
-        )
-    )
+    art_options = ["Lines", "Scatter", "BarPlot"]
+    return create_dropdown(art_options, selected_art)
 end
 
 # ============================================================================

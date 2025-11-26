@@ -11,21 +11,15 @@ function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, sel
     on(selected_x) do x
         # println("selected x: $x")
         selected_y[] = nothing
-        plot_observable[] = DOM.div("Pane 3")
-        table_observable[] = DOM.div("Pane 2")
 
         dims_dict = dims_dict_obs[]
         new_y_opts_strings = get_congruent_y_names(x, dims_dict)
         
         if isempty(new_y_opts_strings)
-            dropdown_y_node[] = DOM.select(DOM.option("No congruent Y-arrays for this X", value="", selected=true, disabled=true); disabled=true)
+            dropdown_y_node[] = create_dropdown([], nothing; placeholder="No congruent Y-arrays for this X", disabled=true)
         else
             # println("trying to set Y menu to $new_y_opts_strings")
-            new_options = [
-                DOM.option("Select Y", value="", selected=true, disabled=true),
-                [DOM.option(name, value=name) for name in new_y_opts_strings]...
-            ]
-            dropdown_y_node[] = DOM.select(new_options...; disabled=false, onchange = js"event => $(selected_y).notify(event.target.value)")
+            dropdown_y_node[] = create_dropdown(new_y_opts_strings, selected_y; placeholder="Select Y")
         end
     end
 end
