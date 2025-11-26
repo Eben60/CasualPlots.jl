@@ -8,7 +8,7 @@ Package local path: $(pathof(CasualPlots))
 module CasualPlots
 
 using Bonito, Observables, AlgebraOfGraphics, WGLMakie, DataFrames
-using Bonito.DOM
+# using Bonito.DOM
 
 include("electron.jl")
 
