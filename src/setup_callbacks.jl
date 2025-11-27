@@ -78,8 +78,8 @@ function setup_source_callback(state, outputs)
             # Clear everything
             current_plot_x[] = nothing
             current_plot_y[] = nothing
-            plot_observable[] = DOM.div("Pane 3")
-            table_observable[] = DOM.div("Pane 2")
+            plot_observable[] = DOM.div("Plot Pane")
+            table_observable[] = DOM.div("Table Pane")
             # Clear text fields and references
             xlabel_text[] = ""
             ylabel_text[] = ""

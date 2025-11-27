@@ -75,13 +75,13 @@ Returns a NamedTuple with:
 - `current_x`, `current_y`: Observables tracking currently plotted data
 """
 function initialize_output_observables()
-    plot_observable = Observable{Any}(DOM.div("Pane 3"))
-    table_observable = Observable{Any}(DOM.div("Pane 2"))
-    current_plot_x = Observable{Union{Nothing, String}}(nothing)
-    current_plot_y = Observable{Union{Nothing, String}}(nothing)
+    plot_observable = Observable{Any}(DOM.div("Plot Pane"))
+    table_observable = Observable{Any}(DOM.div("Table Pane"))
+    current_x = Observable{Union{Nothing, String}}(nothing)
+    current_y = Observable{Union{Nothing, String}}(nothing)
     
     return (; plot=plot_observable, table=table_observable, 
-              current_x=current_plot_x, current_y=current_plot_y)
+              current_x, current_y)
 end
 
 # ============================================================================
