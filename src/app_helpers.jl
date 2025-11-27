@@ -1,5 +1,5 @@
 # Helper functions for casualplots_app()
-# These functions break down the main app into logical, testable units
+# These functions break down the main app into allegedly logical, testable units
 # Organized in top-down order as called from the main app
 
 # ============================================================================
@@ -47,10 +47,11 @@ function initialize_app_state()
     current_figure = Observable{Union{Nothing, Figure}}(nothing)
     current_axis = Observable{Union{Nothing, Axis}}(nothing)
     
-    return (; dims_dict_obs, trigger_update, selected_x, selected_y, 
-              selected_plottype, show_legend, last_update,
-              xlabel_text, ylabel_text, title_text,
-              current_figure, current_axis)
+    plot_format = (; selected_plottype, show_legend)
+    plot_handles = (; xlabel_text, ylabel_text, title_text, current_figure, current_axis)
+    
+    return (; dims_dict_obs, trigger_update, selected_x, selected_y, last_update,
+              plot_format, plot_handles)
 end
 
 # ============================================================================

@@ -9,7 +9,8 @@ Returns a NamedTuple with:
 - `plottype_node`: Observable containing dropdown DOM element
 """
 function setup_dropdowns(state, supported_plot_types)
-    (; dims_dict_obs, selected_x, selected_plottype) = state
+    (; dims_dict_obs, selected_x, plot_format) = state
+    (; selected_plottype) = plot_format
     dropdown_x_node = Observable(DOM.div("Click to load X variables"))
     
     # Setup X dropdown to update when data changes

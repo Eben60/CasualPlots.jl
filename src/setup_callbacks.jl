@@ -42,7 +42,9 @@ Handle data source changes (X or Y selection updates).
 """
 function setup_source_callback(state, outputs)
     
-    (; selected_x, selected_y, selected_plottype, show_legend, xlabel_text, ylabel_text, title_text, current_figure, current_axis) = state
+    (; selected_x, selected_y, plot_format, plot_handles) = state
+    (; selected_plottype, show_legend) = plot_format
+    (; xlabel_text, ylabel_text, title_text, current_figure, current_axis) = plot_handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
@@ -96,8 +98,8 @@ Triggers a replot using the currently stored data (`current_plot_x`, `current_pl
 Updates the `plot_observable` and text fields, but does *not* regenerate the data table.
 """
 function setup_format_callback(state, outputs)
-    
-    (; selected_plottype, show_legend, xlabel_text, ylabel_text, title_text, current_axis) = state
+    (; selected_plottype, show_legend) = state.plot_format
+    (; xlabel_text, ylabel_text, title_text, current_axis) = state.plot_handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot

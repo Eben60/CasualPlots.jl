@@ -13,7 +13,9 @@ Returns a NamedTuple with:
 - `title_input`: Plot title text field
 """
 function create_control_panel_ui(dropdowns, state)
-    (; show_legend, trigger_update, xlabel_text, ylabel_text, title_text) = state
+    (; trigger_update, plot_format, plot_handles) = state
+    (; show_legend) = plot_format
+    (; xlabel_text, ylabel_text, title_text) = plot_handles
     x_source = DOM.div(
         "Select X:", 
         DOM.div(dropdowns.x_node; onclick=js"() => $(trigger_update).notify(true)");
