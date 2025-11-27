@@ -7,7 +7,8 @@ When `selected_x` updates:
 2. Resets the plot and table views.
 3. Updates the Y-variable dropdown (`dropdown_y_node`) to show only variables congruent with the new X selection (based on `dims_dict_obs`).
 """
-function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, selected_y::Observable, dropdown_y_node::Observable, plot_observable::Observable, table_observable::Observable)
+function setup_x_callback(state, dropdown_y_node, outputs)
+    (; dims_dict_obs, selected_x, selected_y) = state
     on(selected_x) do x
         # println("selected x: $x")
         selected_y[] = nothing
@@ -39,11 +40,13 @@ Handle data source changes (X or Y selection updates).
     - Clears the plot and table views.
     - Resets internal state and text fields.
 """
-function setup_source_callback(selected_x, selected_y, selected_plottype, show_legend,
-                                current_plot_x, current_plot_y,
-                                plot_observable, table_observable,
-                                xlabel_text, ylabel_text, title_text,
-                                current_figure, current_axis)
+function setup_source_callback(state, outputs)
+    
+    (; selected_x, selected_y, selected_plottype, show_legend, xlabel_text, ylabel_text, title_text, current_figure, current_axis) = state
+    current_plot_x = outputs.current_x
+    current_plot_y = outputs.current_y
+    plot_observable = outputs.plot
+    table_observable = outputs.table
     
     onany(selected_x, selected_y) do x, y
         is_valid = !isnothing(y) && y != "" && !isnothing(x) && x != ""
@@ -92,11 +95,13 @@ Handle format changes (e.g., plot type `selected_plottype`, `show_legend` toggle
 Triggers a replot using the currently stored data (`current_plot_x`, `current_plot_y`) with the new format settings.
 Updates the `plot_observable` and text fields, but does *not* regenerate the data table.
 """
-function setup_format_callback(selected_plottype, show_legend, current_plot_x, current_plot_y,
-                                 plot_observable,
-                                 xlabel_text, ylabel_text, title_text,
-                                 current_axis)
+function setup_format_callback(state, outputs)
     
+    (; selected_plottype, show_legend, xlabel_text, ylabel_text, title_text, current_axis) = state
+    current_plot_x = outputs.current_x
+    current_plot_y = outputs.current_y
+    plot_observable = outputs.plot
+
     onany(selected_plottype, show_legend) do plottype_str, legend_bool
         x = current_plot_x[]
         y = current_plot_y[]

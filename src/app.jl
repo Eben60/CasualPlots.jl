@@ -17,31 +17,22 @@ casualplots_app() = App() do session
     state = initialize_app_state()
    
     # Setup dropdown menus
-    dropdowns = setup_dropdowns(state.dims_dict_obs, state.selected_x, state.selected_plottype, supported_plot_types)
+    # Setup dropdown menus
+    dropdowns = setup_dropdowns(state, supported_plot_types)
     
     # Initialize output observables
     outputs = initialize_output_observables()
     
     # Setup reactive callbacks
-    setup_x_callback(state.dims_dict_obs, state.selected_x, state.selected_y, 
-                     dropdowns.y_node, outputs.plot, outputs.table)
-    setup_source_callback(state.selected_x, state.selected_y, state.selected_plottype, 
-                          state.show_legend, outputs.current_x, outputs.current_y,
-                          outputs.plot, outputs.table,
-                          state.xlabel_text, state.ylabel_text, state.title_text,
-                          state.current_figure, state.current_axis)
-    setup_format_callback(state.selected_plottype, state.show_legend, 
-                          outputs.current_x, outputs.current_y, outputs.plot,
-                          state.xlabel_text, state.ylabel_text, state.title_text,
-                          state.current_axis)
+    setup_x_callback(state, dropdowns.y_node, outputs)
+    setup_source_callback(state, outputs)
+    setup_format_callback(state, outputs)
     
     # Setup label update callbacks for editable text fields
-    setup_label_update_callbacks(state.xlabel_text, state.ylabel_text, state.title_text,
-                                  state.current_axis, outputs.plot)
+    setup_label_update_callbacks(state, outputs)
     
     # Create UI components
-    control_panel = create_control_panel_ui(dropdowns, state.show_legend, state.trigger_update,
-                                             state.xlabel_text, state.ylabel_text, state.title_text)
+    control_panel = create_control_panel_ui(dropdowns, state)
     tabs = create_tab_content(control_panel)
     help = setup_help_section(outputs.plot)
     
