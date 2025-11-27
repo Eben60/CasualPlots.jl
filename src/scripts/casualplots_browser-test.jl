@@ -16,7 +16,6 @@ isdefined(Main, :caspl_z100) || (caspl_z100 = caspl_x_100 .|> sqrt)
 isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl_x_100, 10))
 isdefined(Main, :caspl_u_10) || (caspl_u_10 = (1:10).*u"mm^2")
 
-
 # Create test DataFrames from existing arrays
 isdefined(Main, :caspl_df_simple) || (caspl_df_simple = DataFrame(
     x = caspl_x_10,
@@ -48,26 +47,12 @@ end
 
 app = casualplots_app()
 
-# Electron or Browser
-ele_serve = true
+# this opens the GUI in browser for debugging
+server = Bonito.Server(app, "127.0.0.1", 8000)
+println("Server running at http://127.0.0.1:8000")
+println("Press Ctrl+C to stop the server")
+wait(server)
 
-if ele_serve
-    Ele.serve_app(app)
-else
-    # this opens the GUI in browser for debugging
-    server = Bonito.Server(app, "127.0.0.1", 8000)
-    println("Server running at http://127.0.0.1:8000")
-    println("Press Ctrl+C to stop the server")
-    wait(server)
-end
-
-
-# the current plot is exported and accessible as `cp_figure`
-# and can be displayed in your environment by 
-# julia> cp_figure
-#
-# It's Axis object is accessible as `cp_figure_ax`, thus you can modify the plot, e.g.
-# julia> cp_figure_ax.title = "New Title"
 
 # To close the app, you can call:
 # close(app)

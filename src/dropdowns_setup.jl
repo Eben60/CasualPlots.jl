@@ -8,7 +8,9 @@ Returns a NamedTuple with:
 - `y_node`: Observable containing Y dropdown DOM element  
 - `plottype_node`: Observable containing dropdown DOM element
 """
-function setup_dropdowns(dims_dict_obs, selected_x, selected_plottype, supported_plot_types)
+function setup_dropdowns(state, supported_plot_types)
+    (; dims_dict_obs, selected_x, plot_format) = state
+    (; selected_plottype) = plot_format
     dropdown_x_node = Observable(DOM.div("Click to load X variables"))
     
     # Setup X dropdown to update when data changes
@@ -27,9 +29,23 @@ function setup_dropdowns(dims_dict_obs, selected_x, selected_plottype, supported
     dropdown_y_node = create_dropdown([], nothing; 
         placeholder="Select Y after you selected X", 
         disabled=true) |> Observable
+
     dropdown_plottype_node = Observable(create_dropdown(supported_plot_types, selected_plottype))
     
-    return (; x_node=dropdown_x_node, y_node=dropdown_y_node, plottype_node=dropdown_plottype_node)
+    # Setup DataFrame dropdown
+    dropdown_dataframe_node = Observable(DOM.div("Click to load DataFrames"))
+    
+    # Update DataFrame dropdown when dataframes_dict_obs changes
+    on(state.dataframes_dict_obs) do df_names
+        df_names_strings = string.(df_names) |> sort!
+        if isempty(df_names_strings)
+            df_names_strings = [""]
+        end
+        dropdown_dataframe_node[] = create_dropdown(df_names_strings, state.selected_dataframe; placeholder="Select DataFrame")
+    end
+    notify(state.dataframes_dict_obs)
+    
+    return (; x_node=dropdown_x_node, y_node=dropdown_y_node, plottype_node=dropdown_plottype_node, dataframe_node=dropdown_dataframe_node)
 end
 
 """

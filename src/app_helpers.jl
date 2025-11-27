@@ -1,5 +1,5 @@
 # Helper functions for casualplots_app()
-# These functions break down the main app into logical, testable units
+# These functions break down the main app into allegedly logical, testable units
 # Organized in top-down order as called from the main app
 
 # ============================================================================
@@ -29,28 +29,41 @@ function initialize_app_state()
         current_time = time()
         if current_time - last_update[] > 30
             dims_dict_obs[] = get_dims_of_arrays()
+            dataframes_dict_obs[] = collect_dataframes_from_main()
             last_update[] = current_time
         end
     end
     
+    # Array source observables
     selected_x = Observable{Union{Nothing, String}}(nothing)
     selected_y = Observable{Union{Nothing, String}}(nothing)
     selected_plottype = Observable("Scatter")
     show_legend = Observable(true)
     
+    # DataFrame source observables
+    source_type = Observable("X, Y Arrays")  # Default to array mode
+    dataframes_dict_obs = Observable(collect_dataframes_from_main())
+    selected_dataframe = Observable{Union{Nothing, String}}(nothing)
+    selected_columns = Observable{Vector{String}}(String[])
+    
     # Text field observables for plot labels
     xlabel_text = Observable("")
     ylabel_text = Observable("")
     title_text = Observable("")
+    legend_title_text = Observable("")
     
     # Store figure and axis for direct label manipulation
     current_figure = Observable{Union{Nothing, Figure}}(nothing)
     current_axis = Observable{Union{Nothing, Axis}}(nothing)
     
-    return (; dims_dict_obs, trigger_update, selected_x, selected_y, 
-              selected_plottype, show_legend, last_update,
-              xlabel_text, ylabel_text, title_text,
-              current_figure, current_axis)
+    plot_format = (; selected_plottype, show_legend)
+    plot_handles = (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis)
+    
+    block_format_update = Observable(false)
+
+    return (; dims_dict_obs, trigger_update, selected_x, selected_y, last_update,
+              plot_format, plot_handles, block_format_update,
+              source_type, dataframes_dict_obs, selected_dataframe, selected_columns)
 end
 
 # ============================================================================
@@ -74,13 +87,13 @@ Returns a NamedTuple with:
 - `current_x`, `current_y`: Observables tracking currently plotted data
 """
 function initialize_output_observables()
-    plot_observable = Observable{Any}(DOM.div("Pane 3"))
-    table_observable = Observable{Any}(DOM.div("Pane 2"))
-    current_plot_x = Observable{Union{Nothing, String}}(nothing)
-    current_plot_y = Observable{Union{Nothing, String}}(nothing)
+    plot_observable = Observable{Any}(DOM.div("Plot Pane"))
+    table_observable = Observable{Any}(DOM.div("Table Pane"))
+    current_x = Observable{Union{Nothing, String}}(nothing)
+    current_y = Observable{Union{Nothing, String}}(nothing)
     
     return (; plot=plot_observable, table=table_observable, 
-              current_x=current_plot_x, current_y=current_plot_y)
+              current_x, current_y)
 end
 
 # ============================================================================
@@ -101,7 +114,7 @@ Organize control panel elements into tabbed interface.
 Tabbed component DOM element with Source, Format, and Save tabs
 """
 function create_tab_content(control_panel)
-    t1_source_content = DOM.div(control_panel.x_source, control_panel.y_source)
+    t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(
         control_panel.plot_kind, 
         control_panel.legend_control,
@@ -231,12 +244,12 @@ help_section(help_visibility) = DOM.div(
 # ============================================================================
 
 """
-    assemble_layout(pane1_content, help_visibility, plot_observable, table_observable)
+    assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable)
 
 Assemble the final application layout with all panes and grids.
 
 # Arguments
-- `pane1_content`: Tabbed control panel content
+- `ctrlpane_content`: Tabbed control panel content
 - `help_visibility`: Observable controlling help section visibility
 - `plot_observable`: Observable containing plot display
 - `table_observable`: Observable containing table display
@@ -244,20 +257,20 @@ Assemble the final application layout with all panes and grids.
 # Returns
 Complete DOM structure for the application
 """
-function assemble_layout(pane1_content, help_visibility, plot_observable, table_observable)
-    # Split pane1 vertically: tabs on top, help on bottom
-    pane1_split = DOM.div(
-        DOM.div(pane1_content, style=Styles("flex" => "1", "overflow" => "auto")),
+function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable)
+    # Split ctrlpane vertically: tabs on top, help on bottom
+    ctrlpane_split = DOM.div(
+        DOM.div(ctrlpane_content, style=Styles("flex" => "1", "overflow" => "auto")),
         help_section(help_visibility);
         style=Styles("display" => "flex", "flex-direction" => "column", "height" => "100%")
     )
     
-    pane1 = Card(pane1_split; style=Styles("background-color" => :whitesmoke, "padding" => "5px"))
-    pane2 = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px"))
-    pane3 = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px"))
+    ctrlpane = Card(ctrlpane_split; style=Styles("background-color" => :whitesmoke, "padding" => "5px"))
+    tblpane = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px"))
+    pltpane = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px"))
     
-    top_row = Grid(pane1, pane3; columns="350px 810px", gap="5px")
-    container = Grid(top_row, pane2; rows="610px auto", gap="5px")
+    top_row = Grid(ctrlpane, pltpane; columns="350px 810px", gap="5px")
+    container = Grid(top_row, tblpane; rows="610px auto", gap="5px")
     
     return DOM.div(container, style=Styles("padding" => "5px"))
 end
