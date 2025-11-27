@@ -1,14 +1,14 @@
 """
-    setup_dropdowns(dims_dict_obs, selected_x, selected_art)
+    setup_dropdowns(dims_dict_obs, selected_x, selected_plottype)
 
-Create and configure dropdown menus for X, Y, and plot art selection.
+Create and configure dropdown menus for X, Y, and plot type selection.
 
 Returns a NamedTuple with:
 - `x_node`: Observable containing X dropdown DOM element
 - `y_node`: Observable containing Y dropdown DOM element  
-- `art_node`: Observable containing Art dropdown DOM element
+- `plottype_node`: Observable containing dropdown DOM element
 """
-function setup_dropdowns(dims_dict_obs, selected_x, selected_art)
+function setup_dropdowns(dims_dict_obs, selected_x, selected_plottype, supported_plot_types)
     dropdown_x_node = Observable(DOM.div("Click to load X variables"))
     
     # Setup X dropdown to update when data changes
@@ -18,14 +18,18 @@ function setup_dropdowns(dims_dict_obs, selected_x, selected_art)
         if isempty(array_names)
             array_names = [""]
         end
-        dropdown_x_node[] = create_x_dropdown("Select X", array_names, selected_x)
+        dropdown_x_node[] = create_dropdown(array_names, selected_x; placeholder="Select X")
     end
     notify(dims_dict_obs)
+
+    # The actual options will be populated dynamically by setup_x_callback()
+    # when the user selects an X variable.
+    dropdown_y_node = create_dropdown([], nothing; 
+        placeholder="Select Y after you selected X", 
+        disabled=true) |> Observable
+    dropdown_plottype_node = Observable(create_dropdown(supported_plot_types, selected_plottype))
     
-    dropdown_y_node = Observable(create_y_dropdown("Select Y after you selected X"))
-    dropdown_art_node = Observable(create_art_dropdown(selected_art))
-    
-    return (; x_node=dropdown_x_node, y_node=dropdown_y_node, art_node=dropdown_art_node)
+    return (; x_node=dropdown_x_node, y_node=dropdown_y_node, plottype_node=dropdown_plottype_node)
 end
 
 """
@@ -79,55 +83,4 @@ function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=n
     end
     
     return DOM.select(final_options...; attributes...)
-end
-
-"""
-    create_x_dropdown(prompt_text, array_names, selected_x)
-
-Create a dropdown menu for X variable selection.
-
-# Arguments
-- `prompt_text::String`: Placeholder text for the dropdown
-- `array_names::Vector{String}`: Available variable names
-- `selected_x::Observable`: Observable to update when selection changes
-
-# Returns
-DOM.select element with onchange handler bound to selected_x
-"""
-function create_x_dropdown(prompt_text::String, array_names::Vector{String}, selected_x::Observable)
-    return create_dropdown(array_names, selected_x; placeholder=prompt_text)
-end
-
-"""
-    create_y_dropdown(prompt_text)
-
-Create an initially disabled dropdown menu for Y variable selection.
-
-The actual options will be populated dynamically by setup_x_callback()
-when the user selects an X variable.
-
-# Arguments
-- `prompt_text::String`: Placeholder text for the dropdown
-
-# Returns
-Observable containing a disabled DOM.select element
-"""
-function create_y_dropdown(prompt_text::String)
-    return create_dropdown([], nothing; placeholder=prompt_text, disabled=true)
-end
-
-"""
-    create_art_dropdown(selected_art)
-
-Create a dropdown menu for plot type selection.
-
-# Arguments
-- `selected_art::Observable`: Observable to update when selection changes
-
-# Returns
-Observable containing DOM.select element with plot type options
-"""
-function create_art_dropdown(selected_art::Observable)
-    art_options = ["Lines", "Scatter", "BarPlot"]
-    return create_dropdown(art_options, selected_art)
 end

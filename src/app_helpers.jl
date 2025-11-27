@@ -15,7 +15,7 @@ Returns a NamedTuple with:
 - `dims_dict_obs`: Observable tracking available arrays
 - `trigger_update`: Observable for triggering data refresh
 - `selected_x`, `selected_y`: Observables for selected variables
-- `selected_art`: Observable for plot type
+- `selected_plottype`: Observable for plot type
 - `show_legend`: Observable for legend visibility
 - `last_update`: Ref for tracking last data refresh time
 """
@@ -35,7 +35,7 @@ function initialize_app_state()
     
     selected_x = Observable{Union{Nothing, String}}(nothing)
     selected_y = Observable{Union{Nothing, String}}(nothing)
-    selected_art = Observable("Scatter")
+    selected_plottype = Observable("Scatter")
     show_legend = Observable(true)
     
     # Text field observables for plot labels
@@ -48,7 +48,7 @@ function initialize_app_state()
     current_axis = Observable{Union{Nothing, Axis}}(nothing)
     
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, 
-              selected_art, show_legend, last_update,
+              selected_plottype, show_legend, last_update,
               xlabel_text, ylabel_text, title_text,
               current_figure, current_axis)
 end

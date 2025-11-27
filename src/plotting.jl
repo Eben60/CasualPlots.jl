@@ -4,8 +4,8 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; art=Scatter, show_legend=true)) # x, y AbstractString or Symbol
-    (; art, show_legend) = plot_format    
+function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; plottype=Scatter, show_legend=true)) # x, y AbstractString or Symbol
+    (; plottype, show_legend) = plot_format    
     if length(x_data) != size(y_data, 1)
         println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
         return nothing
@@ -17,8 +17,8 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     group = repeat(1:n_cols, inner=length(x_data))
 
     df = (; x=x_long, y=y_long, group=string.(group))
-    plt = data(df) * mapping(:x => x_name, :y => y_name, color=:group) * visual(art)
-    title="$(var_to_string(art)) Plot of $y_name vs $x_name"
+    plt = data(df) * mapping(:x => x_name, :y => y_name, color=:group) * visual(plottype)
+    title="$(var_to_string(plottype)) Plot of $y_name vs $x_name"
     fg = draw(plt;
         figure=(; size=(800, 600)), 
         legend=(show=show_legend, ),

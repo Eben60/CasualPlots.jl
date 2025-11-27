@@ -25,7 +25,7 @@ function setup_x_callback(dims_dict_obs::Observable, selected_x::Observable, sel
 end
 
 """
-    setup_source_callback(selected_x, selected_y, selected_art, show_legend, current_plot_x, current_plot_y, plot_observable, table_observable, xlabel_text, ylabel_text, title_text, current_figure, current_axis)
+    setup_source_callback(selected_x, selected_y, selected_plottype, show_legend, current_plot_x, current_plot_y, plot_observable, table_observable, xlabel_text, ylabel_text, title_text, current_figure, current_axis)
 
 Handle data source changes (X or Y selection updates).
 - If valid X and Y are selected:
@@ -39,7 +39,7 @@ Handle data source changes (X or Y selection updates).
     - Clears the plot and table views.
     - Resets internal state and text fields.
 """
-function setup_source_callback(selected_x, selected_y, selected_art, show_legend,
+function setup_source_callback(selected_x, selected_y, selected_plottype, show_legend,
                                 current_plot_x, current_plot_y,
                                 plot_observable, table_observable,
                                 xlabel_text, ylabel_text, title_text,
@@ -54,8 +54,8 @@ function setup_source_callback(selected_x, selected_y, selected_art, show_legend
             current_plot_y[] = y
             
             # Create plot with current format settings
-            art = selected_art[] |> Symbol |> eval
-            fig = check_data_create_plot(x, y; plot_format = (;art=art, show_legend=show_legend[]))
+            plottype = selected_plottype[] |> Symbol |> eval
+            fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=show_legend[]))
             if !isnothing(fig)
                 plot_observable[] = fig.fig
                 current_figure[] = fig.fig  # Store figure reference
@@ -86,25 +86,25 @@ function setup_source_callback(selected_x, selected_y, selected_art, show_legend
 end
 
 """
-    setup_format_callback(selected_art, show_legend, current_plot_x, current_plot_y, plot_observable, xlabel_text, ylabel_text, title_text, current_axis)
+    setup_format_callback(selected_plottype, show_legend, current_plot_x, current_plot_y, plot_observable, xlabel_text, ylabel_text, title_text, current_axis)
 
-Handle format changes (e.g., plot type `selected_art`, `show_legend` toggle).
+Handle format changes (e.g., plot type `selected_plottype`, `show_legend` toggle).
 Triggers a replot using the currently stored data (`current_plot_x`, `current_plot_y`) with the new format settings.
 Updates the `plot_observable` and text fields, but does *not* regenerate the data table.
 """
-function setup_format_callback(selected_art, show_legend, current_plot_x, current_plot_y,
+function setup_format_callback(selected_plottype, show_legend, current_plot_x, current_plot_y,
                                  plot_observable,
                                  xlabel_text, ylabel_text, title_text,
                                  current_axis)
     
-    onany(selected_art, show_legend) do art_str, legend_bool
+    onany(selected_plottype, show_legend) do plottype_str, legend_bool
         x = current_plot_x[]
         y = current_plot_y[]
         
         # Only replot if we have valid data
         if !isnothing(x) && !isnothing(y)
-            art = art_str |> Symbol |> eval
-            fig = check_data_create_plot(x, y; plot_format = (; art=art, show_legend=legend_bool))
+            plottype = plottype_str |> Symbol |> eval
+            fig = check_data_create_plot(x, y; plot_format = (; plottype=plottype, show_legend=legend_bool))
             if !isnothing(fig)
                 plot_observable[] = fig.fig
                 current_axis[] = fig.axis  # Update axis reference

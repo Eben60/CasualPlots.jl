@@ -15,7 +15,7 @@ app = casualplots_app()
 println("App constructed successfully.")
 
 # We can also try to call the helper functions directly to verify they return what we expect
-using CasualPlots: create_dropdown, create_x_dropdown, create_y_dropdown, create_art_dropdown
+using CasualPlots: create_dropdown, create_x_dropdown, create_y_dropdown, create_plottype_dropdown
 
 # Test create_dropdown
 dd = create_dropdown(["A", "B"], Observable("A"); placeholder="Select")
@@ -29,8 +29,5 @@ println("create_x_dropdown created: ", typeof(x_dd))
 y_dd = create_y_dropdown("Select Y")
 println("create_y_dropdown created: ", typeof(y_dd))
 
-# Test create_art_dropdown
-art_dd = create_art_dropdown(Observable("Scatter"))
-println("create_art_dropdown created: ", typeof(art_dd))
 
 println("Verification script finished.")

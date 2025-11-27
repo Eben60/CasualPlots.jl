@@ -26,7 +26,7 @@ function create_control_panel_ui(dropdowns, show_legend, trigger_update,
     )
     
     plot_kind = DOM.div(
-        "Plot art:", dropdowns.art_node;
+        "Plot type:", dropdowns.plottype_node;
         style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
     )
     

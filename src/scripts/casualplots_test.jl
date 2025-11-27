@@ -1,6 +1,7 @@
 using CasualPlots
 using WGLMakie
 using Bonito
+using Unitful
 
 # Creating a few vectors and matrices for the tests
 # Prefix all var names by caspl_ to avoid name conflicts
@@ -12,6 +13,7 @@ isdefined(Main, :caspl_x_to_3by2) || (caspl_x_to_3by2 = caspl_x_10.^(3//2))
 isdefined(Main, :caspl_x_100) || (caspl_x_100 = 0:0.1:10)
 isdefined(Main, :caspl_z100) || (caspl_z100 = caspl_x_100 .|> sqrt)
 isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl_x_100, 10))
+isdefined(Main, :caspl_u_10) || (caspl_u_10 = (1:10).*u"mm^2")
 
 app = casualplots_app()
 

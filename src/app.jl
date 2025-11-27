@@ -11,11 +11,13 @@ This function assembles the complete interactive plotting application with:
 - Tabbed interface for organized controls
 """
 casualplots_app() = App() do session
+    supported_plot_types = ["Lines", "Scatter", "BarPlot"]
+
     # Initialize application state
     state = initialize_app_state()
-    
+   
     # Setup dropdown menus
-    dropdowns = setup_dropdowns(state.dims_dict_obs, state.selected_x, state.selected_art)
+    dropdowns = setup_dropdowns(state.dims_dict_obs, state.selected_x, state.selected_plottype, supported_plot_types)
     
     # Initialize output observables
     outputs = initialize_output_observables()
@@ -23,12 +25,12 @@ casualplots_app() = App() do session
     # Setup reactive callbacks
     setup_x_callback(state.dims_dict_obs, state.selected_x, state.selected_y, 
                      dropdowns.y_node, outputs.plot, outputs.table)
-    setup_source_callback(state.selected_x, state.selected_y, state.selected_art, 
+    setup_source_callback(state.selected_x, state.selected_y, state.selected_plottype, 
                           state.show_legend, outputs.current_x, outputs.current_y,
                           outputs.plot, outputs.table,
                           state.xlabel_text, state.ylabel_text, state.title_text,
                           state.current_figure, state.current_axis)
-    setup_format_callback(state.selected_art, state.show_legend, 
+    setup_format_callback(state.selected_plottype, state.show_legend, 
                           outputs.current_x, outputs.current_y, outputs.plot,
                           state.xlabel_text, state.ylabel_text, state.title_text,
                           state.current_axis)
