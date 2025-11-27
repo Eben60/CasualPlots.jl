@@ -29,6 +29,7 @@ function setup_dropdowns(state, supported_plot_types)
     dropdown_y_node = create_dropdown([], nothing; 
         placeholder="Select Y after you selected X", 
         disabled=true) |> Observable
+
     dropdown_plottype_node = Observable(create_dropdown(supported_plot_types, selected_plottype))
     
     return (; x_node=dropdown_x_node, y_node=dropdown_y_node, plottype_node=dropdown_plottype_node)

@@ -232,12 +232,12 @@ help_section(help_visibility) = DOM.div(
 # ============================================================================
 
 """
-    assemble_layout(pane1_content, help_visibility, plot_observable, table_observable)
+    assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable)
 
 Assemble the final application layout with all panes and grids.
 
 # Arguments
-- `pane1_content`: Tabbed control panel content
+- `ctrlpane_content`: Tabbed control panel content
 - `help_visibility`: Observable controlling help section visibility
 - `plot_observable`: Observable containing plot display
 - `table_observable`: Observable containing table display
@@ -245,20 +245,20 @@ Assemble the final application layout with all panes and grids.
 # Returns
 Complete DOM structure for the application
 """
-function assemble_layout(pane1_content, help_visibility, plot_observable, table_observable)
-    # Split pane1 vertically: tabs on top, help on bottom
-    pane1_split = DOM.div(
-        DOM.div(pane1_content, style=Styles("flex" => "1", "overflow" => "auto")),
+function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable)
+    # Split ctrlpane vertically: tabs on top, help on bottom
+    ctrlpane_split = DOM.div(
+        DOM.div(ctrlpane_content, style=Styles("flex" => "1", "overflow" => "auto")),
         help_section(help_visibility);
         style=Styles("display" => "flex", "flex-direction" => "column", "height" => "100%")
     )
     
-    pane1 = Card(pane1_split; style=Styles("background-color" => :whitesmoke, "padding" => "5px"))
-    pane2 = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px"))
-    pane3 = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px"))
+    ctrlpane = Card(ctrlpane_split; style=Styles("background-color" => :whitesmoke, "padding" => "5px"))
+    tblpane = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px"))
+    pltpane = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px"))
     
-    top_row = Grid(pane1, pane3; columns="350px 810px", gap="5px")
-    container = Grid(top_row, pane2; rows="610px auto", gap="5px")
+    top_row = Grid(ctrlpane, pltpane; columns="350px 810px", gap="5px")
+    container = Grid(top_row, tblpane; rows="610px auto", gap="5px")
     
     return DOM.div(container, style=Styles("padding" => "5px"))
 end
