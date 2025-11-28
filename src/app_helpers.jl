@@ -42,16 +42,19 @@ function initialize_app_state()
     xlabel_text = Observable("")
     ylabel_text = Observable("")
     title_text = Observable("")
+    legend_title_text = Observable("")
     
     # Store figure and axis for direct label manipulation
     current_figure = Observable{Union{Nothing, Figure}}(nothing)
     current_axis = Observable{Union{Nothing, Axis}}(nothing)
     
     plot_format = (; selected_plottype, show_legend)
-    plot_handles = (; xlabel_text, ylabel_text, title_text, current_figure, current_axis)
+    plot_handles = (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis)
     
+    block_format_update = Observable(false)
+
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, last_update,
-              plot_format, plot_handles)
+              plot_format, plot_handles, block_format_update)
 end
 
 # ============================================================================

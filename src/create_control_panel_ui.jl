@@ -32,11 +32,37 @@ function create_control_panel_ui(dropdowns, state)
         style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
     )
     
-    legend_checkbox = DOM.input(type="checkbox", checked=show_legend[];
+    legend_checkbox = DOM.input(type="checkbox", checked=show_legend;
         onchange = js"event => $(show_legend).notify(event.target.checked)"
     )
+    
+    # Legend title input
+    legend_title_style = map(show_legend) do show
+        return Styles(
+            "width" => "100px", 
+            "padding" => "2px 5px", 
+            "margin-left" => "10px",
+            "display" => show ? "block" : "none"
+        )
+    end
+
+    legend_title_input = DOM.input(
+        type="text", 
+        value=state.plot_handles.legend_title_text,
+        placeholder="Legend Title",
+        onkeydown=js"""
+            event => {
+                if (event.key === 'Enter' || event.key === 'Tab') {
+                    event.preventDefault();
+                    $(state.plot_handles.legend_title_text).notify(event.target.value);
+                }
+            }
+        """,
+        style=legend_title_style
+    )
+
     legend_control = DOM.div(
-        legend_checkbox, " Show Legend";
+        legend_checkbox, " Show Legend", legend_title_input;
         style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
     )
     

@@ -44,7 +44,7 @@ function setup_source_callback(state, outputs)
     
     (; selected_x, selected_y, plot_format, plot_handles) = state
     (; selected_plottype, show_legend) = plot_format
-    (; xlabel_text, ylabel_text, title_text, current_figure, current_axis) = plot_handles
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = plot_handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
@@ -58,18 +58,37 @@ function setup_source_callback(state, outputs)
             current_plot_x[] = x
             current_plot_y[] = y
             
-            # Create plot with current format settings
-            plottype = selected_plottype[] |> Symbol |> eval
-            fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=show_legend[]))
-            if !isnothing(fig)
-                plot_observable[] = fig.fig
-                current_figure[] = fig.fig  # Store figure reference
-                current_axis[] = fig.axis    # Store axis reference
+            # Block format callback to prevent double plotting and ensure atomic update
+            state.block_format_update[] = true
+            
+            try
+                # Reset legend title for new plot
+                legend_title_text[] = ""
                 
-                # Initialize text fields with default values
-                xlabel_text[] = fig.fig_params.x_name
-                ylabel_text[] = fig.fig_params.y_name
-                title_text[] = fig.fig_params.title
+                should_show_legend = n_cols == 1
+
+                show_legend[] = should_show_legend
+                
+                # Create plot with current format settings
+                plottype = selected_plottype[] |> Symbol |> eval
+                # Note: we use show_legend[] here, which we just updated to the default for this data
+                fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=show_legend[], legend_title=legend_title_text[]))
+                
+                if !isnothing(fig)
+                    plot_observable[] = fig.fig
+                    current_figure[] = fig.fig  # Store figure reference
+                    current_axis[] = fig.axis    # Store axis reference
+                    
+                    # No need to update show_legend here anymore as we set the default before plotting
+                    # and create_plot now respects the passed value.
+                    
+                    # Initialize text fields with default values
+                    xlabel_text[] = fig.fig_params.x_name
+                    ylabel_text[] = fig.fig_params.y_name
+                    title_text[] = fig.fig_params.title
+                end
+            finally
+                state.block_format_update[] = false
             end
             
             # Create/update table (source-related only)
@@ -99,21 +118,26 @@ Updates the `plot_observable` and text fields, but does *not* regenerate the dat
 """
 function setup_format_callback(state, outputs)
     (; selected_plottype, show_legend) = state.plot_format
-    (; xlabel_text, ylabel_text, title_text, current_axis) = state.plot_handles
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plot_handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
 
-    onany(selected_plottype, show_legend) do plottype_str, legend_bool
+    onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
+        if state.block_format_update[]
+            return
+        end
+
         x = current_plot_x[]
         y = current_plot_y[]
         
         # Only replot if we have valid data
         if !isnothing(x) && !isnothing(y)
             plottype = plottype_str |> Symbol |> eval
-            fig = check_data_create_plot(x, y; plot_format = (; plottype=plottype, show_legend=legend_bool))
+            fig = check_data_create_plot(x, y; plot_format = (; plottype=plottype, show_legend=legend_bool, legend_title=leg_title))
             if !isnothing(fig)
                 plot_observable[] = fig.fig
+                current_figure[] = fig.fig # Update figure reference
                 current_axis[] = fig.axis  # Update axis reference
                 # Update text fields with updated plot metadata
                 xlabel_text[] = fig.fig_params.x_name

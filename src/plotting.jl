@@ -4,24 +4,35 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; plottype=Scatter, show_legend=true)) # x, y AbstractString or Symbol
-    (; plottype, show_legend) = plot_format    
+function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; plottype=Scatter, show_legend=true, legend_title="")) # x, y AbstractString or Symbol
+    (; plottype, show_legend, legend_title) = plot_format    
     if length(x_data) != size(y_data, 1)
         println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
         return nothing
     end
 
-    n_cols = size(y_data, 2)
+    n_cols = size(y_data, 2)    
+    effective_show_legend = show_legend
+
     x_long = repeat(x_data, n_cols)
     y_long = vec(y_data)
-    group = repeat(1:n_cols, inner=length(x_data))
+    
+    if n_cols == 1
+        # Use y_name as the group label so it looks nicer in the legend
+        # and ensures there is a distinct label to show
+        group = repeat([string(y_name)], length(x_data))
+    else
+        group = string.(repeat(1:n_cols, inner=length(x_data)))
+    end
 
     df = (; x=x_long, y=y_long, group=string.(group))
-    plt = data(df) * mapping(:x => x_name, :y => y_name, color=:group) * visual(plottype)
+    
+    # Use legend_title directly. If it is empty, the legend title will be empty.
+    plt = data(df) * mapping(:x => x_name, :y => y_name, color=:group => legend_title) * visual(plottype)
     title="$(var_to_string(plottype)) Plot of $y_name vs $x_name"
     fg = draw(plt;
         figure=(; size=(800, 600)), 
-        legend=(show=show_legend, ),
+        legend=(show=effective_show_legend, ),
         axis=(; title)
     )
 
@@ -33,7 +44,7 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
     global cp_figure = fig
     global cp_figure_ax = axis
-    return (; fig, axis, fig_params = (; title, x_name, y_name))
+    return (; fig, axis, fig_params = (; title, x_name, y_name, show_legend=effective_show_legend, n_cols))
 end
 
 function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol
