@@ -2,6 +2,7 @@ using CasualPlots
 using WGLMakie
 using Bonito
 using Unitful
+using DataFrames
 
 # Creating a few vectors and matrices for the tests
 # Prefix all var names by caspl_ to avoid name conflicts

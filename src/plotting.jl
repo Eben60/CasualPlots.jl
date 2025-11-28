@@ -16,21 +16,15 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     # Otherwise, use the explicit value (from checkbox)
     effective_show_legend = isnothing(show_legend) ? (n_cols > 1) : show_legend
 
-    x_long = repeat(x_data, n_cols)
-    y_long = vec(y_data)
-    
-    if n_cols == 1
-        # Use y_name as the group label so it looks nicer in the legend
-        # and ensures there is a distinct label to show
-        group = repeat([string(y_name)], length(x_data))
-    else
-        group = string.(repeat(1:n_cols, inner=length(x_data)))
-    end
-
-    df = (; x=x_long, y=y_long, group=string.(group))
+    m = hcat(x_data, y_data)
+    ys = ["y_name_$n" for n in 1:n_cols]
+    nms = vcat("x", ys)
+    dfw = DataFrame(m, nms)
+    df = stack(dfw, ys;
+        variable_name=:group, value_name=:y)
     
     # Use legend_title directly. If it is empty, the legend title will be empty.
-    plt = data(df) * mapping(:x => x_name, :y => y_name, color=:group => legend_title) * visual(plottype)
+    plt = data(df) * mapping(:x => x_name, :y => y_name; color=:group => legend_title) * visual(plottype)
     title="$(var_to_string(plottype)) Plot of $y_name vs $x_name"
     fg = draw(plt;
         figure=(; size=(800, 600)), 
