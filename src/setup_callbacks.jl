@@ -64,28 +64,20 @@ function setup_source_callback(state, outputs)
             try
                 # Reset legend title for new plot
                 legend_title_text[] = ""
-                
-                should_show_legend = n_cols == 1
 
-                show_legend[] = should_show_legend
-                
-                # Create plot with current format settings
                 plottype = selected_plottype[] |> Symbol |> eval
-                # Note: we use show_legend[] here, which we just updated to the default for this data
-                fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=show_legend[], legend_title=legend_title_text[]))
+                fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=nothing, legend_title=legend_title_text[]))
                 
                 if !isnothing(fig)
                     plot_observable[] = fig.fig
                     current_figure[] = fig.fig  # Store figure reference
                     current_axis[] = fig.axis    # Store axis reference
                     
-                    # No need to update show_legend here anymore as we set the default before plotting
-                    # and create_plot now respects the passed value.
-                    
                     # Initialize text fields with default values
                     xlabel_text[] = fig.fig_params.x_name
                     ylabel_text[] = fig.fig_params.y_name
                     title_text[] = fig.fig_params.title
+                    show_legend[] = fig.fig_params.effective_show_legend
                 end
             finally
                 state.block_format_update[] = false

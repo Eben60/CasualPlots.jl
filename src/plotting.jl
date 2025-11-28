@@ -4,15 +4,17 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; plottype=Scatter, show_legend=true, legend_title="")) # x, y AbstractString or Symbol
-    (; plottype, show_legend, legend_title) = plot_format    
+function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; plottype=Scatter, show_legend=nothing, legend_title="")) # x, y AbstractString or Symbol
+    (; plottype, legend_title, show_legend) = plot_format    
     if length(x_data) != size(y_data, 1)
         println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
         return nothing
     end
 
     n_cols = size(y_data, 2)    
-    effective_show_legend = show_legend
+    # If show_legend is nothing, default to showing legend only for multi-column data
+    # Otherwise, use the explicit value (from checkbox)
+    effective_show_legend = isnothing(show_legend) ? (n_cols > 1) : show_legend
 
     x_long = repeat(x_data, n_cols)
     y_long = vec(y_data)
@@ -44,7 +46,7 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
     global cp_figure = fig
     global cp_figure_ax = axis
-    return (; fig, axis, fig_params = (; title, x_name, y_name, show_legend=effective_show_legend, n_cols))
+    return (; fig, axis, fig_params = (; title, x_name, y_name, effective_show_legend))
 end
 
 function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol
