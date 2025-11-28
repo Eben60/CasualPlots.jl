@@ -4,8 +4,9 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format = (; plottype=Scatter, show_legend=nothing, legend_title="")) # x, y AbstractString or Symbol
-    (; plottype, legend_title, show_legend) = plot_format    
+function create_plot(x_data::AbstractVector, y_data, x_name, y_name; 
+    plot_format = (; plottype=Scatter, show_legend=nothing, legend_title="")) # x, y AbstractString or Symbol 
+    (; show_legend) = plot_format 
     if length(x_data) != size(y_data, 1)
         println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
         return nothing
@@ -14,21 +15,50 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     n_cols = size(y_data, 2)    
     # If show_legend is nothing, default to showing legend only for multi-column data
     # Otherwise, use the explicit value (from checkbox)
-    effective_show_legend = isnothing(show_legend) ? (n_cols > 1) : show_legend
+    updated_show_legend = isnothing(show_legend) ? (n_cols > 1) : plot_format.show_legend
+    plot_format = merge(plot_format, (; show_legend=updated_show_legend))
 
     m = hcat(x_data, y_data)
     ys = ["y_name_$n" for n in 1:n_cols]
     nms = vcat("x", ys)
     dfw = DataFrame(m, nms)
+    return create_plot(dfw; x_name, y_name, plot_format)
+end
+
+function create_plot(dfw::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, plot_format)
+    if xcol isa Integer
+        x_pos = xcol
+    else
+        x_pos = columnindex(dfw, xcol)
+    end
+
+    dfw = dfw[!, x_pos:end]
+    x_col = names(dfw)[1] |> Symbol
+    if isnothing(x_name)
+        x_name = String(x_col)
+    end
+    ys = names(dfw)[2:end]
+
     df = stack(dfw, ys;
         variable_name=:group, value_name=:y)
-    
-    # Use legend_title directly. If it is empty, the legend title will be empty.
-    plt = data(df) * mapping(:x => x_name, :y => y_name; color=:group => legend_title) * visual(plottype)
+
+    mappings = (; x_col, y_col=:y, group_col=:group)
+    return create_plot_df_long(df, x_name, y_name, plot_format; mappings)
+end
+
+
+function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
+    if isnothing(mappings) 
+        mappings=(; x_col=:x, y_col=:y, group_col=:group)
+    end
+    (; x_col, y_col, group_col) = mappings
+    (; plottype, legend_title, show_legend) = plot_format
+
+    plt = data(df) * mapping(x_col => x_name, y_col => y_name; color=group_col => legend_title) * visual(plottype)
     title="$(var_to_string(plottype)) Plot of $y_name vs $x_name"
     fg = draw(plt;
         figure=(; size=(800, 600)), 
-        legend=(show=effective_show_legend, ),
+        legend=(show=show_legend, ),
         axis=(; title)
     )
 
@@ -40,7 +70,7 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name; plot_format
     show(IOBuffer(), MIME"text/html"(), fig) # Force render to complete without needing a display
     global cp_figure = fig
     global cp_figure_ax = axis
-    return (; fig, axis, fig_params = (; title, x_name, y_name, effective_show_legend))
+    return (; fig, axis, fig_params = (; title, x_name, y_name, updated_show_legend=show_legend))
 end
 
 function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol

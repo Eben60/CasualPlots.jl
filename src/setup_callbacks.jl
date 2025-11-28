@@ -77,7 +77,7 @@ function setup_source_callback(state, outputs)
                     xlabel_text[] = fig.fig_params.x_name
                     ylabel_text[] = fig.fig_params.y_name
                     title_text[] = fig.fig_params.title
-                    show_legend[] = fig.fig_params.effective_show_legend
+                    show_legend[] = fig.fig_params.updated_show_legend
                 end
             finally
                 state.block_format_update[] = false
