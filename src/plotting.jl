@@ -25,14 +25,25 @@ function create_plot(x_data::AbstractVector, y_data, x_name, y_name;
     return create_plot(dfw; x_name, y_name, plot_format)
 end
 
-function create_plot(dfw::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, plot_format)
+function select_cols(dfw; xcol=nothing, cols=nothing) 
+    if !isnothing(cols)
+        isnothing(xcol) || error("Either first column, or all columns can be provided, not both simultaneously")
+        return select(dfw, cols)
+    end
+    if isnothing(xcol)
+        xcol = 1
+    end
     if xcol isa Integer
         x_pos = xcol
     else
         x_pos = columnindex(dfw, xcol)
     end
+    return dfw[!, x_pos:end]
+end
 
-    dfw = dfw[!, x_pos:end]
+function create_plot(df_w::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, plot_format)
+    dfw = select_cols(df_w; xcol)
+    
     x_col = names(dfw)[1] |> Symbol
     if isnothing(x_name)
         x_name = String(x_col)
@@ -45,7 +56,6 @@ function create_plot(dfw::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, pl
     mappings = (; x_col, y_col=:y, group_col=:group)
     return create_plot_df_long(df, x_name, y_name, plot_format; mappings)
 end
-
 
 function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     if isnothing(mappings) 
