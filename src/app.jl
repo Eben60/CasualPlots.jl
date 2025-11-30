@@ -32,6 +32,8 @@ casualplots_app() = App() do session
     
     # Create UI components
     control_panel = create_control_panel_ui(dropdowns, state) # TODO review
+    setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger) # DataFrame mode callbacks
+    
     tabs = create_tab_content(control_panel)
     help = setup_help_section(outputs.plot)
     

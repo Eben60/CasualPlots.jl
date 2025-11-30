@@ -49,6 +49,12 @@ function create_plot(df_w::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, p
         x_name = String(x_col)
     end
     ys = names(dfw)[2:end]
+    
+    # Handle show_legend like in array version - convert nothing to boolean based on num columns
+    n_cols = length(ys)
+    (; show_legend) = plot_format
+    updated_show_legend = isnothing(show_legend) ? (n_cols > 1) : show_legend
+    plot_format = merge(plot_format, (; show_legend=updated_show_legend))
 
     df = stack(dfw, ys;
         variable_name=:group, value_name=:y)

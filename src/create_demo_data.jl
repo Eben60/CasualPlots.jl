@@ -20,3 +20,13 @@ function create_data_matrix(x::AbstractVector, n::Integer)
 end
 
 export create_data_matrix
+
+function make_y(v, n)
+    m = Matrix{Float64}(undef, length(v), n)
+    r = range(; start=0.2, stop=1.2, length=n)
+    for (i, x) in pairs(r)
+        m[:, i] = v .^ x
+    end
+    return m
+end
+export make_y

@@ -84,3 +84,60 @@ function get_congruent_y_names(x, dims_dict::Dict)
     end
     return new_y_opts_strings |> sort!
 end
+
+"""
+    collect_dataframes_from_main()
+
+Collects names of DataFrame variables from the `Main` module.
+
+Iterates through all names in `Main` and checks if the corresponding variable is a DataFrame.
+
+Returns a vector of Symbol representing DataFrame variable names.
+"""
+function collect_dataframes_from_main()
+    df_names = Symbol[]
+    
+    # Check if DataFrames is loaded
+    if !isdefined(Main, :DataFrame)
+        return df_names
+    end
+    
+    DataFrame_type = getfield(Main, :DataFrame)
+    
+    for name in names(Main; imported=true, usings=true)
+        name == :ans && continue
+        try
+            var = getfield(Main, name)
+            if isa(var, DataFrame_type)
+                push!(df_names, name)
+            end
+        catch e
+            # Ignore errors from getfield
+        end
+    end
+    return df_names
+end
+
+"""
+    get_dataframe_columns(df_name::String)
+
+Returns the column names of a DataFrame variable from Main module.
+
+# Arguments
+- `df_name::String`: Name of the DataFrame variable in Main
+
+# Returns
+Vector of column names (as Strings) in the order they appear in the DataFrame.
+Returns empty vector if DataFrame doesn't exist or has no columns.
+"""
+function get_dataframe_columns(df_name::String)
+    try
+        df = getfield(Main, Symbol(df_name))
+        if isdefined(Main, :DataFrame) && isa(df, getfield(Main, :DataFrame))
+            return names(df)
+        end
+    catch e
+        @warn "Could not get columns for DataFrame `$(df_name)`" exception=e
+    end
+    return String[]
+end
