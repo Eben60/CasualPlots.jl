@@ -177,13 +177,23 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         # Get DataFrame from Main
         df = getfield(Main, Symbol(df_name))
         
+        # Validate that all requested columns exist in the DataFrame
+        available_columns = names(df)
+        valid_cols = filter(col -> col in available_columns, cols)
+        
+        # If we don't have at least 2 valid columns after filtering, abort
+        if length(valid_cols) < 2
+            plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(df_name). Available columns: $(join(available_columns, ", "))")
+            return false
+        end
+        
         # Use select to get selected columns
-        df_selected = select(df, cols)
+        df_selected = select(df, valid_cols)
         
         # First column is X, rest are Y
-        xcol_name = cols[1]
+        xcol_name = valid_cols[1]
         # Use DataFrame name as y_name when multiple Y columns
-        y_names = length(cols) > 2 ? df_name : cols[2]
+        y_names = length(valid_cols) > 2 ? df_name : valid_cols[2]
         
         # Reset legend title if requested (for new plots)
         if reset_legend_title
