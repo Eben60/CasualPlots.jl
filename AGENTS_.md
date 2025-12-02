@@ -70,204 +70,14 @@ outputs = (
 )
 ```
 
-## Developer Diagrams
+### Developer Diagrams
 
-### High-Level User Flow
+Diagrams are in the linked files:
 
-This flowchart shows the main user paths through the application, highlighting the two distinct data input modes (Array and DataFrame).
+- [High-Level User Flow](AGENTS_more_info/Mermaid/high-level_user_flow.md)
+- [Callback Execution Sequence](AGENTS_more_info/Mermaid/callback_execution_sequence.md)
+- [State Transition Map](AGENTS_more_info/Mermaid/state_transition_map.md)
 
-```mermaid
-flowchart TD
-    Start([Launch casualplots_app]) --> TabSelect{Select Data Source Type}
-    
-    TabSelect -->|Array Tab| ArrayMode[Array Mode]
-    TabSelect -->|DataFrame Tab| DFMode[DataFrame Mode]
-    
-    %% Array Mode Flow
-    ArrayMode --> SelectX[Select X Variable from Dropdown]
-    SelectX --> SelectY[Select Y Variable from Dropdown]
-    SelectY --> ValidateArrays{Both X & Y Valid?}
-    ValidateArrays -->|No| WaitArrays[Wait for Selection]
-    ValidateArrays -->|Yes| FetchData[Fetch Data from Main Module]
-    FetchData --> CreatePlot[Generate Plot with Default Labels]
-    CreatePlot --> DisplayPlot[Display Plot + Table]
-    
-    %% DataFrame Mode Flow
-    DFMode --> SelectDF[Select DataFrame from Dropdown]
-    SelectDF --> ValidateDF{DataFrame Valid?}
-    ValidateDF -->|No| WaitDF[Wait for Selection]
-    ValidateDF -->|Yes| ShowCols[Display Column Checkboxes]
-    ShowCols --> SelectCols[Select Columns via Checkboxes]
-    SelectCols --> TriggerPlot[Trigger plot_trigger Observable]
-    TriggerPlot --> ValidateCols{Columns Valid?}
-    ValidateCols -->|No| Error[Show Error]
-    ValidateCols -->|Yes| CreateDFPlot[Generate DataFrame Plot]
-    CreateDFPlot --> DisplayDFPlot[Display Plot + Table]
-    
-    %% Format Updates
-    DisplayPlot --> FormatControls[Format Controls Available]
-    DisplayDFPlot --> FormatControls
-    FormatControls --> UserEdit{User Edits Format?}
-    UserEdit -->|Plot Type| ReplotType[Replot with New Type]
-    UserEdit -->|Legend Toggle| ReplotLegend[Replot with Legend On/Off]
-    UserEdit -->|Labels| UpdateLabels[Update Axis/Title Labels]
-    UserEdit -->|Legend Title| ReplotLegendTitle[Replot with New Legend Title]
-    
-    ReplotType --> RefreshPlot[Refresh Plot Display]
-    ReplotLegend --> RefreshPlot
-    UpdateLabels --> RefreshPlot
-    ReplotLegendTitle --> RefreshPlot
-    
-    RefreshPlot --> FormatControls
-    
-    %% Export
-    DisplayPlot -.->|Exported to Main| GlobalVars[cp_figure, cp_figure_ax]
-    DisplayDFPlot -.->|Exported to Main| GlobalVars
-    
-    style Start fill:#e1f5ff
-    style DisplayPlot fill:#d4edda
-    style DisplayDFPlot fill:#d4edda
-    style Error fill:#f8d7da
-    style GlobalVars fill:#fff3cd
-```
-
-### Callback Execution Sequence
-
-This sequence diagram shows how Observable changes trigger callbacks and how race conditions are prevented.
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI as UI Controls
-    participant Obs as Observables
-    participant SourceCB as Source Callback
-    participant FormatCB as Format Callback
-    participant Plot as Plot Engine
-    participant Table as Table View
-    
-    %% Initial Data Selection
-    Note over User,Table: Array Mode: User Selects Data
-    User->>UI: Select X variable
-    UI->>Obs: selected_x[] = "var_x"
-    
-    User->>UI: Select Y variable
-    UI->>Obs: selected_y[] = "var_y"
-    
-    Obs->>SourceCB: Triggered (selected_x, selected_y changed)
-    activate SourceCB
-    
-    SourceCB->>Obs: block_format_update[] = true
-    Note over SourceCB: Prevent format callback race
-    
-    SourceCB->>SourceCB: Fetch data from Main module
-    SourceCB->>Plot: create_plot(x_data, y_data)
-    Plot-->>SourceCB: fig_result (with defaults)
-    
-    SourceCB->>Obs: current_plot_x[] = x_data
-    SourceCB->>Obs: current_plot_y[] = y_data
-    SourceCB->>Obs: xlabel_text[] = default_x_label
-    SourceCB->>Obs: ylabel_text[] = default_y_label
-    SourceCB->>Obs: title_text[] = default_title
-    
-    SourceCB->>Table: Update table with data
-    SourceCB->>Obs: plot[] = new figure
-    
-    SourceCB->>Obs: block_format_update[] = false
-    deactivate SourceCB
-    
-    %% Format Change
-    Note over User,Table: User Changes Format
-    User->>UI: Change plot type to "Scatter"
-    UI->>Obs: selected_plottype[] = "Scatter"
-    
-    Obs->>FormatCB: Triggered (selected_plottype changed)
-    activate FormatCB
-    
-    FormatCB->>Obs: Check block_format_update[]
-    alt block_format_update == true
-        FormatCB->>FormatCB: Return early (blocked)
-    else block_format_update == false
-        FormatCB->>Obs: Read current_plot_x[], current_plot_y[]
-        FormatCB->>Obs: Read xlabel_text[], ylabel_text[], title_text[]
-        Note over FormatCB: Use stored data + user labels
-        
-        FormatCB->>Plot: create_plot with format settings
-        Plot-->>FormatCB: new fig (preserves labels)
-        
-        FormatCB->>Obs: plot[] = new figure
-        Note over FormatCB: Table NOT updated (source unchanged)
-    end
-    deactivate FormatCB
-    
-    %% DataFrame Mode
-    Note over User,Table: DataFrame Mode: User Selects Columns
-    User->>UI: Select DataFrame "df1"
-    UI->>Obs: selected_df[] = "df1"
-    
-    User->>UI: Check columns [col1, col2, col3]
-    UI->>Obs: selected_cols[] = [col1, col2, col3]
-    UI->>Obs: plot_trigger[] += 1
-    
-    Obs->>SourceCB: DataFrame callback triggered
-    activate SourceCB
-    SourceCB->>SourceCB: Validate columns exist in df
-    SourceCB->>Plot: update_dataframe_plot(df, cols)
-    Plot-->>SourceCB: new fig
-    SourceCB->>Obs: plot[] = new figure
-    SourceCB->>Table: Update table (if requested)
-    deactivate SourceCB
-```
-
-### State Transition Map
-
-This state diagram shows the application's reactive states and what triggers transitions between them.
-
-```mermaid
-stateDiagram-v2
-    [*] --> Idle: App Launched
-    
-    Idle --> AwaitingY: X Variable Selected
-    Idle --> AwaitingCols: DataFrame Selected
-    
-    AwaitingY --> DataReady: Y Variable Selected
-    AwaitingY --> Idle: X Deselected
-    
-    AwaitingCols --> DataReady: Columns Selected\n+ plot_trigger fired
-    AwaitingCols --> Idle: DataFrame Deselected
-    
-    DataReady --> Plotting: Valid Data Confirmed
-    DataReady --> Error: Invalid Data\n(dimension mismatch,\nmissing columns)
-    
-    Plotting --> PlotDisplayed: Plot Generated\n(cp_figure exported)
-    
-    PlotDisplayed --> Replotting: Format Changed\n(plottype, legend,\nlabels)
-    
-    Replotting --> PlotDisplayed: Format Applied\n(labels preserved)
-    
-    PlotDisplayed --> AwaitingY: New X/Y Selected
-    PlotDisplayed --> AwaitingCols: New DataFrame Selected
-    PlotDisplayed --> Idle: Selection Cleared
-    
-    Error --> Idle: User Resets Selection
-    Error --> AwaitingY: User Fixes Selection
-    Error --> AwaitingCols: User Fixes Selection
-    
-    note right of Plotting
-        block_format_update = true
-        during source callback
-    end note
-    
-    note right of Replotting
-        Uses stored current_plot_x,
-        current_plot_y (no refetch)
-    end note
-    
-    note right of PlotDisplayed
-        Global exports available:
-        - cp_figure
-        - cp_figure_ax
-    end note
-```
 
 ### Critical Implementation Patterns
 
@@ -415,25 +225,25 @@ export Ele                  # Displaying Bonito `app` in Electron window
 ## UI Screenshots
 
 ### Main Interface
-![Format Pane, Plot, and Table](docs/src/ScreenShots/Format%20pane,%20Lines%20plot,%20table%20displayed,%20.png)
+![Format Pane, Plot, and Table](AGENTS_more_info/ScreenShots/Format%20pane,%20Lines%20plot,%20table%20displayed,%20.png)
 
 ### Data Source Selection
 **DataFrame Selection:**
-![DataFrame Source Selection](docs/src/ScreenShots/DataFrame%20source%20selection%20tab.png)
+![DataFrame Source Selection](AGENTS_more_info/ScreenShots/DataFrame%20source%20selection%20tab.png)
 
 **Array Selection:**
-![Array Source Selection](docs/src/ScreenShots/Source%20selection%20-%20arrays.png)
+![Array Source Selection](AGENTS_more_info/ScreenShots/Source%20selection%20-%20arrays.png)
 
 ### Plotting Examples
 **DataFrame Plotting:**
-![DataFrame Plot Example](docs/src/ScreenShots/DataFrame%20selected,%20checkboxes%20selected.png)
+![DataFrame Plot Example](AGENTS_more_info/ScreenShots/DataFrame%20selected,%20checkboxes%20selected.png)
 
 **Array Plotting:**
-![Array Plot Example](docs/src/ScreenShots/X,Y%20arrays%20selected,%20plot,%20table%20displayed.png)
+![Array Plot Example](AGENTS_more_info/ScreenShots/X,Y%20arrays%20selected,%20plot,%20table%20displayed.png)
 
 ### Configuration
 **Format Pane:**
-![Format Pane](docs/src/ScreenShots/Format%20pane%20for%20DataFrames%20source.png)
+![Format Pane](AGENTS_more_info/ScreenShots/Format%20pane%20for%20DataFrames%20source.png)
 
 ## Development Status
 **Status**: Early Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.
