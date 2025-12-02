@@ -9,7 +9,7 @@ Ele.serve_app(app)
 # and can be displayed in your environment by 
 # julia> cp_figure
 #
-# It's Axis object is accessible as `cp_figure_ax`, thus you can modify the plot, e.g.
+# Its Axis object is accessible as `cp_figure_ax`, thus you can modify the plot, e.g.
 # julia> cp_figure_ax.title = "New Title"
 
 # To close the app, please call:

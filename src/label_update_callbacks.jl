@@ -2,7 +2,7 @@
 Setup callbacks to update plot labels when text fields are edited.
 
 This function creates reactive callbacks that update the Makie axis properties
-(xlabel, ylabel, title) when the user edits the text fields and presses Enter or Tab.
+(xlabel, ylabel, title) when the user edits the text fields and presses Enter.
 """
 function setup_label_update_callbacks(state, outputs)
     (; xlabel_text, ylabel_text, title_text, current_axis) = state.plot_handles

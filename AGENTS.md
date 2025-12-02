@@ -8,7 +8,7 @@
 ### Technology Stack
 *   **[Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)**: Web-based reactive GUI framework
 *   **[WGLMakie](https://github.com/MakieOrg/Makie.jl)**: WebGL-based plotting backend
-*   **[AlgebraOfGraphics.jl](https://github.com/MakieOrg/AlgebraOfGraphics.jl)**: Declarative plot specification (all plots use AoG exclusively)
+*   **[AlgebraOfGraphics.jl](https://github.com/MakieOrg/AlgebraOfGraphics.jl)**: Declarative plot specification (all plots built using AoG)
 *   **[DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)**: Data handling
 *   **[Observables.jl](https://github.com/JuliaGizmos/Observables.jl)**: Reactive state management
 *   **[Electron.jl](https://github.com/davidanthoff/Electron.jl)**: Window hosting 
@@ -174,7 +174,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 #### Deliberately Limited Feature Set
 
-- Only the most common 2‑D plot types: **Scatter**, **Lines**, **BarPlot**
+- Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
 #### Future Enhancements (Road‑map for v0.0.3)
 
@@ -184,6 +184,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - Automatic Julia code generation from GUI actions  
 - Additional formatting options (e.g., axis limits, themes)  
 - Support for multiple independent data sources
+- 
  
 
 ### Development Workflows
