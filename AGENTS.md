@@ -1,7 +1,7 @@
 # CasualPlots.jl - AI Agent Technical Reference
 
 ## Package Overview
-**CasualPlots.jl** is a GUI-based plotting application for Julia that bridges script-based plotting (Makie.jl) and standalone GUI applications (Origin, Veusz). Target users are experimental scientists and engineers needing quick visualization without memorizing syntax. Aims to cover 60-80% of common 2D plotting needs (Scatter, Line, BarPlot).
+**CasualPlots.jl** is a GUI-based plotting application for Julia which is positioned in the middle ground between purely script-based plotting and standalone GUI plotting applications. Target users are experimental scientists and engineers needing quick visualization without memorizing syntax. Aims to cover 60-80% of common 2D plotting needs (Scatter/Line/BarPlot, basic formatting).
 
 ## Core Architecture
 
@@ -81,67 +81,63 @@ Diagrams are in the linked files:
 
 ### Critical Implementation Patterns
 
-#### 1. Callback Separation (setup_callbacks.jl)
-**Two distinct callback chains prevent race conditions:**
+#### 1. Source Selection & Plotting Flow
+Both **X,Y Source** and **DataFrame Source** modes follow a similar two-step selection process, but differ in how plotting is triggered.
 
-**A. Source Callback** (`setup_source_callback`):
-- Triggered by: `selected_x`, `selected_y` changes
-- Responsibilities:
-  - Fetch data from `Main` module
-  - Generate initial plot with **default labels**
-  - Update `current_plot_x`, `current_plot_y`
-  - **Block format callback** during execution (`state.block_format_update[] = true`)
-  - Update table view
-  - Clear state on invalid selection
+**A. X,Y Source Selection:**
+1.  **Step 1: X Selection** (`setup_x_callback`)
+    - User selects X variable.
+    - Triggers population of congruent Y-variable options.
+    - Clears current Y selection.
+2.  **Step 2: Y Selection** (`setup_source_callback`)
+    - User selects Y variable.
+    - **Immediately triggers plotting**:
+        - Fetches data from `Main`.
+        - Generates plot with **default labels**.
+        - Updates `current_plot_x`, `current_plot_y`.
+        - Updates table view.
+        - Blocks format callback to prevent race conditions (`state.block_format_update[] = true`).
+    - *On invalid selection*: Clears plot, table, and state.
 
-**B. Format Callback** (`setup_format_callback`):
-- Triggered by: `selected_plottype`, `show_legend`, `legend_title_text` changes
-- Responsibilities:
-  - Replot using **stored data** (`current_plot_x[]`, `current_plot_y[]`)
-  - Apply **user-modified labels** from text fields
-  - **Does NOT update table** (source-dependent only)
-  - **Returns early** if `block_format_update[] == true`
+**B. DataFrame Source Selection:**
+1.  **Step 1: DataFrame Selection**
+    - User selects a DataFrame.
+    - Triggers population of column checkboxes.
+    - Clears current column selection.
+2.  **Step 2: Column Selection & Plotting** (`setup_dataframe_callbacks`)
+    - User selects columns (checkboxes).
+    - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
+    - `plot_trigger` observable fires:
+        - Validates selection (at least 2 columns).
+        - Calls `update_dataframe_plot` helper.
+        - Generates plot with **default labels** (resets legend title).
+        - Updates table view.
 
-**C. DataFrame Callback** (`setup_dataframe_callbacks`):
-- Triggered by: `plot_trigger` observable (manually triggered after checkbox updates)
-- Uses: `update_dataframe_plot` helper function
-- Special parameters:
-  - `reset_legend_title=true` for new DataFrame plots
-  - `update_table=true` only for new data selection
+#### 2. Formatting & Updates
+Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
 
-#### 2. Label Persistence Strategy
-**Critical pattern for preventing label overwrites:**
+**A. Format Callback Logic:**
+- **Triggered by**: `selected_plottype`, `show_legend`, `legend_title_text`.
+- **Implementations**:
+    - X,Y Mode: `setup_format_callback` (uses `check_data_create_plot`)
+    - DataFrame Mode: Format callback within `setup_dataframe_callbacks` (uses `update_dataframe_plot` helper)
+- **Shared Behavior**:
+    - Replots using **currently stored data** (no new data fetch).
+    - **Preserves user labels**: Applies text from `xlabel_text`, `ylabel_text`, etc., to the new plot, overriding defaults.
+    - **Does NOT update table**: Table update is skipped as data hasn't changed.
+    - **Race Condition Prevention**: Returns early if `block_format_update[]` is true.
 
-```julia
-# In source callback (setup_source_callback):
-# Generate plot with DEFAULT labels
-fig_result = check_data_create_plot(x, y; plot_format)
-
-# Then UPDATE text fields from generated defaults
-xlabel_text[] = fig_result.fig_params.x_name
-ylabel_text[] = fig_result.fig_params.y_name
-title_text[] = fig_result.fig_params.title
-
-# In format callback (setup_format_callback):
-# USE EXISTING text field values (preserves user edits)
-xlabel_text_val = xlabel_text[]
-ylabel_text_val = ylabel_text[]
-# ... apply these to axis
-```
+**B. Label Persistence Strategy:**
+To ensure user edits to labels aren't lost during formatting updates:
+1.  **Source Update**: Generates plot with *default* labels from data, then updates the text input fields.
+2.  **Format Update**: Reads values *from* the text input fields and applies them to the new plot, ensuring manual edits persist.
 
 #### 3. Legend Behavior
-- **Default visibility**: `show_legend = (n_cols > 1)` for multi-column data
-- **Initial state**: Checkbox reflects default, legend title empty
-- **User override**: Checkbox changes persist through format updates
-- **Reset trigger**: Only on new data selection (source change)
-
-#### 4. DataFrame Column Selection
-**Special handling to avoid race conditions:**
-- Uses manual `plot_trigger::Observable{Int}` instead of direct checkbox observation
-- Checkbox changes don't trigger immediate plot update
-- After checkboxes are updated, `plot_trigger[] += 1` fires the update
-- Prevents multiple simultaneous callback executions
-- **Critical**: Column validation before plotting (errors if column doesn't exist)
+- **Default Visibility**: `show_legend` defaults to `true` only if `n_cols > 1`.
+- **State Management**:
+    - **New Plot**: Legend title is reset to empty.
+    - **Format Change**: Legend title and visibility persist.
+- **User Override**: Checkbox allows manual toggle, persisting through format updates.
 
 ### Plotting Implementation (plotting.jl)
 
@@ -172,11 +168,13 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 1. **Label Persistence** : Custom labels may be overwritten on format changes. Plot title/labels by user not always successful, often multiple "Enters" combined with text changes necessary.
    - Tried Solution: Separate source/format callbacks, apply user labels in format callback
 
+### Road-map
+
 #### Deliberately Limited Feature Set
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Future Enhancements (Road‑map for v0.0.3)
+#### Planned Enhancements (as of v0.0.3)
 
 - Importing data from external files  
 - Exporting plots to image/PDF formats  
@@ -184,7 +182,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - Automatic Julia code generation from GUI actions  
 - Additional formatting options (e.g., axis limits, themes)  
 - Support for multiple independent data sources
-- 
+
  
 
 ### Development Workflows
@@ -212,7 +210,6 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 ### Testing
 - Manual testing via `src/scripts/casualplots_test.jl`
 - Browser testing with Antigravity plugin (conversation history refs) via `src/scripts/casualplots_browser-test.jl`
-- Test DataFrame switching, label persistence, format updates
 - Test suite WIP in early stage, currently only "easy" tests for non-GUI-functions 
 
 ### Exports
@@ -224,9 +221,6 @@ export Ele                  # Displaying Bonito `app` in Electron window
 ```
 
 ## UI Screenshots
-
-### Main Interface
-![Format Pane, Plot, and Table](AGENTS_more_info/ScreenShots/Format%20pane,%20Lines%20plot,%20table%20displayed,%20.png)
 
 ### Data Source Selection
 **DataFrame Selection:**
@@ -242,7 +236,7 @@ export Ele                  # Displaying Bonito `app` in Electron window
 **Array Plotting:**
 ![Array Plot Example](AGENTS_more_info/ScreenShots/X,Y%20arrays%20selected,%20plot,%20table%20displayed.png)
 
-### Configuration
+### Plot Formatting
 **Format Pane:**
 ![Format Pane](AGENTS_more_info/ScreenShots/Format%20pane%20for%20DataFrames%20source.png)
 
