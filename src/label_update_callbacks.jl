@@ -10,6 +10,10 @@ function setup_label_update_callbacks(state, outputs)
 
     # Update X-axis label when text field changes
     on(xlabel_text) do new_label
+        # Skip if format update is in progress to prevent interference
+        if state.block_format_update[]
+            return
+        end
         ax = current_axis[]
         fig = current_figure[]
         if !isnothing(ax) && !isnothing(fig) && new_label != ""
@@ -22,6 +26,10 @@ function setup_label_update_callbacks(state, outputs)
     
     # Update Y-axis label when text field changes  
     on(ylabel_text) do new_label
+        # Skip if format update is in progress to prevent interference
+        if state.block_format_update[]
+            return
+        end
         ax = current_axis[]
         fig = current_figure[]
         if !isnothing(ax) && !isnothing(fig) && new_label != ""
@@ -34,6 +42,10 @@ function setup_label_update_callbacks(state, outputs)
     
     # Update title when text field changes
     on(title_text) do new_title
+        # Skip if format update is in progress to prevent interference
+        if state.block_format_update[]
+            return
+        end
         ax = current_axis[]
         fig = current_figure[]
         if !isnothing(ax) && !isnothing(fig) && new_title != ""
