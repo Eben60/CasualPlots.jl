@@ -9,3 +9,4 @@ tmp/*
 stacktraces.txt
 **tmp*
 .gitattributes
+tools/merge_excluding_ours.sh
