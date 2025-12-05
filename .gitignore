@@ -8,3 +8,5 @@
 tmp/*
 stacktraces.txt
 **tmp*
+.gitattributes
+tools/*
