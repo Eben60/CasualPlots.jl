@@ -125,27 +125,52 @@ function setup_format_callback(state, outputs)
         
         # Only replot if we have valid data
         if !isnothing(x) && !isnothing(y)
-            plottype = plottype_str |> Symbol |> eval
-            fig = check_data_create_plot(x, y; plot_format = (; plottype=plottype, show_legend=legend_bool, legend_title=leg_title))
-            if !isnothing(fig)
-                plot_observable[] = fig.fig
-                current_figure[] = fig.fig # Update figure reference
-                current_axis[] = fig.axis  # Update axis reference
-                
-                # Apply current custom labels to the new axis (preserve user customizations)
-                ax = fig.axis
-                if !isempty(xlabel_text[])
-                    ax.xlabel = xlabel_text[]
+            # Capture current label values BEFORE creating new plot
+            saved_xlabel = xlabel_text[]
+            saved_ylabel = ylabel_text[]
+            saved_title = title_text[]
+            
+            # Block label callbacks during plot recreation
+            state.block_format_update[] = true
+            try
+                plottype = plottype_str |> Symbol |> eval
+                # Pass saved labels and title through plot_format so they're baked into the plot during creation
+                fig = check_data_create_plot(x, y; plot_format = (; 
+                    plottype=plottype, 
+                    show_legend=legend_bool, 
+                    legend_title=leg_title,
+                    xlabel=saved_xlabel,  # Pass custom xlabel
+                    ylabel=saved_ylabel,  # Pass custom ylabel
+                    title=saved_title     # Pass custom title
+                ))
+                if !isnothing(fig)
+                    current_figure[] = fig.fig
+                    current_axis[] = fig.axis
+                    
+                    # Now publish the figure
+                    plot_observable[] = fig.fig
+                    # Force complete render
+                    show(IOBuffer(), MIME"text/html"(), fig.fig)
+                    plot_observable[] = plot_observable[]
+                    
                 end
-                if !isempty(ylabel_text[])
-                    ax.ylabel = ylabel_text[]
-                end
-                if !isempty(title_text[])
-                    ax.title = title_text[]
-                end
-                
-                # Force plot refresh to show the updated labels
-                plot_observable[] = plot_observable[]
+            finally
+                state.block_format_update[] = false
+            end
+            
+            # UNBLOCKED Force Notify:
+            # Update text observables AFTER unblocking.
+            if !isempty(saved_xlabel)
+                xlabel_text[] = ""
+                xlabel_text[] = saved_xlabel
+            end
+            if !isempty(saved_ylabel)
+                ylabel_text[] = ""
+                ylabel_text[] = saved_ylabel
+            end
+            if !isempty(saved_title)
+                title_text[] = ""
+                title_text[] = saved_title
             end
         end
         # Note: Table is NOT updated - it's source-dependent only
@@ -173,60 +198,98 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
     plot_observable = outputs.plot
     table_observable = outputs.table
     
+    # Capture current label values BEFORE any updates (for format changes)
+    saved_xlabel = xlabel_text[]
+    saved_ylabel = ylabel_text[]
+    saved_title = title_text[]
+    
     try
         # Get DataFrame from Main
         df = getfield(Main, Symbol(df_name))
         
+        # Validate that all requested columns exist in the DataFrame
+        available_columns = names(df)
+        valid_cols = filter(col -> col in available_columns, cols)
+        
+        # If we don't have at least 2 valid columns after filtering, abort
+        if length(valid_cols) < 2
+            plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(df_name). Available columns: $(join(available_columns, ", "))")
+            return false
+        end
+        
         # Use select to get selected columns
-        df_selected = select(df, cols)
+        df_selected = select(df, valid_cols)
         
         # First column is X, rest are Y
-        xcol_name = cols[1]
+        xcol_name = valid_cols[1]
         # Use DataFrame name as y_name when multiple Y columns
-        y_names = length(cols) > 2 ? df_name : cols[2]
+        y_names = length(valid_cols) > 2 ? df_name : valid_cols[2]
         
         # Reset legend title if requested (for new plots)
         if reset_legend_title
-            state.block_format_update[] = true
             legend_title_text[] = ""
         end
+        
+        # Block label callbacks during plot recreation
+        state.block_format_update[] = true
         
         plottype = selected_plottype[] |> Symbol |> eval
         # Use xcol=1 since df_selected has X as first column
         legend_setting = reset_legend_title ? nothing : show_legend[]
+        # For format changes, pass saved labels through plot_format
+        xlabel_setting = reset_legend_title ? nothing : saved_xlabel
+        ylabel_setting = reset_legend_title ? nothing : saved_ylabel
+        title_setting = reset_legend_title ? nothing : saved_title
         fig = create_plot(df_selected; xcol=1, x_name=xcol_name, y_name=y_names,
-                         plot_format=(; plottype=plottype, show_legend=legend_setting, legend_title=legend_title_text[]))
+                         plot_format=(; 
+                             plottype=plottype, 
+                             show_legend=legend_setting, 
+                             legend_title=legend_title_text[],
+                             xlabel=xlabel_setting,
+                             ylabel=ylabel_setting,
+                             title=title_setting
+                         ))
         
         if !isnothing(fig)
-            plot_observable[] = fig.fig
             current_figure[] = fig.fig
             current_axis[] = fig.axis
             
             if reset_legend_title
-                # New plot: Initialize text fields with default values
+                # New plot: publish figure first, then initialize text fields
+                plot_observable[] = fig.fig
                 xlabel_text[] = fig.fig_params.x_name
                 ylabel_text[] = fig.fig_params.y_name
                 title_text[] = fig.fig_params.title
                 show_legend[] = fig.fig_params.updated_show_legend
             else
-                # Format change: Apply current custom labels to new axis (preserve user customizations)
-                ax = fig.axis
-                if !isempty(xlabel_text[])
-                    ax.xlabel = xlabel_text[]
-                end
-                if !isempty(ylabel_text[])
-                    ax.ylabel = ylabel_text[]
-                end
-                if !isempty(title_text[])
-                    ax.title = title_text[]
-                end
-                # Force plot refresh to show the updated labels
+                # Format change: labels and title were already set via plot_format
+                # Now publish the figure
+                plot_observable[] = fig.fig
+                # Force complete render
+                show(IOBuffer(), MIME"text/html"(), fig.fig)
                 plot_observable[] = plot_observable[]
             end
         end
         
-        if reset_legend_title
-            state.block_format_update[] = false
+        state.block_format_update[] = false
+        
+        # UNBLOCKED Force Notify:
+        # Update text observables AFTER unblocking.
+        # This triggers the label update listener, which checks if the axis matches.
+        # If the axis label was lost, the listener re-applies it and refreshes.
+        if !reset_legend_title
+             if !isempty(saved_xlabel)
+                xlabel_text[] = "" # Force change
+                xlabel_text[] = saved_xlabel # Trigger listener
+            end
+            if !isempty(saved_ylabel)
+                ylabel_text[] = ""
+                ylabel_text[] = saved_ylabel
+            end
+            if !isempty(saved_title)
+                title_text[] = ""
+                title_text[] = saved_title
+            end
         end
         
         # Update table if requested (only for new plot data)

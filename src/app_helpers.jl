@@ -274,3 +274,22 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     
     return DOM.div(container, style=Styles("padding" => "5px"))
 end
+
+# ============================================================================
+# 7. UTILS
+# ============================================================================
+
+"""
+    force_plot_refresh(plot_observable, fig)
+
+Force a complete render of the plot to ensure updates (like label changes) are reflected in the UI.
+This is necessary because ... because this was the only way I could get plot reliably updated after e.g. title change.
+"""
+function force_plot_refresh(plot_observable, fig)
+    # Trigger refresh before
+    plot_observable[] = plot_observable[]
+    # Force Makie render
+    show(IOBuffer(), MIME"text/html"(), fig)
+    # Trigger refresh after
+    plot_observable[] = plot_observable[]
+end

@@ -69,9 +69,34 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     end
     (; x_col, y_col, group_col) = mappings
     (; plottype, legend_title, show_legend) = plot_format
+    
+    # Check if custom labels were provided in plot_format
+    custom_title = get(plot_format, :title, nothing)
+    custom_xlabel = get(plot_format, :xlabel, nothing)
+    custom_ylabel = get(plot_format, :ylabel, nothing)
 
-    plt = data(df) * mapping(x_col => x_name, y_col => y_name; color=group_col => legend_title) * visual(plottype)
-    title="$(var_to_string(plottype)) Plot of $y_name vs $x_name"
+    # Use custom labels if provided, otherwise use the data column names
+    final_x_name = if !isnothing(custom_xlabel) && custom_xlabel != ""
+        custom_xlabel
+    else
+        x_name
+    end
+    
+    final_y_name = if !isnothing(custom_ylabel) && custom_ylabel != ""
+        custom_ylabel
+    else
+        y_name
+    end
+
+    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name; color=group_col => legend_title) * visual(plottype)
+    
+    # Use custom title if provided, otherwise generate default
+    title = if !isnothing(custom_title) && custom_title != ""
+        custom_title
+    else
+        "$(var_to_string(plottype)) Plot of $final_y_name vs $final_x_name"
+    end
+    
     fg = draw(plt;
         figure=(; size=(800, 600)), 
         legend=(show=show_legend, ),
