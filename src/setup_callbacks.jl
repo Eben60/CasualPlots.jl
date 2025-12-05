@@ -145,9 +145,7 @@ function setup_format_callback(state, outputs)
                 end
                 
                 # Force plot refresh to show the updated labels
-                plot_observable[] = plot_observable[]
-                show(IOBuffer(), MIME"text/html"(), fig)
-                plot_observable[] = plot_observable[]
+                force_plot_refresh(plot_observable, fig.fig)
             end
         end
         # Note: Table is NOT updated - it's source-dependent only
@@ -233,9 +231,7 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
                     ax.title = title_text[]
                 end
                 # Force plot refresh to show the updated labels
-                plot_observable[] = plot_observable[]
-                show(IOBuffer(), MIME"text/html"(), fig)
-                plot_observable[] = plot_observable[]
+                force_plot_refresh(plot_observable, fig.fig)
             end
         end
         

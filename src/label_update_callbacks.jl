@@ -15,11 +15,7 @@ function setup_label_update_callbacks(state, outputs)
         if !isnothing(ax) && !isnothing(fig) && new_label != ""
             if ax.xlabel[] != new_label
                 ax.xlabel = new_label
-                # Force render to complete (same approach as create_plot_df_long)
-                # The first refresh `plot_observable[] = plot_observable[]` apparently necessary, second one ??
-                plot_observable[] = plot_observable[]
-                show(IOBuffer(), MIME"text/html"(), fig)
-                plot_observable[] = plot_observable[]
+                force_plot_refresh(plot_observable, fig)
             end
         end
     end
@@ -31,9 +27,7 @@ function setup_label_update_callbacks(state, outputs)
         if !isnothing(ax) && !isnothing(fig) && new_label != ""
             if ax.ylabel[] != new_label
                 ax.ylabel = new_label
-                plot_observable[] = plot_observable[]
-                show(IOBuffer(), MIME"text/html"(), fig)
-                plot_observable[] = plot_observable[]
+                force_plot_refresh(plot_observable, fig)
             end
         end
     end
@@ -45,9 +39,7 @@ function setup_label_update_callbacks(state, outputs)
         if !isnothing(ax) && !isnothing(fig) && new_title != ""
             if ax.title[] != new_title
                 ax.title = new_title
-                plot_observable[] = plot_observable[]
-                show(IOBuffer(), MIME"text/html"(), fig)
-                plot_observable[] = plot_observable[]
+                force_plot_refresh(plot_observable, fig)
             end
         end
     end
