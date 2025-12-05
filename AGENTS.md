@@ -165,8 +165,8 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Known Issues 
    
-1. **Label Persistence** : Custom labels may be overwritten on format changes. Plot title/labels by user not always successful, often multiple "Enters" combined with text changes necessary.
-   - Tried Solution: Separate source/format callbacks, apply user labels in format callback
+1. **Label Persistence** : Plot title/labels by user not always successful, often multiple "Enters" combined with text changes necessary.
+   - Tried Solution: Logics implemented in `force_plot_refresh` improves situation, but not 100%
 
 ### Road-map
 
@@ -183,7 +183,6 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - Additional formatting options (e.g., axis limits, themes)  
 - Support for multiple independent data sources
 
- 
 
 ### Development Workflows
 
