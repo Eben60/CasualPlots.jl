@@ -7,10 +7,14 @@ Package local path: $(pathof(CasualPlots))
 """
 module CasualPlots
 
-using Bonito, Observables, AlgebraOfGraphics, WGLMakie, DataFrames
+using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames
 # using Bonito.DOM
 
 include("electron.jl")
+
+include("FileDialogWorkAround.jl")
+using .FileDialogWorkAround
+using .FileDialogWorkAround: posixpathstring
 
 include("collect_data.jl")
 include("create_demo_data.jl")
@@ -23,6 +27,8 @@ include("label_update_callbacks.jl")
 include("dropdowns_setup.jl")
 include("create_control_panel_ui_helpers.jl")
 include("create_control_panel_ui.jl")
+include("save_plot.jl")
+include("create_save_ui.jl")
 include("app_helpers.jl")
 include("app.jl")
 
