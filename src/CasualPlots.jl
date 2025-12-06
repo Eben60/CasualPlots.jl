@@ -27,6 +27,8 @@ include("label_update_callbacks.jl")
 include("dropdowns_setup.jl")
 include("create_control_panel_ui_helpers.jl")
 include("create_control_panel_ui.jl")
+include("save_plot.jl")
+include("create_save_ui.jl")
 include("app_helpers.jl")
 include("app.jl")
 

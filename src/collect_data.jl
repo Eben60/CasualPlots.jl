@@ -130,7 +130,7 @@ Returns the column names of a DataFrame variable from Main module.
 Vector of column names (as Strings) in the order they appear in the DataFrame.
 Returns empty vector if DataFrame doesn't exist or has no columns.
 """
-function get_dataframe_columns(df_name::String)
+function get_dataframe_columns(df_name::AbstractString)
     try
         df = getfield(Main, Symbol(df_name))
         if isdefined(Main, :DataFrame) && isa(df, getfield(Main, :DataFrame))

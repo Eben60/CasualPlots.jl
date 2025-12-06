@@ -61,9 +61,16 @@ function initialize_app_state()
     
     block_format_update = Observable(false)
 
+    # Save functionality observables
+    save_file_path = Observable("")  # Persists across plots
+    save_status_message = Observable("")
+    save_status_type = Observable(:none)  # :none, :success, :warning, :error
+    show_overwrite_confirm = Observable(false)
+
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, last_update,
               plot_format, plot_handles, block_format_update,
-              source_type, dataframes_dict_obs, selected_dataframe, selected_columns)
+              source_type, dataframes_dict_obs, selected_dataframe, selected_columns,
+              save_file_path, save_status_message, save_status_type, show_overwrite_confirm)
 end
 
 # ============================================================================
@@ -103,17 +110,18 @@ end
 # include("create_control_panel_ui.jl")
 
 """
-    create_tab_content(control_panel)
+    create_tab_content(control_panel, state)
 
 Organize control panel elements into tabbed interface.
 
 # Arguments
 - `control_panel`: NamedTuple with x_source, y_source, plot_kind, legend_control
+- `state`: Application state NamedTuple with save-related observables
 
 # Returns
 Tabbed component DOM element with Source, Format, and Save tabs
 """
-function create_tab_content(control_panel)
+function create_tab_content(control_panel, state)
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(
         control_panel.plot_kind, 
@@ -122,7 +130,7 @@ function create_tab_content(control_panel)
         control_panel.ylabel_input,
         control_panel.title_input
     )
-    t3_save_content = DOM.div("Saving results will go here")
+    t3_save_content = create_save_tab_content(state)
     
     tab_configs = [
         (name="Source", content=t1_source_content),
@@ -145,7 +153,7 @@ Create a formatted data table displaying X and Y data.
 # Returns
 DOM.div containing a Bonito.Table with the data
 """
-function create_data_table(x::String, y::String)
+function create_data_table(x::AbstractString, y::AbstractString)
     x_data = getfield(Main, Symbol(x))
     y_data = getfield(Main, Symbol(y))
     if y_data isa AbstractVector

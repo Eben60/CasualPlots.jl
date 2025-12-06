@@ -50,9 +50,12 @@ function pick_folder(path="")
 end
 export pick_folder
 
-function save_file(path=""; filterlist="") 
-    BUGGY_MACOS || return NativeFileDialog.pick_file(path; filterlist)
-    return pick_workaround(path, :savefile; filterlist)
+function save_file(path=""; filterlist="")
+    isempty(filterlist) || @warn "Filtering by extension is not supported by this hack on MacOS 15+ . filterlist `$filterlist` therefore ignored on all OSes for consistency."
+    filterlist="" # Mac workaround 
+    path = path |> os_spec_path
+    BUGGY_MACOS || return NativeFileDialog.save_file(path; filterlist) |> posixpathstring
+    return pick_workaround(path, :savefile; filterlist) |> posixpathstring
 end
 export save_file
 
@@ -71,12 +74,14 @@ function check_if_log_noise(s, starttime)
     return nothing
 end
 
-
-# with multiple selections allowed
-
 function pick_workaround(path, picktype; filterlist="")
+    path = string(path)
     if picktype == :pickfile
         script_trunk = """POSIX path of (choose file with prompt "Pick a file:" """
+    elseif picktype == :savefile
+        script_trunk = """POSIX path of (choose file name with prompt "Save the document as:" """
+        isempty(filterlist) || @warn "Filtering by extension is not supported by this hack on MacOS 15+ . filterlist `$filterlist` will be ignored"
+        filterlist = ""
     elseif picktype == :multifile
         script_trunk = """(choose file with prompt "Pick a file:" with multiple selections allowed """
     elseif picktype == :pickfolder
@@ -84,7 +89,6 @@ function pick_workaround(path, picktype; filterlist="")
     else
         error("Key $picktype not supported")
     end
-
 
     startswith(filterlist, ".") && (filterlist = filterlist[2:end])
     filterlist = filterlist |> lowercase
