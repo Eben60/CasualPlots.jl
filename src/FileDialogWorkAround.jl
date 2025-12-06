@@ -50,6 +50,12 @@ function pick_folder(path="")
 end
 export pick_folder
 
+function save_file(path=""; filterlist="") 
+    BUGGY_MACOS || return NativeFileDialog.pick_file(path; filterlist)
+    return pick_workaround(path, :savefile; filterlist)
+end
+export save_file
+
 function check_if_log_noise(s, starttime)
     s == "" && return nothing
     format = DateFormat("yyyy-mm-dd HH:MM:SS.sss")

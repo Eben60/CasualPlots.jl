@@ -64,6 +64,8 @@ function create_plot(df_w::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, p
 end
 
 function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
+    WGLMakie.activate!()
+    
     if isnothing(mappings) 
         mappings=(; x_col=:x, y_col=:y, group_col=:group)
     end
