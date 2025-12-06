@@ -12,6 +12,10 @@ using Bonito, Observables, AlgebraOfGraphics, WGLMakie, DataFrames
 
 include("electron.jl")
 
+include("FileDialogWorkAround.jl")
+using .FileDialogWorkAround
+using .FileDialogWorkAround: posixpathstring
+
 include("collect_data.jl")
 include("create_demo_data.jl")
 
