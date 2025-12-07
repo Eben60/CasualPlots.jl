@@ -11,6 +11,8 @@ sequenceDiagram
     participant FormatCB as Format Callback
     participant Plot as Plot Engine
     participant Table as Table View
+    participant SaveCB as Save Callbacks
+    participant Cairo as CairoMakie
     
     %% Initial Data Selection
     Note over User,Table: Array Mode: User Selects Data
@@ -83,4 +85,61 @@ sequenceDiagram
     SourceCB->>Obs: plot[] = new figure
     SourceCB->>Table: Update table (if requested)
     deactivate SourceCB
+    
+    %% Save Flow
+    Note over User,Cairo: Save Tab: User Saves Plot
+    User->>UI: Click "Choose Path" button
+    UI->>Obs: dialog_trigger[] += 1
+    
+    Obs->>SaveCB: Triggered (dialog_trigger changed)
+    activate SaveCB
+    SaveCB->>SaveCB: Open OS file dialog (save_file)
+    SaveCB-->>Obs: save_file_path[] = selected_path
+    deactivate SaveCB
+    
+    User->>UI: Click "Save Plot" button
+    UI->>Obs: save_trigger[] += 1
+    
+    Obs->>SaveCB: Triggered (save_trigger changed)
+    activate SaveCB
+    
+    SaveCB->>Obs: Check current_figure[]
+    alt current_figure == nothing
+        SaveCB->>Obs: save_status_message[] = "No plot to save"
+        SaveCB->>Obs: save_status_type[] = :error
+    else valid figure
+        SaveCB->>SaveCB: validate_save_path(path)
+        alt invalid path or extension
+            SaveCB->>Obs: save_status_message[] = error
+            SaveCB->>Obs: save_status_type[] = :error
+        else valid path
+            alt file exists
+                SaveCB->>Obs: show_overwrite_confirm[] = true
+                Note over SaveCB: Wait for user confirmation
+            else file doesn't exist
+                SaveCB->>Cairo: CairoMakie.activate!()
+                SaveCB->>Cairo: CairoMakie.save(path, fig)
+                Cairo-->>SaveCB: save complete
+                SaveCB->>Plot: WGLMakie.activate!()
+                SaveCB->>Obs: save_status_message[] = "Saved"
+                SaveCB->>Obs: save_status_type[] = :success
+            end
+        end
+    end
+    deactivate SaveCB
+    
+    %% Overwrite Confirmation
+    User->>UI: Click "Overwrite" button
+    UI->>Obs: overwrite_trigger[] += 1
+    
+    Obs->>SaveCB: Triggered (overwrite_trigger changed)
+    activate SaveCB
+    SaveCB->>Obs: show_overwrite_confirm[] = false
+    SaveCB->>Cairo: CairoMakie.activate!()
+    SaveCB->>Cairo: CairoMakie.save(path, fig)
+    Cairo-->>SaveCB: save complete
+    SaveCB->>Plot: WGLMakie.activate!()
+    SaveCB->>Obs: save_status_message[] = "Saved"
+    SaveCB->>Obs: save_status_type[] = :success
+    deactivate SaveCB
 ```

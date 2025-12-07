@@ -28,6 +28,19 @@ stateDiagram-v2
     PlotDisplayed --> AwaitingCols: New DataFrame Selected
     PlotDisplayed --> Idle: Selection Cleared
     
+    %% Save Flow
+    PlotDisplayed --> Saving: Save Triggered\n(valid path)
+    PlotDisplayed --> SaveError: Save Triggered\n(invalid path/format)
+    PlotDisplayed --> ConfirmOverwrite: Save Triggered\n(file exists)
+    
+    ConfirmOverwrite --> Saving: Overwrite Confirmed
+    ConfirmOverwrite --> PlotDisplayed: Cancel Clicked
+    
+    Saving --> PlotDisplayed: Save Complete\n(success message)
+    Saving --> SaveError: Save Failed\n(IO error)
+    
+    SaveError --> PlotDisplayed: User Acknowledged
+    
     Error --> Idle: User Resets Selection
     Error --> AwaitingY: User Fixes Selection
     Error --> AwaitingCols: User Fixes Selection
@@ -46,5 +59,15 @@ stateDiagram-v2
         Global exports available:
         - cp_figure
         - cp_figure_ax
+    end note
+    
+    note right of Saving
+        CairoMakie.activate!()
+        then WGLMakie.activate!()
+    end note
+    
+    note right of ConfirmOverwrite
+        show_overwrite_confirm = true
+        displays inline UI
     end note
 ```

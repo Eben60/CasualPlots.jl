@@ -5,6 +5,37 @@
 
 ## Core Architecture
 
+### Coding Conventions
+
+* Unless technically required, do not supply argument types to functions. In the docstring however, specify the type the function is expected to process properly. Technical need may be in case of a function with multiple methods. If specifying type, do not overspecify, e.g. `foo(x::Real)` should be used instead of `foo(x::Float64)` if `foo` would process any real type just as well. Example:
+
+```
+"""
+    foo(x::Real)
+
+Squaring the x
+"""
+function foo(x)
+    return x^2
+end
+```
+
+* Always start `NamedTuple`s with a semicolon. Always use semicolon before kwargs in function calls.Example:
+```
+# Good
+state = (; x = 1, y = 2)
+foo(a, b; kwarg1 = 1, kwarg2 = 2)
+```
+
+* If a Tuple, function arguments or other comma-separated lists span several lines, put a comma after the last item, too. Example:
+```
+items = (
+    item1,
+    item2,
+    item3,  # trailing comma
+)
+```
+
 ### Technology Stack
 *   **[Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)**: Web-based reactive GUI framework
 *   **[WGLMakie](https://github.com/MakieOrg/Makie.jl)**: WebGL-based plotting backend
@@ -28,6 +59,8 @@ setup_callbacks.jl              # Core reactive callbacks (source, format, DataF
 label_update_callbacks.jl       # Label text field callbacks
 plotting.jl                     # Plot generation using AlgebraOfGraphics
 electron.jl                     # Electron window integration
+create_save_ui.jl               # Save tab UI construction
+save_plot.jl                    # Plot saving functionality (CairoMakie backend)
 scripts/                        # Example/demo scripts
 ```
 
@@ -55,7 +88,12 @@ state = (
     block_format_update::Observable{Bool},  # Race condition prevention
     # DataFrame mode
     selected_df::Observable{Union{String,Nothing}},
-    selected_cols::Observable{Vector{String}}
+    selected_cols::Observable{Vector{String}},
+    # Save functionality
+    save_file_path::Observable{String},           # Persists across plots
+    save_status_message::Observable{String},
+    save_status_type::Observable{Symbol},         # :none, :success, :warning, :error
+    show_overwrite_confirm::Observable{Bool}
 )
 ```
 
