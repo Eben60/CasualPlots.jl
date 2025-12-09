@@ -66,11 +66,16 @@ function initialize_app_state()
     save_status_message = Observable("")
     save_status_type = Observable(:none)  # :none, :success, :warning, :error
     show_overwrite_confirm = Observable(false)
+    
+    # Modal dialog observables
+    show_modal = Observable(false)  # Controls modal visibility
+    modal_type = Observable(:none)  # :success, :error, :warning, :confirm
 
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, last_update,
               plot_format, plot_handles, block_format_update,
               source_type, dataframes_dict_obs, selected_dataframe, selected_columns,
-              save_file_path, save_status_message, save_status_type, show_overwrite_confirm)
+              save_file_path, save_status_message, save_status_type, show_overwrite_confirm,
+              show_modal, modal_type)
 end
 
 # ============================================================================
@@ -119,7 +124,10 @@ Organize control panel elements into tabbed interface.
 - `state`: Application state NamedTuple with save-related observables
 
 # Returns
-Tabbed component DOM element with Source, Format, and Save tabs
+NamedTuple with:
+- `tabs`: Tabbed component DOM element with Source, Format, and Save tabs
+- `overwrite_trigger`: Observable for overwrite button (passed to modal)
+- `cancel_trigger`: Observable for cancel button (passed to modal)
 """
 function create_tab_content(control_panel, state)
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
@@ -130,15 +138,17 @@ function create_tab_content(control_panel, state)
         control_panel.ylabel_input,
         control_panel.title_input
     )
-    t3_save_content = create_save_tab_content(state)
+    save_tab_result = create_save_tab_content(state)
     
     tab_configs = [
         (name="Source", content=t1_source_content),
         (name="Format", content=t2_format_content),
-        (name="Save", content=t3_save_content)
+        (name="Save", content=save_tab_result.content)
     ]
     
-    return create_tabs_component(tab_configs)
+    tabs = create_tabs_component(tab_configs)
+    return (; tabs, overwrite_trigger=save_tab_result.overwrite_trigger, 
+              cancel_trigger=save_tab_result.cancel_trigger)
 end
 
 """
@@ -252,7 +262,7 @@ help_section(help_visibility) = DOM.div(
 # ============================================================================
 
 """
-    assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable)
+    assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, state, overwrite_trigger, cancel_trigger)
 
 Assemble the final application layout with all panes and grids.
 
@@ -261,11 +271,14 @@ Assemble the final application layout with all panes and grids.
 - `help_visibility`: Observable controlling help section visibility
 - `plot_observable`: Observable containing plot display
 - `table_observable`: Observable containing table display
+- `state`: Application state NamedTuple (for modal dialog)
+- `overwrite_trigger`: Observable for overwrite button clicks
+- `cancel_trigger`: Observable for cancel button clicks
 
 # Returns
-Complete DOM structure for the application
+Complete DOM structure for the application including modal overlay
 """
-function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable)
+function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, state, overwrite_trigger, cancel_trigger)
     # Split ctrlpane vertically: tabs on top, help on bottom
     ctrlpane_split = DOM.div(
         DOM.div(ctrlpane_content, style=Styles("flex" => "1", "overflow" => "auto")),
@@ -280,7 +293,10 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     top_row = Grid(ctrlpane, pltpane; columns="350px 810px", gap="5px")
     container = Grid(top_row, tblpane; rows="610px auto", gap="5px")
     
-    return DOM.div(container, style=Styles("padding" => "5px"))
+    # Create modal dialog overlay (placed last to be on top of everything)
+    modal = create_modal_container(state, overwrite_trigger, cancel_trigger)
+    
+    return DOM.div(container, modal; style=Styles("padding" => "5px"))
 end
 
 # ============================================================================

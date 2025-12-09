@@ -106,40 +106,55 @@ sequenceDiagram
     SaveCB->>Obs: Check current_figure[]
     alt current_figure == nothing
         SaveCB->>Obs: save_status_message[] = "No plot to save"
-        SaveCB->>Obs: save_status_type[] = :error
+        SaveCB->>Obs: modal_type[] = :error
+        SaveCB->>Obs: show_modal[] = true
+        Note over SaveCB: Modal popup displays error
     else valid figure
         SaveCB->>SaveCB: validate_save_path(path)
         alt invalid path or extension
             SaveCB->>Obs: save_status_message[] = error
-            SaveCB->>Obs: save_status_type[] = :error
+            SaveCB->>Obs: modal_type[] = :error
+            SaveCB->>Obs: show_modal[] = true
+            Note over SaveCB: Modal popup displays error
         else valid path
             alt file exists
-                SaveCB->>Obs: show_overwrite_confirm[] = true
-                Note over SaveCB: Wait for user confirmation
+                SaveCB->>Obs: modal_type[] = :confirm
+                SaveCB->>Obs: show_modal[] = true
+                Note over SaveCB: Modal popup asks for confirmation
             else file doesn't exist
                 SaveCB->>Cairo: CairoMakie.activate!()
                 SaveCB->>Cairo: CairoMakie.save(path, fig)
                 Cairo-->>SaveCB: save complete
                 SaveCB->>Plot: WGLMakie.activate!()
                 SaveCB->>Obs: save_status_message[] = "Saved"
-                SaveCB->>Obs: save_status_type[] = :success
+                SaveCB->>Obs: modal_type[] = :success
+                SaveCB->>Obs: show_modal[] = true
+                Note over SaveCB: Modal popup displays success
             end
         end
     end
     deactivate SaveCB
     
-    %% Overwrite Confirmation
-    User->>UI: Click "Overwrite" button
+    %% Overwrite Confirmation (via Modal)
+    User->>UI: Click "Overwrite" in modal
     UI->>Obs: overwrite_trigger[] += 1
     
     Obs->>SaveCB: Triggered (overwrite_trigger changed)
     activate SaveCB
-    SaveCB->>Obs: show_overwrite_confirm[] = false
+    SaveCB->>Obs: show_modal[] = false
     SaveCB->>Cairo: CairoMakie.activate!()
     SaveCB->>Cairo: CairoMakie.save(path, fig)
     Cairo-->>SaveCB: save complete
     SaveCB->>Plot: WGLMakie.activate!()
     SaveCB->>Obs: save_status_message[] = "Saved"
-    SaveCB->>Obs: save_status_type[] = :success
+    SaveCB->>Obs: modal_type[] = :success
+    SaveCB->>Obs: show_modal[] = true
+    Note over SaveCB: Modal popup displays success
     deactivate SaveCB
+    
+    %% Modal Dismissal
+    User->>UI: Click "OK" in modal
+    UI->>Obs: dismiss_trigger[] += 1
+    Obs->>Obs: show_modal[] = false
+    Note over Obs: Modal popup closes
 ```

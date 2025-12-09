@@ -67,7 +67,8 @@ stateDiagram-v2
     end note
     
     note right of ConfirmOverwrite
-        show_overwrite_confirm = true
-        displays inline UI
+        show_modal = true
+        modal_type = :confirm
+        displays popup modal
     end note
 ```

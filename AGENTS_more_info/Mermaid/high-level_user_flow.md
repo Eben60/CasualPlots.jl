@@ -56,15 +56,15 @@ flowchart TD
     PathSelected --> SaveButton[Click Save Button]
     TypePath --> SaveButton
     SaveButton --> ValidatePath{Path Valid?}
-    ValidatePath -->|No| ShowPathError[Show Error: Invalid Path/Format]
+    ValidatePath -->|No| ShowPathError[Show Error Modal]
     ValidatePath -->|Yes| CheckExists{File Exists?}
     CheckExists -->|No| DoSave[Save Plot via CairoMakie]
-    CheckExists -->|Yes| ConfirmOverwrite{Overwrite Confirmed?}
+    CheckExists -->|Yes| ConfirmOverwrite{Show Confirm Modal}
     ConfirmOverwrite -->|Cancel| SaveTab
     ConfirmOverwrite -->|Overwrite| DoSave
-    DoSave --> SaveSuccess[Show Success Message]
-    ShowPathError --> SaveTab
-    SaveSuccess --> SaveTab
+    DoSave --> SaveSuccess[Show Success Modal]
+    ShowPathError -->|Click OK| SaveTab
+    SaveSuccess -->|Click OK| SaveTab
     
     %% Export
     DisplayPlot -.->|Exported to Main| GlobalVars[cp_figure, cp_figure_ax]
@@ -75,6 +75,7 @@ flowchart TD
     style DisplayDFPlot fill:#d4edda
     style Error fill:#f8d7da
     style ShowPathError fill:#f8d7da
+    style ConfirmOverwrite fill:#fff3cd
     style GlobalVars fill:#fff3cd
     style SaveSuccess fill:#d4edda
 ```

@@ -85,123 +85,14 @@ function create_save_button(save_trigger, button_enabled)
 end
 
 """
-    create_overwrite_buttons(overwrite_trigger, cancel_trigger, show_overwrite_confirm)
-
-Create the inline overwrite confirmation UI (conditionally visible).
-"""
-function create_overwrite_buttons(overwrite_trigger, cancel_trigger, show_overwrite_confirm)
-    confirm_style = map(show_overwrite_confirm) do show
-        Styles(
-            "display" => show ? "flex" : "none",
-            "align-items" => "center",
-            "gap" => "10px",
-            "padding" => "10px",
-            "background-color" => "#FFF3CD",
-            "border" => "1px solid #FFECB5",
-            "border-radius" => "4px",
-            "margin-bottom" => "10px"
-        )
-    end
-    
-    map(confirm_style) do style
-        DOM.div(
-            DOM.span("⚠️"; style=Styles("font-size" => "18px")),
-            DOM.span("File exists. Overwrite?"),
-            DOM.button(
-                "Overwrite";
-                onclick=js"() => $(overwrite_trigger).notify($(overwrite_trigger).value + 1)",
-                style=Styles(
-                    "padding" => "5px 15px",
-                    "background-color" => "#DC3545",
-                    "color" => "white",
-                    "border" => "none",
-                    "border-radius" => "4px",
-                    "cursor" => "pointer"
-                )
-            ),
-            DOM.button(
-                "Cancel";
-                onclick=js"() => $(cancel_trigger).notify($(cancel_trigger).value + 1)",
-                style=Styles(
-                    "padding" => "5px 15px",
-                    "background-color" => "#6C757D",
-                    "color" => "white",
-                    "border" => "none",
-                    "border-radius" => "4px",
-                    "cursor" => "pointer"
-                )
-            );
-            style=style
-        )
-    end
-end
-
-"""
-    create_status_display(save_status_message, save_status_type)
-
-Create the status message display area with appropriate styling based on status type.
-"""
-function create_status_display(save_status_message, save_status_type)
-    # Map both observables together to get access to status type for icon selection
-    map(save_status_message, save_status_type) do msg, stype
-        # Determine icon based on status type
-        icon = if stype == :success
-            "✓ "
-        elseif stype == :error
-            "✗ "
-        else
-            ""
-        end
-        
-        # Determine styles based on status type
-        style = if stype == :success
-            Styles(
-                "padding" => "10px",
-                "border-radius" => "4px",
-                "margin-top" => "5px",
-                "background-color" => "#D4EDDA",
-                "color" => "#155724",
-                "border" => "1px solid #C3E6CB",
-                "display" => "block"
-            )
-        elseif stype == :warning
-            Styles(
-                "padding" => "10px",
-                "border-radius" => "4px",
-                "margin-top" => "5px",
-                "background-color" => "#FFF3CD",
-                "color" => "#856404",
-                "border" => "1px solid #FFECB5",
-                "display" => "block"
-            )
-        elseif stype == :error
-            Styles(
-                "padding" => "10px",
-                "border-radius" => "4px",
-                "margin-top" => "5px",
-                "background-color" => "#F8D7DA",
-                "color" => "#721C24",
-                "border" => "1px solid #F5C6CB",
-                "display" => "block"
-            )
-        else
-            Styles(
-                "display" => "none"
-            )
-        end
-        
-        DOM.div(icon, msg; style=style)
-    end
-end
-
-"""
     setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
 
 Setup Julia-side callbacks for save functionality.
+Callbacks now show popup modals instead of inline status displays.
 """
 function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
     (; save_file_path, save_status_message, save_status_type, 
-       show_overwrite_confirm, plot_handles) = state
+       show_overwrite_confirm, show_modal, modal_type, plot_handles) = state
     (; current_figure) = plot_handles
     
     # Callback for file dialog button
@@ -230,7 +121,8 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_tr
         fig = current_figure[]
         if isnothing(fig)
             save_status_message[] = "No plot to save. Create a plot first."
-            save_status_type[] = :error
+            modal_type[] = :error
+            show_modal[] = true
             return
         end
         
@@ -238,60 +130,68 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_tr
         (valid, err_msg) = validate_save_path(path)
         if !valid
             save_status_message[] = err_msg
-            save_status_type[] = :error
+            modal_type[] = :error
+            show_modal[] = true
             return
         end
         
-        # Check if file exists
+        # Check if file exists - show confirmation modal
         if isfile(path)
-            save_status_message[] = ""
-            save_status_type[] = :none
-            show_overwrite_confirm[] = true
+            save_status_message[] = "File already exists. Do you want to overwrite it?"
+            modal_type[] = :confirm
+            show_modal[] = true
             return
         end
         
         # Save the file
-        do_save(path, fig, save_status_message, save_status_type)
+        do_save(path, fig, state)
     end
     
     # Callback for overwrite confirmation
     on(overwrite_trigger) do _
-        show_overwrite_confirm[] = false
+        show_modal[] = false
         path = strip(save_file_path[])
         fig = current_figure[]
         
         if !isnothing(fig)
-            do_save(path, fig, save_status_message, save_status_type)
+            do_save(path, fig, state)
         end
     end
     
     # Callback for cancel button
     on(cancel_trigger) do _
-        show_overwrite_confirm[] = false
+        show_modal[] = false
         save_status_message[] = ""
-        save_status_type[] = :none
+        modal_type[] = :none
     end
 end
 
 """
-    do_save(path, fig, save_status_message, save_status_type)
+    do_save(path, fig, state)
 
-Actually perform the save operation and update status.
+Actually perform the save operation and show result in modal popup.
 """
-function do_save(path, fig, save_status_message, save_status_type)
+function do_save(path, fig, state)
+    (; save_status_message, save_status_type, show_modal, modal_type) = state
     (success, message) = save_current_plot(path, fig)
     save_status_message[] = message
     save_status_type[] = success ? :success : :error
+    modal_type[] = success ? :success : :error
+    show_modal[] = true
 end
 
 """
     create_save_tab_content(state)
 
 Create the complete Save tab UI content.
+
+Returns a NamedTuple with:
+- `content`: The DOM element for the save tab
+- `overwrite_trigger`: Observable for overwrite button (used by modal)
+- `cancel_trigger`: Observable for cancel button (used by modal)
 """
 function create_save_tab_content(state)
-    (; save_file_path, save_status_message, save_status_type, 
-       show_overwrite_confirm, plot_handles) = state
+    (; save_file_path, plot_handles) = state
     (; current_figure) = plot_handles
     
     # Create trigger observables for button clicks
@@ -308,19 +208,17 @@ function create_save_tab_content(state)
     # Setup callbacks
     setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
     
-    # Create UI elements
+    # Create UI elements (status is now shown in modal popup)
     file_dialog_button = create_file_dialog_button(dialog_trigger)
     path_input = create_path_textarea(save_file_path)
     save_button = create_save_button(save_trigger, button_enabled)
-    overwrite_confirm = create_overwrite_buttons(overwrite_trigger, cancel_trigger, show_overwrite_confirm)
-    status_display = create_status_display(save_status_message, save_status_type)
     
-    return DOM.div(
+    content = DOM.div(
         file_dialog_button,
         path_input,
-        save_button,
-        overwrite_confirm,
-        status_display;
+        save_button;
         style=Styles("padding" => "5px")
     )
+    
+    return (; content, overwrite_trigger, cancel_trigger)
 end
