@@ -60,6 +60,7 @@ label_update_callbacks.jl       # Label text field callbacks
 plotting.jl                     # Plot generation using AlgebraOfGraphics
 electron.jl                     # Electron window integration
 create_save_ui.jl               # Save tab UI construction
+modal_dialog.jl                 # Modal dialog component
 save_plot.jl                    # Plot saving functionality (CairoMakie backend)
 scripts/                        # Example/demo scripts
 ```
@@ -93,7 +94,10 @@ state = (
     save_file_path::Observable{String},           # Persists across plots
     save_status_message::Observable{String},
     save_status_type::Observable{Symbol},         # :none, :success, :warning, :error
-    show_overwrite_confirm::Observable{Bool}
+    show_overwrite_confirm::Observable{Bool},     # Kept for backward compat / specific path flows
+    # Modal Dialog
+    show_modal::Observable{Bool},
+    modal_type::Observable{Symbol}                # :none, :success, :warning, :confirm
 )
 ```
 
