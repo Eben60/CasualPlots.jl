@@ -251,7 +251,9 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 ### Testing
 - Manual testing via `src/scripts/casualplots_test.jl`
 - Browser testing with Antigravity plugin (conversation history refs) via `src/scripts/casualplots_browser-test.jl`
-- Test suite WIP in early stage, currently only "easy" tests for non-GUI-functions 
+- Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
+- Test suite WIP in early stage, currently (as of v0.0.5) only "easy" tests for non-GUI-functions 
+
 
 ### Exports
 ```julia

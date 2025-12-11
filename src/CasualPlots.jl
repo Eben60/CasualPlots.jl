@@ -32,6 +32,7 @@ include("modal_dialog.jl")
 include("create_save_ui.jl")
 include("app_helpers.jl")
 include("app.jl")
+include("extensions.jl")
 
 export casualplots_app
 export cp_figure, cp_figure_ax

@@ -6,3 +6,4 @@ using SafeTestsets
 @safetestset "Demo Data Functions" include("demo_data_test.jl")
 @safetestset "Data Collection" include("collect_data_test.jl")
 @safetestset "Plotting Utilities" include("plotting_utils_test.jl")
+@safetestset "File Extensions (CSV/XLSX)" include("extensions_test.jl")

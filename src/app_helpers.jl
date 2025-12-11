@@ -115,39 +115,389 @@ end
 # include("create_control_panel_ui.jl")
 
 """
-    create_tab_content(control_panel, state)
+    is_csv_extension_available()
+
+Check if the CSV extension is loaded (i.e., read_csv has a method defined).
+"""
+is_csv_extension_available() = length(methods(read_csv)) > 0
+
+"""
+    is_xlsx_extension_available()
+
+Check if the XLSX extension is loaded (i.e., readtable_xlsx has a method defined).
+"""
+is_xlsx_extension_available() = length(methods(readtable_xlsx)) > 0
+
+"""
+    build_file_filter()
+
+Build filterlist string for file dialog based on available extensions.
+Returns comma-separated extensions (e.g., "csv,tsv,xlsx" or "csv,tsv" or "xlsx").
+"""
+function build_file_filter()
+    filters = String[]
+    if is_csv_extension_available()
+        push!(filters, "csv", "tsv")
+    end
+    if is_xlsx_extension_available()
+        push!(filters, "xlsx")
+    end
+    return join(filters, ",")
+end
+
+"""
+    load_file_to_table(filepath, table_observable)
+
+Load a CSV/TSV or XLSX file and display it in the table pane.
+
+# Arguments
+- `filepath`: Path to the file to load
+- `table_observable`: Observable for table display
+
+# Returns
+`true` on success, `false` on error
+"""
+function load_file_to_table(filepath, table_observable)
+    isempty(filepath) && return false
+    
+    ext = lowercase(splitext(filepath)[2])
+    
+    try
+        df = if ext in [".csv", ".tsv"]
+            if !is_csv_extension_available()
+                @warn "CSV extension not available"
+                return false
+            end
+            read_csv(filepath)
+        elseif ext == ".xlsx"
+            if !is_xlsx_extension_available()
+                @warn "XLSX extension not available"
+                return false
+            end
+            # Read first sheet (index 1)
+            readtable_xlsx(filepath, 1)
+        else
+            @warn "Unsupported file extension: $ext"
+            return false
+        end
+        
+        # Convert InlineString columns to regular String for Bonito.Table compatibility
+        # CSV.jl uses InlineString which Bonito.Table may not handle properly
+        for col in names(df)
+            if eltype(df[!, col]) <: AbstractString
+                df[!, col] = String.(df[!, col])
+            end
+        end
+        
+        # Update table display
+        table_observable[] = DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
+        return true
+    catch e
+        @warn "Error loading file: $e"
+        table_observable[] = DOM.div("Error loading file: $(basename(filepath))")
+        return false
+    end
+end
+
+"""
+    create_extension_status_row(name, available, available_text, unavailable_text)
+
+Create a DOM row showing extension status with green tick or red cross icon.
+"""
+function create_extension_status_row(name, available, available_text, unavailable_text)
+    icon = available ? "✓" : "✗"
+    icon_color = available ? "#28A745" : "#DC3545"
+    text = available ? available_text : unavailable_text
+    text_color = available ? "#333" : "#666"
+    
+    DOM.div(
+        DOM.span(icon; style=Styles(
+            "color" => icon_color,
+            "font-size" => "10px",
+            "font-weight" => "bold",
+            "margin-right" => "6px",
+        )),
+        DOM.span(text; style=Styles(
+            "color" => text_color,
+            "font-size" => "10px",
+        ));
+        style=Styles(
+            "display" => "flex",
+            "align-items" => "center",
+            "margin-bottom" => "3px",
+        )
+    )
+end
+
+"""
+    create_open_tab_content(refresh_trigger, table_observable)
+
+Create reactive content for the Open tab with:
+- Top section: Open File button (left) and extension status (right)
+- Bottom section: Sheet selector dropdown for XLSX files
+
+Content updates each time the refresh_trigger changes.
+Button click opens file dialog. CSV files load immediately, XLSX files wait for sheet selection.
+
+# Arguments
+- `refresh_trigger`: Observable that triggers content refresh when changed
+- `table_observable`: Observable for table display
+"""
+function create_open_tab_content(refresh_trigger, table_observable)
+    # Create trigger for Open File button clicks
+    open_file_trigger = Observable(0)
+    
+    # Observables for XLSX sheet selection
+    current_xlsx_path = Observable("")  # Currently selected XLSX file path
+    sheet_names = Observable(String[])  # Sheet names from current XLSX
+    selected_sheet = Observable("")     # Currently selected sheet name
+    
+    # Setup callback for Open File button
+    on(open_file_trigger) do _
+        # Check if any extension is available
+        csv_ok = is_csv_extension_available()
+        xlsx_ok = is_xlsx_extension_available()
+        
+        if !csv_ok && !xlsx_ok
+            @warn "No file extensions available"
+            return
+        end
+        
+        # Build filter based on available extensions
+        filterlist = build_file_filter()
+
+        # Open file dialog
+        filepath = FileDialogWorkAround.pick_file(; filterlist)
+        
+        if isempty(filepath)
+            return  # User cancelled
+        end
+        
+        ext = lowercase(splitext(filepath)[2])
+        
+        if ext in [".csv", ".tsv"]
+            # CSV: Load immediately
+            current_xlsx_path[] = ""
+            sheet_names[] = String[]
+            selected_sheet[] = ""
+            load_file_to_table(filepath, table_observable)
+        elseif ext == ".xlsx"
+            # XLSX: Populate sheet dropdown, wait for selection
+            current_xlsx_path[] = filepath
+            try
+                sheets = sheetnames_xlsx(filepath)
+                sheet_names[] = sheets
+                selected_sheet[] = ""  # Reset selection
+            catch e
+                @warn "Error reading XLSX sheets: $e"
+                current_xlsx_path[] = ""
+                sheet_names[] = String[]
+            end
+        end
+    end
+    
+    # Callback for sheet selection
+    on(selected_sheet) do sheet
+        xlsx_path = current_xlsx_path[]
+        if !isempty(sheet) && !isempty(xlsx_path)
+            load_xlsx_sheet_to_table(xlsx_path, sheet, table_observable)
+        end
+    end
+    
+    # Use map to create reactive content that updates when trigger fires
+    map(refresh_trigger) do _
+        csv_available = is_csv_extension_available()
+        xlsx_available = is_xlsx_extension_available()
+        button_enabled = csv_available || xlsx_available
+        
+        csv_row = create_extension_status_row(
+            "CSV",
+            csv_available,
+            "CSV extension available",
+            "Import CSV to be able to read CSV files",
+        )
+        
+        xlsx_row = create_extension_status_row(
+            "XLSX", 
+            xlsx_available,
+            "XLSX extension available",
+            "Import XLSX to be able to read Excel files",
+        )
+        
+        # Extension status section (right side of top row)
+        extension_status = DOM.div(
+            csv_row,
+            xlsx_row;
+            style=Styles(
+                "display" => "flex",
+                "flex-direction" => "column",
+            )
+        )
+        
+        # Open File button (left side of top row) - disabled if no extensions
+        open_button = DOM.button(
+            "Open File";
+            disabled=!button_enabled,
+            onclick=js"() => { $(open_file_trigger).notify($(open_file_trigger).value + 1); }",
+            style=Styles(
+                "padding" => "8px 16px",
+                "background-color" => button_enabled ? "#2196F3" : "#cccccc",
+                "color" => "white",
+                "border" => "none",
+                "border-radius" => "4px",
+                "cursor" => button_enabled ? "pointer" : "not-allowed",
+                "font-size" => "12px",
+                "white-space" => "nowrap",
+            )
+        )
+        
+        # Top section: button on left, status on right
+        top_section = DOM.div(
+            open_button,
+            extension_status;
+            style=Styles(
+                "display" => "flex",
+                "flex-direction" => "row",
+                "align-items" => "flex-start",
+                "gap" => "15px",
+            )
+        )
+        
+        # Sheet selector dropdown (reactive based on sheet_names)
+        sheet_dropdown = map(sheet_names) do sheets
+            if isempty(sheets)
+                # No XLSX file selected - show disabled placeholder
+                DOM.select(
+                    DOM.option("Select sheet"; value="", selected=true);
+                    disabled=true,
+                    style=Styles(
+                        "padding" => "6px 12px",
+                        "font-size" => "12px",
+                        "border-radius" => "4px",
+                        "border" => "1px solid #ccc",
+                        "background-color" => "#f5f5f5",
+                        "color" => "#999",
+                        "cursor" => "not-allowed",
+                    )
+                )
+            else
+                # XLSX file selected - show sheet options
+                options = [DOM.option("Select sheet"; value="", selected=true, disabled=true)]
+                for sheet in sheets
+                    push!(options, DOM.option(sheet; value=sheet))
+                end
+                DOM.select(
+                    options...;
+                    onchange=js"(e) => { $(selected_sheet).notify(e.target.value); }",
+                    style=Styles(
+                        "padding" => "6px 12px",
+                        "font-size" => "12px",
+                        "border-radius" => "4px",
+                        "border" => "1px solid #2196F3",
+                        "background-color" => "white",
+                        "cursor" => "pointer",
+                    )
+                )
+            end
+        end
+        
+        # Bottom section: sheet selector
+        bottom_section = DOM.div(
+            sheet_dropdown;
+            style=Styles(
+                "margin-top" => "10px",
+            )
+        )
+        
+        # Main container: vertical layout
+        DOM.div(
+            top_section,
+            bottom_section;
+            style=Styles(
+                "display" => "flex",
+                "flex-direction" => "column",
+                "padding" => "5px",
+                "height" => "100%",
+            )
+        )
+    end
+end
+
+"""
+    load_xlsx_sheet_to_table(filepath, sheet, table_observable)
+
+Load a specific sheet from an XLSX file and display it in the table pane.
+"""
+function load_xlsx_sheet_to_table(filepath, sheet, table_observable)
+    try
+        df = readtable_xlsx(filepath, sheet)
+        
+        # Convert InlineString columns to regular String for Bonito.Table compatibility
+        for col in names(df)
+            if eltype(df[!, col]) <: AbstractString
+                df[!, col] = String.(df[!, col])
+            end
+        end
+        
+        table_observable[] = DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
+    catch e
+        @warn "Error loading XLSX sheet: $e"
+        table_observable[] = DOM.div("Error loading sheet: $sheet")
+    end
+end
+
+
+"""
+    create_tab_content(control_panel, state, outputs)
 
 Organize control panel elements into tabbed interface.
 
 # Arguments
 - `control_panel`: NamedTuple with x_source, y_source, plot_kind, legend_control
 - `state`: Application state NamedTuple with save-related observables
+- `outputs`: Output observables NamedTuple with table observable
 
 # Returns
 NamedTuple with:
-- `tabs`: Tabbed component DOM element with Source, Format, and Save tabs
+- `tabs`: Tabbed component DOM element with Open, Source, Format, and Save tabs (Source is default active)
 - `overwrite_trigger`: Observable for overwrite button (passed to modal)
 - `cancel_trigger`: Observable for cancel button (passed to modal)
 """
-function create_tab_content(control_panel, state)
+function create_tab_content(control_panel, state, outputs)
+    # Create a refresh trigger for the Open tab that fires when it becomes active
+    open_tab_refresh = Observable(0)
+    
+    # Open tab - shows extension availability status (reactive) with file loading
+    open_tab_content = create_open_tab_content(open_tab_refresh, outputs.table)
+    
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(
         control_panel.plot_kind, 
         control_panel.legend_control,
         control_panel.xlabel_input,
         control_panel.ylabel_input,
-        control_panel.title_input
+        control_panel.title_input,
     )
     save_tab_result = create_save_tab_content(state)
     
     tab_configs = [
+        (name="Open", content=open_tab_content),
         (name="Source", content=t1_source_content),
         (name="Format", content=t2_format_content),
-        (name="Save", content=save_tab_result.content)
+        (name="Save", content=save_tab_result.content),
     ]
     
-    tabs = create_tabs_component(tab_configs)
-    return (; tabs, overwrite_trigger=save_tab_result.overwrite_trigger, 
+    # default_active=2 keeps "Source" tab as the default (Open is now index 1)
+    tabs_result = create_tabs_component(tab_configs; default_active=2)
+    
+    # Wire up the Open tab refresh: trigger when Open tab (index 1) becomes active
+    on(tabs_result.active_tab) do tab_idx
+        if tab_idx == 1  # Open tab
+            open_tab_refresh[] = open_tab_refresh[] + 1
+        end
+    end
+    
+    return (; tabs=tabs_result.dom, overwrite_trigger=save_tab_result.overwrite_trigger, 
               cancel_trigger=save_tab_result.cancel_trigger)
 end
 
