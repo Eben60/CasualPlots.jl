@@ -21,7 +21,17 @@ Since strictly local command-line tools for Mermaid (like `mmdc` from `@mermaid-
 
 ### Implementation Script (Python)
 
-The python script `tools/mermaid2SVG-utility.py` is used to automate this process. It can be reused or adapted if diagrams need to be updated.
+The python script `tools/mermaid2SVG-utility.py` automates this process. It:
+1.  Scans the `AGENTS_more_info/Mermaid/` directory for `.md` files.
+2.  Extracts the Mermaid code block from each file.
+3.  Applies fixes (e.g., converting escaped `\\n` to `\n` for proper newline rendering).
+4.  Generates the corresponding SVG file in `AGENTS_more_info/Diagrams/` via Kroki.
 
 ## Maintenance
-If the Mermaid definitions in `AGENTS_more_info/Mermaid/*.md` are updated, this process should be repeated to keep the SVG files in `AGENTS_more_info/Diagrams/` synchronized.
+To update the diagrams:
+1.  Modify the Mermaid definitions in `AGENTS_more_info/Mermaid/*.md`.
+2.  Run the utility script:
+    ```bash
+    python3 tools/mermaid2SVG-utility.py
+    ```
+3.  The SVG files in `AGENTS_more_info/Diagrams/` will be updated automatically.

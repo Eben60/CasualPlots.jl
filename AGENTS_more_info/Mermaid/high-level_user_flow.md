@@ -8,6 +8,19 @@ flowchart TD
     
     TabSelect -->|Array Tab| ArrayMode[Array Mode]
     TabSelect -->|DataFrame Tab| DFMode[DataFrame Mode]
+    TabSelect -->|Open Tab| OpenMode[Open File Tab]
+
+    %% Open File Flow
+    OpenMode --> SelectFile[Select File via Dialog]
+    SelectFile --> FileType{File Type?}
+    FileType -->|CSV/TSV| LoadCSV[load_csv_to_table]
+    FileType -->|XLSX| ShowSheets[Show Sheet Dropdown]
+    ShowSheets --> SelectSheet[User Selects Sheet]
+    SelectSheet --> LoadXLSX[load_xlsx_sheet_to_table]
+    LoadCSV --> NormalizeLoad[Normalize Strings]
+    LoadXLSX --> NormalizeLoad
+    NormalizeLoad --> StoreDF[Store in 'opened_file_df']
+    StoreDF --> DFMode
     
     %% Array Mode Flow
     ArrayMode --> SelectX[Select X Variable from Dropdown]
@@ -19,7 +32,7 @@ flowchart TD
     CreatePlot --> DisplayPlot[Display Plot + Table]
     
     %% DataFrame Mode Flow
-    DFMode --> SelectDF[Select DataFrame from Dropdown]
+    DFMode --> SelectDF["Select DataFrame (Main or Opened File)"]
     SelectDF --> ValidateDF{DataFrame Valid?}
     ValidateDF -->|No| WaitDF[Wait for Selection]
     ValidateDF -->|Yes| ShowCols[Display Column Checkboxes]
@@ -27,7 +40,11 @@ flowchart TD
     SelectCols --> TriggerPlot[Trigger plot_trigger Observable]
     TriggerPlot --> ValidateCols{Columns Valid?}
     ValidateCols -->|No| Error[Show Error]
-    ValidateCols -->|Yes| CreateDFPlot[Generate DataFrame Plot]
+    ValidateCols -->|Yes| NormalizeNumeric[Normalize Numeric Columns]
+    NormalizeNumeric --> WarnDirty{Data Issues?}
+    WarnDirty -->|Yes| ShowDirtyWarning[Show Warning Popup]
+    WarnDirty -->|No| CreateDFPlot
+    ShowDirtyWarning --> CreateDFPlot[Generate DataFrame Plot]
     CreateDFPlot --> DisplayDFPlot[Display Plot + Table]
     
     %% Format Updates

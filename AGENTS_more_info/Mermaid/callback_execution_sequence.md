@@ -80,6 +80,10 @@ sequenceDiagram
     Obs->>SourceCB: DataFrame callback triggered
     activate SourceCB
     SourceCB->>SourceCB: Validate columns exist in df
+    SourceCB->>SourceCB: Normalize Numeric Columns
+    opt Data Dirty
+        SourceCB->>Obs: show_modal[] = true (Warning)
+    end
     SourceCB->>Plot: update_dataframe_plot(df, cols)
     Plot-->>SourceCB: new fig
     SourceCB->>Obs: plot[] = new figure

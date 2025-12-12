@@ -46,6 +46,10 @@ function initialize_app_state()
     selected_dataframe = Observable{Union{Nothing, String}}(nothing)
     selected_columns = Observable{Vector{String}}(String[])
     
+    # Opened file DataFrame (from Open tab)
+    opened_file_df = Observable{Union{Nothing, DataFrame}}(nothing)
+    opened_file_name = Observable("")  # Display name (filename without path/suffix)
+    
     # Text field observables for plot labels
     xlabel_text = Observable("")
     ylabel_text = Observable("")
@@ -74,6 +78,7 @@ function initialize_app_state()
     return (; dims_dict_obs, trigger_update, selected_x, selected_y, last_update,
               plot_format, plot_handles, block_format_update,
               source_type, dataframes_dict_obs, selected_dataframe, selected_columns,
+              opened_file_df, opened_file_name,
               save_file_path, save_status_message, save_status_type, show_overwrite_confirm,
               show_modal, modal_type)
 end
@@ -106,6 +111,46 @@ function initialize_output_observables()
     
     return (; plot=plot_observable, table=table_observable, 
               current_x, current_y)
+end
+
+"""
+    create_table_with_info(table_content, info_text)
+
+Wrap table content with a source info line displayed above it.
+
+# Arguments
+- `table_content`: The table DOM element (e.g., Bonito.Table(df))
+- `info_text`: Text describing the data source (filepath, DataFrame name, or "x vs y")
+
+# Returns
+DOM.div with vertically divided pane: info line on top, table below
+"""
+function create_table_with_info(table_content, info_text)
+    # Info line with light blue background, 10px font
+    info_line = DOM.div(
+        info_text;
+        style=Styles(
+            "font-size" => "10px",
+            "background-color" => "#E3F2FD",  # Light blue
+            "padding" => "4px 8px",
+            "border-radius" => "3px",
+            "margin-bottom" => "5px",
+            "white-space" => "nowrap",
+            "overflow" => "hidden",
+            "text-overflow" => "ellipsis",
+        )
+    )
+    
+    # Container: vertical layout with info on top, table below
+    DOM.div(
+        info_line,
+        DOM.div(table_content; style=Styles("overflow" => "auto", "flex" => "1"));
+        style=Styles(
+            "display" => "flex",
+            "flex-direction" => "column",
+            "height" => "100%",
+        )
+    )
 end
 
 # ============================================================================
@@ -146,51 +191,168 @@ function build_file_filter()
 end
 
 """
-    load_file_to_table(filepath, table_observable)
+    normalize_strings!(df)
 
-Load a CSV/TSV or XLSX file and display it in the table pane.
+Normalize string columns for compatibility with Bonito.Table display.
+
+Converts:
+- AbstractString (e.g., InlineString from CSV.jl) → String
+- Any columns: replaces InlineString values with String equivalents
+
+Modifies the DataFrame in-place and returns it.
+"""
+function normalize_strings!(df)
+    for col in names(df)
+        col_eltype = eltype(df[!, col])
+        base_type = nonmissingtype(col_eltype)
+        
+        if base_type <: AbstractString
+            # Convert to String (handles InlineString from CSV.jl)
+            df[!, col] = [ismissing(v) ? missing : String(v) for v in df[!, col]]
+            
+        elseif base_type === Any
+            # Check for InlineStrings in Any columns and convert to String
+            df[!, col] = [
+                ismissing(v) ? missing : 
+                (v isa AbstractString ? String(v) : v) 
+                for v in df[!, col]
+            ]
+        end
+    end
+    return df
+end
+
+"""
+    normalize_numeric_columns!(df, cols)
+
+Normalize numeric columns for plotting compatibility.
+
+For each specified column:
+- AbstractString and Dates.AbstractTime → unchanged
+- Concrete numeric types (Float64, Int, etc.) and Bool → unchanged
+- Abstract Integer subtypes → Int (preserving missing)
+- Abstract Real subtypes → Float64 (preserving missing)
+- Any/unknown types:
+  - If >90% of non-missing values are numeric → Float64 (non-numeric become missing)
+  - Otherwise → unchanged
+
+# Arguments
+- `df`: DataFrame to normalize
+- `cols`: Vector of column names to normalize
+
+# Returns
+`(df, dirty_cols)` - the modified DataFrame and a vector of column names where 
+non-numeric values were converted to missing.
+"""
+function normalize_numeric_columns!(df, cols)
+    dirty_cols = String[]
+    
+    for col in cols
+        col ∉ names(df) && continue
+        
+        col_eltype = eltype(df[!, col])
+        base_type = nonmissingtype(col_eltype)
+        has_missing = col_eltype !== base_type
+        
+        if base_type <: AbstractString || base_type <: Dates.AbstractTime
+            # Leave as is
+            continue
+        
+        elseif base_type <: Real && isconcretetype(base_type)
+            continue
+            
+        elseif base_type <: Integer 
+            # Convert Integer subtypes to Int
+            if has_missing
+                df[!, col] = [ismissing(v) ? missing : Int(v) for v in df[!, col]]
+            else
+                df[!, col] = Int.(df[!, col])
+            end
+            
+        elseif base_type <: Real
+            # Convert Real subtypes to Float64
+            if has_missing
+                df[!, col] = [ismissing(v) ? missing : Float64(v) for v in df[!, col]]
+            else
+                df[!, col] = Float64.(df[!, col])
+            end
+            
+        else
+            # Any or unknown type - analyze content
+            values = df[!, col]
+            non_missing = filter(!ismissing, values)
+            
+            if isempty(non_missing)
+                # All missing - leave as is
+                continue
+            end
+            
+            # Count numeric values
+            n_numeric = count(v -> v isa Number, non_missing)
+            numeric_ratio = n_numeric / length(non_missing)
+            
+            if numeric_ratio > 0.9
+                # >90% numeric: convert to Float64, others become missing
+                original_missing_count = count(ismissing, values)
+                new_values = [ismissing(v) ? missing : (v isa Number ? Float64(v) : missing) for v in values]
+                new_missing_count = count(ismissing, new_values)
+                
+                df[!, col] = new_values
+                
+                # Track if we converted non-numeric to missing
+                if new_missing_count > original_missing_count
+                    push!(dirty_cols, col)
+                end
+            end
+            # If not mostly numeric, leave as is (will likely cause plot error, but user should fix data)
+        end
+    end
+    return (df, dirty_cols)
+end
+
+
+
+"""
+    load_csv_to_table(filepath, table_observable, state)
+
+Load a CSV/TSV file and display it in the table pane.
+Also stores the DataFrame in state for use in DataFrame mode.
 
 # Arguments
 - `filepath`: Path to the file to load
 - `table_observable`: Observable for table display
+- `state`: Application state (optional, for storing opened file DataFrame)
 
 # Returns
-`true` on success, `false` on error
+`true` on success, `false` on error (unused downstream)
 """
-function load_file_to_table(filepath, table_observable)
+function load_csv_to_table(filepath, table_observable, state=nothing)
     isempty(filepath) && return false
     
-    ext = lowercase(splitext(filepath)[2])
+    if !is_csv_extension_available()
+        @warn "CSV extension not available"
+        return false
+    end
     
     try
-        df = if ext in [".csv", ".tsv"]
-            if !is_csv_extension_available()
-                @warn "CSV extension not available"
-                return false
-            end
-            read_csv(filepath)
-        elseif ext == ".xlsx"
-            if !is_xlsx_extension_available()
-                @warn "XLSX extension not available"
-                return false
-            end
-            # Read first sheet (index 1)
-            readtable_xlsx(filepath, 1)
-        else
-            @warn "Unsupported file extension: $ext"
-            return false
+        # Attempt to read CSV (read_csv handles .tsv too usually via CSV.jl features)
+        df = read_csv(filepath)
+        
+        # Normalize string columns for display compatibility
+        normalize_strings!(df)
+        
+        # Store DataFrame in state if provided
+        if !isnothing(state)
+            state.opened_file_df[] = df
+            # Extract filename without path or extension
+            state.opened_file_name[] = splitext(basename(filepath))[1]
         end
         
-        # Convert InlineString columns to regular String for Bonito.Table compatibility
-        # CSV.jl uses InlineString which Bonito.Table may not handle properly
-        for col in names(df)
-            if eltype(df[!, col]) <: AbstractString
-                df[!, col] = String.(df[!, col])
-            end
-        end
+        # Build source info text with normalized absolute path
+        info_text = abspath(filepath) |> normpath
         
-        # Update table display
-        table_observable[] = DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
+        # Update table display with info line
+        table_observable[] = create_table_with_info(Bonito.Table(df), info_text)
         return true
     catch e
         @warn "Error loading file: $e"
@@ -198,6 +360,7 @@ function load_file_to_table(filepath, table_observable)
         return false
     end
 end
+
 
 """
     create_extension_status_row(name, available, available_text, unavailable_text)
@@ -230,7 +393,7 @@ function create_extension_status_row(name, available, available_text, unavailabl
 end
 
 """
-    create_open_tab_content(refresh_trigger, table_observable)
+    create_open_tab_content(refresh_trigger, table_observable, state)
 
 Create reactive content for the Open tab with:
 - Top section: Open File button (left) and extension status (right)
@@ -238,12 +401,14 @@ Create reactive content for the Open tab with:
 
 Content updates each time the refresh_trigger changes.
 Button click opens file dialog. CSV files load immediately, XLSX files wait for sheet selection.
+Loaded DataFrames are stored in state for use in DataFrame mode.
 
 # Arguments
 - `refresh_trigger`: Observable that triggers content refresh when changed
 - `table_observable`: Observable for table display
+- `state`: Application state for storing opened file DataFrame
 """
-function create_open_tab_content(refresh_trigger, table_observable)
+function create_open_tab_content(refresh_trigger, table_observable, state)
     # Create trigger for Open File button clicks
     open_file_trigger = Observable(0)
     
@@ -280,7 +445,7 @@ function create_open_tab_content(refresh_trigger, table_observable)
             current_xlsx_path[] = ""
             sheet_names[] = String[]
             selected_sheet[] = ""
-            load_file_to_table(filepath, table_observable)
+            load_csv_to_table(filepath, table_observable, state)
         elseif ext == ".xlsx"
             # XLSX: Populate sheet dropdown, wait for selection
             current_xlsx_path[] = filepath
@@ -300,7 +465,7 @@ function create_open_tab_content(refresh_trigger, table_observable)
     on(selected_sheet) do sheet
         xlsx_path = current_xlsx_path[]
         if !isempty(sheet) && !isempty(xlsx_path)
-            load_xlsx_sheet_to_table(xlsx_path, sheet, table_observable)
+            load_xlsx_sheet_to_table(xlsx_path, sheet, table_observable, state)
         end
     end
     
@@ -424,22 +589,29 @@ function create_open_tab_content(refresh_trigger, table_observable)
 end
 
 """
-    load_xlsx_sheet_to_table(filepath, sheet, table_observable)
+    load_xlsx_sheet_to_table(filepath, sheet, table_observable, state)
 
 Load a specific sheet from an XLSX file and display it in the table pane.
+Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_xlsx_sheet_to_table(filepath, sheet, table_observable)
+function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothing)
     try
         df = readtable_xlsx(filepath, sheet)
         
-        # Convert InlineString columns to regular String for Bonito.Table compatibility
-        for col in names(df)
-            if eltype(df[!, col]) <: AbstractString
-                df[!, col] = String.(df[!, col])
-            end
+        # Normalize string columns for display compatibility
+        normalize_strings!(df)
+        
+        # Store DataFrame in state if provided
+        if !isnothing(state)
+            state.opened_file_df[] = df
+            # Extract filename without path or extension
+            state.opened_file_name[] = splitext(basename(filepath))[1]
         end
         
-        table_observable[] = DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
+        # Build source info text: normalized filepath + sheet name
+        info_text = (abspath(filepath) |> normpath) * ":" * string(sheet)
+        
+        table_observable[] = create_table_with_info(Bonito.Table(df), info_text)
     catch e
         @warn "Error loading XLSX sheet: $e"
         table_observable[] = DOM.div("Error loading sheet: $sheet")
@@ -468,7 +640,7 @@ function create_tab_content(control_panel, state, outputs)
     open_tab_refresh = Observable(0)
     
     # Open tab - shows extension availability status (reactive) with file loading
-    open_tab_content = create_open_tab_content(open_tab_refresh, outputs.table)
+    open_tab_content = create_open_tab_content(open_tab_refresh, outputs.table, state)
     
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(
@@ -532,7 +704,10 @@ function create_data_table(x::AbstractString, y::AbstractString)
         df[!, col_name] = y_data[:, i]
     end
     
-    return DOM.div(Bonito.Table(df), style=Styles("overflow" => "auto", "height" => "100%"))
+    # Build source info text: "x_name vs y_name"
+    info_text = "$x vs $y"
+    
+    return create_table_with_info(Bonito.Table(df), info_text)
 end
 
 # ============================================================================

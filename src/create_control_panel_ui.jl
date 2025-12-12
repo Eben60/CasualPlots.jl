@@ -14,7 +14,7 @@ Returns a NamedTuple with:
 - `title_input`: Plot title text field
 """
 function create_control_panel_ui(dropdowns, state)
-    (; trigger_update, plot_format, plot_handles, source_type, selected_dataframe, selected_columns) = state
+    (; trigger_update, plot_format, plot_handles, source_type, selected_dataframe, selected_columns, opened_file_df) = state
     (; show_legend) = plot_format
     (; xlabel_text, ylabel_text, title_text, legend_title_text) = plot_handles
     
@@ -27,7 +27,7 @@ function create_control_panel_ui(dropdowns, state)
     array_mode_content = create_array_mode_content(dropdowns, trigger_update)
     
     dataframe_mode_content = create_dataframe_mode_content(
-        dropdowns, selected_dataframe, selected_columns, plot_trigger
+        dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df
     )
     
     # Dynamic source content that switches based on source_type

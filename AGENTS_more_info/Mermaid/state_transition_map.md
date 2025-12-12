@@ -19,6 +19,9 @@ stateDiagram-v2
     DataReady --> Error: Invalid Data\n(dimension mismatch,\nmissing columns)
     
     Plotting --> PlotDisplayed: Plot Generated\n(cp_figure exported)
+    Plotting --> WarningModal: Check Normalized Data\n(Issues Detected)
+    
+    WarningModal --> PlotDisplayed: User Dismisses
     
     PlotDisplayed --> Replotting: Format Changed\n(plottype, legend,\nlabels)
     
@@ -47,7 +50,7 @@ stateDiagram-v2
     
     note right of Plotting
         block_format_update = true
-        during source callback
+        Normalizes numeric cols
     end note
     
     note right of Replotting
@@ -69,6 +72,11 @@ stateDiagram-v2
     note right of ConfirmOverwrite
         show_modal = true
         modal_type = :confirm
-        displays popup modal
+    end note
+
+    note right of WarningModal
+        show_modal = true
+        modal_type = :warning
+        Plot generated underneath
     end note
 ```

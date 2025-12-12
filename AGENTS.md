@@ -43,12 +43,13 @@ items = (
 *   **[DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)**: Data handling
 *   **[Observables.jl](https://github.com/JuliaGizmos/Observables.jl)**: Reactive state management
 *   **[Electron.jl](https://github.com/davidanthoff/Electron.jl)**: Window hosting 
+*   **[CSV.jl](https://github.com/JuliaData/CSV.jl)** / **[XLSX.jl](https://github.com/felipenoris/XLSX.jl)**: File I/O via Package Extensions
 
 ### File Structure (src/)
 ```
 CasualPlots.jl                  # Main module, exports casualplots_app()
 app.jl                          # Main app entry point (casualplots_app function)
-app_helpers.jl                  # Helper functions for app assembly
+app_helpers.jl                  # Helper functions for app assembly (includes file loading)
 collect_data.jl                 # Data collection from Main module
 create_demo_data.jl             # Demo data generation
 dropdowns_setup.jl              # Dropdown menu initialization
@@ -63,6 +64,7 @@ create_save_ui.jl               # Save tab UI construction
 modal_dialog.jl                 # Modal dialog component
 save_plot.jl                    # Plot saving functionality (CairoMakie backend)
 scripts/                        # Example/demo scripts
+../ext/                         # Package Extensions (ReadCSV_Ext.jl, ReadXLSX_Ext.jl)
 ```
 
 ### Reactive State Architecture
@@ -90,6 +92,9 @@ state = (
     # DataFrame mode
     selected_df::Observable{Union{String,Nothing}},
     selected_cols::Observable{Vector{String}},
+    # File Opening
+    opened_file_df::Observable{Union{Nothing, DataFrame}}, # DataFrame from loaded file
+    opened_file_name::Observable{String},         # Filename for display
     # Save functionality
     save_file_path::Observable{String},           # Persists across plots
     save_status_message::Observable{String},
@@ -124,7 +129,7 @@ Diagrams are in the linked files:
 ### Critical Implementation Patterns
 
 #### 1. Source Selection & Plotting Flow
-Both **X,Y Source** and **DataFrame Source** modes follow a similar two-step selection process, but differ in how plotting is triggered.
+Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the plotting pipeline.
 
 **A. X,Y Source Selection:**
 1.  **Step 1: X Selection** (`setup_x_callback`)
@@ -141,9 +146,10 @@ Both **X,Y Source** and **DataFrame Source** modes follow a similar two-step sel
         - Blocks format callback to prevent race conditions (`state.block_format_update[] = true`).
     - *On invalid selection*: Clears plot, table, and state.
 
-**B. DataFrame Source Selection:**
+**B. DataFrame Source Selection (Main or Opened File):**
 1.  **Step 1: DataFrame Selection**
-    - User selects a DataFrame.
+    - User selects a DataFrame from `Main` OR selects "**opened file**" (if file loaded via Open tab).
+    - If needed (opened file), strings are normalized (`normalize_strings!`) at load time.
     - Triggers population of column checkboxes.
     - Clears current column selection.
 2.  **Step 2: Column Selection & Plotting** (`setup_dataframe_callbacks`)
@@ -151,6 +157,7 @@ Both **X,Y Source** and **DataFrame Source** modes follow a similar two-step sel
     - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
     - `plot_trigger` observable fires:
         - Validates selection (at least 2 columns).
+        - **Data Normalization**: Calls `normalize_numeric_columns!` to convert Abstract/Any types to Float64/Int. Warns if non-numeric values are lost (popup + log).
         - Calls `update_dataframe_plot` helper.
         - Generates plot with **default labels** (resets legend title).
         - Updates table view.
@@ -216,10 +223,9 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Planned Enhancements (as of v0.0.3)
+#### Planned Enhancements (as of v0.0.6)
 
-- Importing data from external files  
-- Exporting plots to image/PDF formats  
+- Importing data from external files (mostly done)
 - Optional regression‑fit overlays  
 - Automatic Julia code generation from GUI actions  
 - Additional formatting options (e.g., axis limits, themes)  
@@ -252,7 +258,8 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - Manual testing via `src/scripts/casualplots_test.jl`
 - Browser testing with Antigravity plugin (conversation history refs) via `src/scripts/casualplots_browser-test.jl`
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
-- Test suite WIP in early stage, currently (as of v0.0.5) only "easy" tests for non-GUI-functions 
+- Test suite WIP in early stage.
+  - Tests for non-GUI-functions only yet
 
 
 ### Exports

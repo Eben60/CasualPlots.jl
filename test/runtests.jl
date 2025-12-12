@@ -7,3 +7,4 @@ using SafeTestsets
 @safetestset "Data Collection" include("collect_data_test.jl")
 @safetestset "Plotting Utilities" include("plotting_utils_test.jl")
 @safetestset "File Extensions (CSV/XLSX)" include("extensions_test.jl")
+@safetestset "Data Normalization" include("normalization_test.jl")
