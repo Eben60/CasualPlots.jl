@@ -34,10 +34,11 @@ casualplots_app() = App() do session
     control_panel = create_control_panel_ui(dropdowns, state) # TODO review
     setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger) # DataFrame mode callbacks
     
-    tabs = create_tab_content(control_panel, state)
+    tabs_result = create_tab_content(control_panel, state, outputs)
     help = setup_help_section(outputs.plot)
     
-    # Assemble and return final layout
-    return assemble_layout(tabs, help.visibility, outputs.plot, outputs.table)
+    # Assemble and return final layout (with modal dialog)
+    return assemble_layout(tabs_result.tabs, help.visibility, outputs.plot, outputs.table, 
+                           state, tabs_result.overwrite_trigger, tabs_result.cancel_trigger)
 end
 

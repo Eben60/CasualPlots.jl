@@ -192,7 +192,7 @@ Handles the common plotting logic used by both plot trigger and format callbacks
 - `update_table`: If true, updates the table observable (only for new plot data)
 """
 function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
-    (; plot_format, plot_handles) = state
+    (; plot_format, plot_handles, show_modal, modal_type) = state
     (; selected_plottype, show_legend) = plot_format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = plot_handles
     plot_observable = outputs.plot
@@ -204,8 +204,23 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
     saved_title = title_text[]
     
     try
-        # Get DataFrame from Main
-        df = getfield(Main, Symbol(df_name))
+        # Get DataFrame - either from Main or from opened file
+        local df
+        local display_name  # Name used for table info and plot title
+        
+        if df_name == "__opened_file__"
+            # Use DataFrame loaded from file (already has strings normalized)
+            df = state.opened_file_df[]
+            display_name = state.opened_file_name[]
+            if isnothing(df)
+                plot_observable[] = DOM.div("Error: No file has been opened. Use the Open tab to load a file.")
+                return false
+            end
+        else
+            # Get DataFrame from Main module
+            df = getfield(Main, Symbol(df_name))
+            display_name = df_name
+        end
         
         # Validate that all requested columns exist in the DataFrame
         available_columns = names(df)
@@ -213,17 +228,31 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         
         # If we don't have at least 2 valid columns after filtering, abort
         if length(valid_cols) < 2
-            plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(df_name). Available columns: $(join(available_columns, ", "))")
+            plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))")
             return false
         end
         
         # Use select to get selected columns
         df_selected = select(df, valid_cols)
         
+        # Normalize numeric columns for plotting and track any columns with data issues
+        df_selected, dirty_cols = normalize_numeric_columns!(df_selected, valid_cols)
+        
+        # Show warning if any columns had non-numeric values converted to missing
+        if !isempty(dirty_cols)
+            warning_msg = "Converted non-numeric values to missing in column(s): $(join(dirty_cols, ", "))"
+            @warn warning_msg
+            # Show popup warning
+            state.save_status_message[] = warning_msg
+            state.save_status_type[] = :warning
+            modal_type[] = :warning
+            show_modal[] = true
+        end
+        
         # First column is X, rest are Y
         xcol_name = valid_cols[1]
-        # Use DataFrame name as y_name when multiple Y columns
-        y_names = length(valid_cols) > 2 ? df_name : valid_cols[2]
+        # Use display name as y_name when multiple Y columns
+        y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
         
         # Reset legend title if requested (for new plots)
         if reset_legend_title
@@ -294,7 +323,7 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         
         # Update table if requested (only for new plot data)
         if update_table
-            table_observable[] = DOM.div(Bonito.Table(df_selected), style=Styles("overflow" => "auto", "height" => "100%"))
+            table_observable[] = create_table_with_info(Bonito.Table(df_selected), display_name)
         end
         
         return true  # Success

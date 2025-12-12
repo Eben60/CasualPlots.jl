@@ -1,6 +1,6 @@
 name = "CasualPlots"
 uuid = "96609e94-6212-48a9-9561-4cd28ba001d1"
-version = "0.0.5"
+version = "0.0.6"
 authors = ["Eben60"]
 
 [deps]
@@ -18,8 +18,19 @@ Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
+
+[weakdeps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
+
+[extensions]
+ReadCSV_Ext = "CSV"
+ReadXLSX_Ext = "XLSX"
+
+
 [compat]
 Bonito = "4.1"
+CSV = "0.10.15"
 CairoMakie = "0.15.7"
 ColorSchemes = "3.31.0"
 DataFrames = "1.8"
@@ -28,4 +39,5 @@ Electron = "6.1"
 FilePathsBase = "0.9.24"
 NativeFileDialog = "0.2.1"
 Unitful = "1.25"
+XLSX = "0.10.4"
 julia = "1.10"

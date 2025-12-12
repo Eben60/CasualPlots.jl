@@ -100,7 +100,10 @@ function pick_workaround(path, picktype; filterlist="")
     else
         startswith(filterlist, ".") && (filterlist = filterlist[2:end])
         filterlist = filterlist |> lowercase
-        filterdef = """set filetype to "$filterlist"\n"""
+        # Convert comma-separated string to AppleScript list format: {"csv", "tsv", "xlsx"}
+        extensions = split(filterlist, ",")
+        applescript_list = "{" * join(["\"$(strip(ext))\"" for ext in extensions], ", ") * "}"
+        filterdef = """set filetype to $applescript_list\n"""
         filtercall = "of type filetype"
     end
 

@@ -93,7 +93,7 @@ function create_source_type_selector(source_type)
             type="radio", name="source_type", value="DataFrame",
             checked=(source_type[] == "DataFrame"),
             onchange=js"event => $(source_type).notify(event.target.value)"
-        ), " DataFrame";
+        ), " File/DataFrame";
         style=Styles("margin-bottom" => "10px")
     )
 end
@@ -126,22 +126,34 @@ function create_array_mode_content(dropdowns, trigger_update)
 end
 
 """
-    create_select_all_button(selected_dataframe, selected_columns)
+    create_select_all_button(selected_dataframe, selected_columns, opened_file_df)
 
 Create a "Select All" button for DataFrame column selection.
 
 # Arguments
 - `selected_dataframe::Observable`: Observable tracking the selected DataFrame
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
+- `opened_file_df::Observable`: Observable containing the opened file DataFrame (optional)
 
 # Returns
 Observable DOM.button that selects all columns when clicked
 """
-function create_select_all_button(selected_dataframe, selected_columns)
-    map(selected_dataframe) do df_name
+function create_select_all_button(selected_dataframe, selected_columns, opened_file_df=nothing)
+    # Helper function to create the button
+    function make_button(df_name, opened_df)
         enabled = !isnothing(df_name) && df_name != ""
-        # Get columns from Julia side instead of scraping DOM
-        columns = enabled ? get_dataframe_columns(df_name) : String[]
+        
+        # Get columns - from opened file or from Main module
+        columns = if enabled
+            if df_name == "__opened_file__" && !isnothing(opened_df)
+                names(opened_df)
+            else
+                get_dataframe_columns(df_name)
+            end
+        else
+            String[]
+        end
+        
         DOM.button(
             "Select All",
             onclick=enabled ? js"""() => {
@@ -165,6 +177,17 @@ function create_select_all_button(selected_dataframe, selected_columns)
                 "border-radius" => "4px"
             )
         )
+    end
+    
+    # Use map with both observables if opened_file_df is provided
+    if isnothing(opened_file_df)
+        map(selected_dataframe) do df_name
+            make_button(df_name, nothing)
+        end
+    else
+        map(selected_dataframe, opened_file_df) do df_name, opened_df
+            make_button(df_name, opened_df)
+        end
     end
 end
 
@@ -241,7 +264,7 @@ function create_plot_button(selected_columns, plot_trigger)
 end
 
 """
-    create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger)
+    create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
 
 Create UI content for DataFrame mode.
 
@@ -250,22 +273,31 @@ Create UI content for DataFrame mode.
 - `selected_dataframe::Observable`: Observable tracking the selected DataFrame
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
 - `plot_trigger::Observable{Int}`: Observable to trigger plot generation
+- `opened_file_df::Observable`: Observable containing the opened file DataFrame
 
 # Returns
 DOM.div containing DataFrame selection UI and column checkboxes
 """
-function create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger)
+function create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
     dataframe_dropdown_node = dropdowns.dataframe_node
     
-    column_checkboxes_node = map(selected_dataframe) do df_name
+    # Column checkboxes - reactive to both selected_dataframe and opened_file_df
+    column_checkboxes_node = map(selected_dataframe, opened_file_df) do df_name, opened_df
         if isnothing(df_name) || df_name == ""
             return DOM.div("Select a DataFrame first")
         end
-        columns = get_dataframe_columns(df_name)
+        
+        # Get columns - from opened file or from Main module
+        columns = if df_name == "__opened_file__" && !isnothing(opened_df)
+            names(opened_df)
+        else
+            get_dataframe_columns(df_name)
+        end
+        
         return create_dataframe_column_checkboxes(columns, selected_columns)
     end
     
-    select_all_button = create_select_all_button(selected_dataframe, selected_columns)
+    select_all_button = create_select_all_button(selected_dataframe, selected_columns, opened_file_df)
     deselect_all_button = create_deselect_all_button(selected_columns)
     plot_button = create_plot_button(selected_columns, plot_trigger)
     

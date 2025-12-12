@@ -1,5 +1,5 @@
 """
-    create_tabs_component(tab_configs::Vector{NamedTuple})
+    create_tabs_component(tab_configs::Vector; default_active=1)
 
 Create a tabbed interface component.
 
@@ -7,6 +7,7 @@ Create a tabbed interface component.
 - `tab_configs`: Vector of NamedTuples with `name` and `content` fields
   - `name`: String name for the tab button
   - `content`: DOM node to display when tab is active
+- `default_active`: Index of the tab to show by default (1-indexed)
 
 # Returns
 A DOM node containing the complete tabs interface
@@ -17,12 +18,12 @@ tabs = create_tabs_component([
     (name="Settings", content=DOM.div("Settings content")),
     (name="Data", content=DOM.div("Data content")),
     (name="Help", content=DOM.div("Help content"))
-])
+]; default_active=2)
 ```
 """
-function create_tabs_component(tab_configs::Vector)
+function create_tabs_component(tab_configs::Vector; default_active=1)
     # Observable to track which tab is active (1-indexed)
-    active_tab = Observable(1)
+    active_tab = Observable(default_active)
     
     # CSS styling for the tabs
     tab_styles = """
@@ -128,6 +129,6 @@ function create_tabs_component(tab_configs::Vector)
         )
     )
     
-    return tabs_html
+    return (; dom=tabs_html, active_tab)
 end
 
