@@ -50,7 +50,7 @@ stateDiagram-v2
     
     note right of Plotting
         block_format_update = true
-        Normalizes numeric cols
+        normalize_numeric_columns!
     end note
     
     note right of Replotting

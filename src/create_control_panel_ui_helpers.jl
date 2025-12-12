@@ -93,7 +93,7 @@ function create_source_type_selector(source_type)
             type="radio", name="source_type", value="DataFrame",
             checked=(source_type[] == "DataFrame"),
             onchange=js"event => $(source_type).notify(event.target.value)"
-        ), " DataFrame";
+        ), " File/DataFrame";
         style=Styles("margin-bottom" => "10px")
     )
 end

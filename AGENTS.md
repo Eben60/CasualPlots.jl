@@ -7,11 +7,13 @@
 
 ### Coding Conventions
 
-* Unless technically required, do not supply argument types to functions. In the docstring however, specify the type the function is expected to process properly. Technical need may be in case of a function with multiple methods. If specifying type, do not overspecify, e.g. `foo(x::Real)` should be used instead of `foo(x::Float64)` if `foo` would process any real type just as well. Example:
+*   **Function Signatures**: Unless technically required (e.g., for multiple dispatch), do not supply argument types in the function definition. If specifying types, do not overspecify (e.g., use `Real` instead of `Float64` if appropriate).
+*   **Docstrings**: Specify the expected types in the docstring signature. You may also explicitly show the return type. Skip detailed explanations if the function is self-explanatory.
 
+Example:
 ```
 """
-    foo(x::Real)
+    foo(x::Real) --> Real
 
 Squaring the x
 """
@@ -20,14 +22,20 @@ function foo(x)
 end
 ```
 
-* Always start `NamedTuple`s with a semicolon. Always use semicolon before kwargs in function calls.Example:
+*   **Syntax**:
+    *   Always start `NamedTuple`s with a semicolon.
+    *   Always use a semicolon before keyword arguments in function calls.
+
+Example:
 ```
 # Good
 state = (; x = 1, y = 2)
 foo(a, b; kwarg1 = 1, kwarg2 = 2)
 ```
 
-* If a Tuple, function arguments or other comma-separated lists span several lines, put a comma after the last item, too. Example:
+*   **Formatting**: If a Tuple, function argument list, or other comma-separated list spans multiple lines, always add a trailing comma after the last item.
+
+Example:
 ```
 items = (
     item1,
@@ -49,7 +57,8 @@ items = (
 ```
 CasualPlots.jl                  # Main module, exports casualplots_app()
 app.jl                          # Main app entry point (casualplots_app function)
-app_helpers.jl                  # Helper functions for app assembly (includes file loading)
+app_helpers.jl                  # Helper functions for app assembly and layout
+get_and_preprocess_data.jl      # Data loading, validation, and preprocessing (file I/O, normalization)
 collect_data.jl                 # Data collection from Main module
 create_demo_data.jl             # Demo data generation
 dropdowns_setup.jl              # Dropdown menu initialization

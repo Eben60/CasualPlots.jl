@@ -11,13 +11,14 @@ flowchart TD
     TabSelect -->|Open Tab| OpenMode[Open File Tab]
 
     %% Open File Flow
-    OpenMode --> SelectFile[Select File via Dialog]
-    SelectFile --> FileType{File Type?}
+    OpenMode --> SelectFile[Click Open File Button]
+    SelectFile --> HandleClick[handle_open_file_click]
+    HandleClick --> FileType{File Type?}
     FileType -->|CSV/TSV| LoadCSV[load_csv_to_table]
     FileType -->|XLSX| ShowSheets[Show Sheet Dropdown]
     ShowSheets --> SelectSheet[User Selects Sheet]
     SelectSheet --> LoadXLSX[load_xlsx_sheet_to_table]
-    LoadCSV --> NormalizeLoad[Normalize Strings]
+    LoadCSV --> NormalizeLoad[normalize_strings!]
     LoadXLSX --> NormalizeLoad
     NormalizeLoad --> StoreDF[Store in 'opened_file_df']
     StoreDF --> DFMode

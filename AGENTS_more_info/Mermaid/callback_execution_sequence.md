@@ -80,7 +80,7 @@ sequenceDiagram
     Obs->>SourceCB: DataFrame callback triggered
     activate SourceCB
     SourceCB->>SourceCB: Validate columns exist in df
-    SourceCB->>SourceCB: Normalize Numeric Columns
+    SourceCB->>SourceCB: normalize_numeric_columns!
     opt Data Dirty
         SourceCB->>Obs: show_modal[] = true (Warning)
     end
