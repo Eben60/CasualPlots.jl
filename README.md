@@ -12,7 +12,7 @@ The intended user is someone who wants an easy way to create common plot types w
 
 ## What It Does
 
-`CasualPlots` provides a GUI window where you can quickly visualize your data. You can select data from your `Main` namespace, or from disk, and the plot will be displayed along with a table view of your data. You can customize some common attributes like plot title, and switch between different plot types. You can simply save it as a `PNG`, `SVG`, or `PDF` file directly from the GUI, or you can manually customize the exported `cp_figure` object of  `Makie.Figure`.
+`CasualPlots` provides a GUI window where you can quickly visualize your data. You can select data from your `Main` namespace, or from disk, and the plot will be displayed along with a table view of your data. You can customize some common attributes like plot title, and switch between different plot types. You can simply save it as a `PNG`, `SVG`, or `PDF` file directly from the GUI, or you can manually customize the exported `Makie.Figure` object.
 
 ## How It Does It
 
@@ -64,6 +64,15 @@ julia> Ele.serve_app(app)
 The author sees Electron as the preferred usage way.
 
 See usage/testing examples in the scripts in the folder `src/scripts` of the package.
+
+### Accessing Created Plot
+
+The plot (the `Makie.Figure` object, to be exact) is exported as `cp_figure`, whereas its Axis object exported as `cp_figure_ax`. Both objects will be accessible in REPL as soon as the plot is displayed. You a free to modify them in any way possible in `Makie`.
+
+```
+# the change will be immediately reflected in the currently displayed plot
+julia> hidespines!(cp_figure_ax, :r, :t)
+```
 
 ## Current State
 
