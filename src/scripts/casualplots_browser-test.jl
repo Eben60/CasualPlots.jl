@@ -1,6 +1,6 @@
-include("setup_test.jl")
+include("setup_test.jl");
 
-app = casualplots_app()
+app = casualplots_app();
 # this opens the GUI in browser for debugging
 server = Bonito.Server(app, "127.0.0.1", 8000)
 println("Server should running at http://127.0.0.1:8000, except the port is busy.")
