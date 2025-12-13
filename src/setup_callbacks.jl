@@ -423,5 +423,3 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
     end
 end
-
-

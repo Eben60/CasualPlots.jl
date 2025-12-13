@@ -131,4 +131,3 @@ function create_tabs_component(tab_configs::Vector; default_active=1)
     
     return (; dom=tabs_html, active_tab)
 end
-

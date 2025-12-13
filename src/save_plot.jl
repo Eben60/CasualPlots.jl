@@ -6,19 +6,12 @@ const SUPPORTED_SAVE_FORMATS = ["png", "svg", "pdf"]
 """
     get_file_extension(path::AbstractString) -> String
 
-Extract lowercase file extension from path (without dot).
-Returns empty string if no extension found.
+Extract lowercase file extension from path.
 """
 function get_file_extension(path::AbstractString)
-    path = strip(path)
-    isempty(path) && return ""
-    
-    basename_str = basename(path)
-    dot_idx = findlast('.', basename_str)
-    isnothing(dot_idx) && return ""
-    dot_idx == length(basename_str) && return ""
-    
-    return lowercase(basename_str[dot_idx+1:end])
+    isempty(path) && return nothing
+    _, extension = splitext(path)
+    return lowercase(extension)
 end
 
 """
