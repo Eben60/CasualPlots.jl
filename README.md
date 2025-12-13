@@ -23,7 +23,7 @@ It uses [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl), [AlgebraOfGraphi
 
 ## How To Use
 
-Registration is planned soon. In the meanwhile you can install it from GitHub:
+Note: it currently needs Julia v1.12 or higher. Registration is planned soon. In the meanwhile you can install it from GitHub:
 
 ```
 (@v1.12) pkg> add https://github.com/Eben60/CasualPlots.jl
