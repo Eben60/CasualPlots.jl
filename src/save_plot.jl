@@ -3,16 +3,6 @@
 """Supported file extensions for plot saving via CairoMakie"""
 const SUPPORTED_SAVE_FORMATS = ["png", "svg", "pdf"]
 
-"""
-    get_file_extension(path::AbstractString) -> String
-
-Extract lowercase file extension from path.
-"""
-function get_file_extension(path::AbstractString)
-    isempty(path) && return nothing
-    _, extension = splitext(path)
-    return lowercase(extension)
-end
 
 """
     validate_save_path(path::AbstractString) -> (valid::Bool, error_message::String)
@@ -27,7 +17,7 @@ function validate_save_path(path::AbstractString)
         return (false, "Please specify a file path")
     end
     
-    ext = get_file_extension(path)
+    ext = lowercase(splitext(path)[2])
     
     if isempty(ext)
         return (false, "File must have an extension (.png, .svg, or .pdf)")

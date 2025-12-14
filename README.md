@@ -20,11 +20,20 @@ It uses [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl), [AlgebraOfGraphi
 
 ## How To Use
 
-Note: it currently needs Julia v1.12 or higher. Registration is planned soon. In the meanwhile you can install it from GitHub:
+Note: it currently needs Julia v1.12 or higher. The package is registered. Keep in mind, the package has a lot (around 300) of downstream dependencies, so it is not recommended to install it into your "main/default" environment like this:
+```
+(@v1.12) pkg> add CasualPlots
+```
+
+Instead better install it in directly your project environment(s). Alternatively you can install it into a shared environment and make it available from everywhere with the help of [ShareAdd.jl](https://github.com/Eben60/ShareAdd.jl) package:
 
 ```
-(@v1.12) pkg> add https://github.com/Eben60/CasualPlots.jl
+julia> using ShareAdd
+
+julia> @usingany CasualPlots
 ```
+
+`@usingany` would import a package from any shared environment if available, otherwise first install it into a shared env of your choice.
 
 The package creates a Bonito GUI app, which can be opened in an [Electron.jl](https://github.com/JuliaGizmos/Electron.jl) window, in a browser, or in a plot pane of VSCode. If you need to read data from CSV and/or "excel" files, you need to import `CSV` and/or `XLSX` packages, as these are implemented as extensions.
 
@@ -50,8 +59,20 @@ julia> close(app) # you may close the app when you no longer need it
 julia> app = casualplots_app()
 
 julia> server = Bonito.Server(app, "127.0.0.1", 8000)
+
+julia> server = Bonito.Server(app, "127.0.0.1", 8000)
+┌ Warning: Port in use, using different port. New port: 8001
+└ @ Bonito.HTTPServer ~/.julia/packages/Bonito/18mTs/src/HTTPServer/implementation.jl:346
+Server:
+  isrunning: true
+  listen_url: http://localhost:8001
+  online_url: http://localhost:8001
+  http routes: 1
+    / => App
+  websocket routes: 0
 ```
-After starting the server, go to browser and navigate to `http://localhost:8000` or `http://127.0.0.1:8000`. You get a message in Terminal if the port 8000 is busy and other port is used.
+
+After starting the server, go to browser and navigate to `http://localhost:8000` or `http://127.0.0.1:8000`. You get a message in the Terminal if the port 8000 is busy and other port is used.
 
 ### Opening a Standalone Electron Window
 
@@ -67,7 +88,7 @@ See usage/testing examples in the scripts in the folder `src/scripts` of the pac
 
 ### Accessing Created Plot
 
-The plot (the `Makie.Figure` object, to be exact) is exported as `cp_figure`, whereas its Axis object exported as `cp_figure_ax`. Both objects will be accessible in REPL as soon as the plot is displayed. You a free to modify them in any way possible in `Makie`.
+The plot (the `Makie.Figure` object, to be exact) is exported as `cp_figure`, whereas its `Axis` object exported as `cp_figure_ax`. Both objects will be accessible in REPL as soon as the plot is displayed. You a free to modify them in any way possible in `Makie`:
 
 ```
 # the change will be immediately reflected in the currently displayed plot
@@ -81,12 +102,14 @@ Let's repeat, it is WIP. Particularly, if you see this README, the package is fa
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
 - [✅] Data sources: CSV and XLSX files.
-    - [🚧] Support for file reading arguments (kwargs) planned.
+    - [🚧] Support for CSV/XLSX file reading options (kwargs) planned.
 - [✅] Plotting: Lines and Scatter plots.
-    - [🚧] More plot formatting options planned.
+    - [🚧] More plot formatting options.
 - [✅] Saving plot to a file.
 - [✅] Exporting the Figure object.
-- [❌] Documenter.jl based documentation
+- [❌] Saving the Figure object to `JLD2` file.
+- [❌] Precompile to reduce TTFP.
+- [❌] Documenter.jl based documentation.
 - [❌] Automatic generation of Julia code corresponding to the user’s actions.
 - [❌] Applying a least-squares fit from the GUI.
 
