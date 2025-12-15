@@ -72,3 +72,57 @@ function create_tabs_component(tab_configs::Vector; default_active=1)
     
     return (; dom=tabs_html, active_tab)
 end
+
+"""
+    create_tab_content(control_panel, state, outputs)
+
+Organize control panel elements into tabbed interface.
+
+# Arguments
+- `control_panel`: NamedTuple with x_source, y_source, plot_kind, legend_control
+- `state`: Application state NamedTuple with save-related observables
+- `outputs`: Output observables NamedTuple with table observable
+
+# Returns
+NamedTuple with:
+- `tabs`: Tabbed component DOM element with Open, Source, Format, and Save tabs (Source is default active)
+- `overwrite_trigger`: Observable for overwrite button (passed to modal)
+- `cancel_trigger`: Observable for cancel button (passed to modal)
+"""
+function create_tab_content(control_panel, state, outputs)
+    # Create a refresh trigger for the Open tab that fires when it becomes active
+    open_tab_refresh = Observable(0)
+    
+    # Open tab - shows extension availability status (reactive) with file loading
+    open_tab_content = create_open_tab_content(open_tab_refresh, outputs.table, state)
+    
+    t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
+    t2_format_content = DOM.div(
+        control_panel.plot_kind, 
+        control_panel.legend_control,
+        control_panel.xlabel_input,
+        control_panel.ylabel_input,
+        control_panel.title_input,
+    )
+    save_tab_result = create_save_tab_content(state)
+    
+    tab_configs = [
+        (name="Open", content=open_tab_content),
+        (name="Source", content=t1_source_content),
+        (name="Format", content=t2_format_content),
+        (name="Save", content=save_tab_result.content),
+    ]
+    
+    # default_active=2 keeps "Source" tab as the default (Open is now index 1)
+    tabs_result = create_tabs_component(tab_configs; default_active=2)
+    
+    # Wire up the Open tab refresh: trigger when Open tab (index 1) becomes active
+    on(tabs_result.active_tab) do tab_idx
+        if tab_idx == 1  # Open tab
+            open_tab_refresh[] = open_tab_refresh[] + 1
+        end
+    end
+    
+    return (; tabs=tabs_result.dom, overwrite_trigger=save_tab_result.overwrite_trigger, 
+              cancel_trigger=save_tab_result.cancel_trigger)
+end

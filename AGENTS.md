@@ -65,6 +65,7 @@ items = (
 *   **[CSV.jl](https://github.com/JuliaData/CSV.jl)** / **[XLSX.jl](https://github.com/felipenoris/XLSX.jl)**: File I/O via Package Extensions
 
 ### File Structure (src/)
+!!! obsolete! to be re-built! not final source of truth! !!!
 ```
 CasualPlots.jl                  # Main module, exports casualplots_app()
 app.jl                          # Main app entry point (casualplots_app function)
@@ -138,6 +139,8 @@ outputs = (
 ```
 
 ### Developer Diagrams
+
+!!! obsolete! to be re-built! not final source of truth! !!!
 
 Diagrams are in the linked files:
 

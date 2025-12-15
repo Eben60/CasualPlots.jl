@@ -83,11 +83,6 @@ function initialize_app_state()
               show_modal, modal_type)
 end
 
-# ============================================================================
-# 2. DROPDOWN SETUP
-# ============================================================================
-
-# include("dropdowns_setup.jl")
 
 # ============================================================================
 # 3. OUTPUT OBSERVABLES
@@ -113,204 +108,8 @@ function initialize_output_observables()
               current_x, current_y)
 end
 
-"""
-    create_table_with_info(table_content, info_text)
 
-Wrap table content with a source info line displayed above it.
 
-# Arguments
-- `table_content`: The table DOM element (e.g., Bonito.Table(df))
-- `info_text`: Text describing the data source (filepath, DataFrame name, or "x vs y")
-
-# Returns
-DOM.div with vertically divided pane: info line on top, table below
-"""
-function create_table_with_info(table_content, info_text)
-    # Info line with light blue background, 10px font
-    info_line = DOM.div(
-        info_text;
-        style=Styles(
-            "font-size" => "10px",
-            "background-color" => "#E3F2FD",  # Light blue
-            "padding" => "4px 8px",
-            "border-radius" => "3px",
-            "margin-bottom" => "5px",
-            "white-space" => "nowrap",
-            "overflow" => "hidden",
-            "text-overflow" => "ellipsis",
-        )
-    )
-    
-    # Container: vertical layout with info on top, table below
-    DOM.div(
-        info_line,
-        DOM.div(table_content; style=Styles("overflow" => "auto", "flex" => "1"));
-        style=Styles(
-            "display" => "flex",
-            "flex-direction" => "column",
-            "height" => "100%",
-        )
-    )
-end
-
-# ============================================================================
-# 4. UI COMPONENT CREATION
-# ============================================================================
-
-# include("ui_open_tab.jl")
-
-"""
-    create_tab_content(control_panel, state, outputs)
-
-Organize control panel elements into tabbed interface.
-
-# Arguments
-- `control_panel`: NamedTuple with x_source, y_source, plot_kind, legend_control
-- `state`: Application state NamedTuple with save-related observables
-- `outputs`: Output observables NamedTuple with table observable
-
-# Returns
-NamedTuple with:
-- `tabs`: Tabbed component DOM element with Open, Source, Format, and Save tabs (Source is default active)
-- `overwrite_trigger`: Observable for overwrite button (passed to modal)
-- `cancel_trigger`: Observable for cancel button (passed to modal)
-"""
-function create_tab_content(control_panel, state, outputs)
-    # Create a refresh trigger for the Open tab that fires when it becomes active
-    open_tab_refresh = Observable(0)
-    
-    # Open tab - shows extension availability status (reactive) with file loading
-    open_tab_content = create_open_tab_content(open_tab_refresh, outputs.table, state)
-    
-    t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
-    t2_format_content = DOM.div(
-        control_panel.plot_kind, 
-        control_panel.legend_control,
-        control_panel.xlabel_input,
-        control_panel.ylabel_input,
-        control_panel.title_input,
-    )
-    save_tab_result = create_save_tab_content(state)
-    
-    tab_configs = [
-        (name="Open", content=open_tab_content),
-        (name="Source", content=t1_source_content),
-        (name="Format", content=t2_format_content),
-        (name="Save", content=save_tab_result.content),
-    ]
-    
-    # default_active=2 keeps "Source" tab as the default (Open is now index 1)
-    tabs_result = create_tabs_component(tab_configs; default_active=2)
-    
-    # Wire up the Open tab refresh: trigger when Open tab (index 1) becomes active
-    on(tabs_result.active_tab) do tab_idx
-        if tab_idx == 1  # Open tab
-            open_tab_refresh[] = open_tab_refresh[] + 1
-        end
-    end
-    
-    return (; tabs=tabs_result.dom, overwrite_trigger=save_tab_result.overwrite_trigger, 
-              cancel_trigger=save_tab_result.cancel_trigger)
-end
-
-"""
-    create_data_table(x, y)
-
-Create a formatted data table displaying X and Y data.
-
-# Arguments
-- `x::String`: Name of X variable in Main module
-- `y::String`: Name of Y variable in Main module
-
-# Returns
-DOM.div containing a Bonito.Table with the data
-"""
-function create_data_table(x::AbstractString, y::AbstractString)
-    x_data = getfield(Main, Symbol(x))
-    y_data = getfield(Main, Symbol(y))
-    if y_data isa AbstractVector
-        y_data = reshape(y_data, :, 1)
-    end
-    
-    num_rows = size(x_data, 1)
-    num_y_cols = size(y_data, 2)
-    
-    df = DataFrame()
-    df.Row = 1:num_rows
-    df[!, x] = x_data
-    
-    for i in 1:num_y_cols
-        col_name = num_y_cols > 1 ? "$(y)_$i" : y
-        df[!, col_name] = y_data[:, i]
-    end
-    
-    # Build source info text: "x_name vs y_name"
-    info_text = "$x vs $y"
-    
-    return create_table_with_info(Bonito.Table(df), info_text)
-end
-
-# ============================================================================
-# 5. HELP SECTION
-# ============================================================================
-
-"""
-    setup_help_section(plot_observable)
-
-Create reactive help section that shows/hides based on plot presence.
-
-Returns Observable controlling help section visibility
-"""
-function setup_help_section(plot_observable)
-    return map(plot_observable) do plot_content
-        plot_content isa Figure ? "visible" : "hidden"
-    end
-end
-
-"""
-    mouse_helptext(help_visibility)
-
-Create the mouse controls help text with reactive visibility.
-
-# Arguments
-- `help_visibility`: Observable controlling CSS visibility property
-
-# Returns
-DOM.div containing formatted help text for mouse controls
-"""
-mouse_helptext(help_visibility) = map(help_visibility) do visibility_style
-    DOM.div(
-        DOM.div("Mouse Controls", style=Styles("font-weight" => "bold", "font-size" => "11px", "margin-bottom" => "3px")),
-        DOM.div(
-            DOM.div("Pan: Right-click + Drag", style=Styles("font-size" => "10px", "margin-bottom" => "1px")),
-            DOM.div("Zoom: Mouse Wheel", style=Styles("font-size" => "10px", "margin-bottom" => "1px")),
-            DOM.div("Zoom in: Select rectangle by left button", style=Styles("font-size" => "10px", "margin-bottom" => "1px")),
-            DOM.div("Reset: Ctrl + Left-click", style=Styles("font-size" => "10px"))
-        );
-        style=Styles(
-            "padding" => "5px", 
-            "background-color" => "#f5f5f5",
-            "visibility" => visibility_style
-        )
-    )
-end
-
-"""
-    help_section(help_visibility)
-
-Create the complete help section with separator line and help text.
-
-# Arguments
-- `help_visibility`: Observable controlling help text visibility
-
-# Returns
-DOM.div containing separator line and conditionally visible help text
-"""
-help_section(help_visibility) = DOM.div(
-    DOM.div(style=Styles("border-top" => "1px solid #ccc")),  # Permanent separator line
-    mouse_helptext(help_visibility);  # Conditionally visible help text
-    style=Styles("flex-shrink" => "0")
-)
 
 # ============================================================================
 # 6. LAYOUT ASSEMBLY
@@ -336,14 +135,14 @@ Complete DOM structure for the application including modal overlay
 function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, state, overwrite_trigger, cancel_trigger)
     # Split ctrlpane vertically: tabs on top, help on bottom
     ctrlpane_split = DOM.div(
-        DOM.div(ctrlpane_content, style=Styles("flex" => "1", "overflow" => "auto")),
+        DOM.div(ctrlpane_content; class="ctrl-pane-content"),
         help_section(help_visibility);
-        style=Styles("display" => "flex", "flex-direction" => "column", "height" => "100%")
+        class="ctrl-pane-split"
     )
     
-    ctrlpane = Card(ctrlpane_split; style=Styles("background-color" => :whitesmoke, "padding" => "5px"))
-    tblpane = Card(table_observable; style=Styles("background-color" => :silver, "padding" => "5px"))
-    pltpane = Card(plot_observable; style=Styles("background-color" => :lightgray, "padding" => "5px"))
+    ctrlpane = Card(ctrlpane_split; class="pane-card pane-card-ctrl")
+    tblpane = Card(table_observable; class="pane-card pane-card-table")
+    pltpane = Card(plot_observable; class="pane-card pane-card-plot")
     
     top_row = Grid(ctrlpane, pltpane; columns="350px 810px", gap="5px")
     container = Grid(top_row, tblpane; rows="610px auto", gap="5px")
@@ -354,7 +153,7 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     # Inject Global CSS
     global_style = DOM.style(GLOBAL_CSS)
     
-    return DOM.div(global_style, container, modal; style=Styles("padding" => "5px"))
+    return DOM.div(global_style, container, modal; class="main-layout-container")
 end
 
 # ============================================================================
