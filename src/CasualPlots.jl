@@ -11,7 +11,7 @@ using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, 
 # using Bonito.DOM
 
 include("electron.jl")
-const GLOBAL_CSS = """$(include("css_styles.css"))"""
+const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
 
 include("FileDialogWorkAround.jl")
 using .FileDialogWorkAround
@@ -31,7 +31,7 @@ include("ui_format_tab.jl")
 include("ui_open_tab.jl")
 include("create_control_panel_ui.jl")
 include("save_plot.jl")
-include("modal_dialog.jl")
+include("ui_modal_dialog.jl")
 include("ui_save_tab.jl")
 include("get_and_preprocess_data.jl")
 include("app_helpers.jl")
