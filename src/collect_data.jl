@@ -20,15 +20,19 @@ function collect_arrays_from_main()
 
     for name in names(Main; imported=true,  usings=true) # this limits package compat to Julia v1.12 !
         name == :ans && continue
-        var = getfield(Main, name)
+        try
+            var = getfield(Main, name)
 
-        # Check if it's an array or a generic iterable     
-        if  !(var isa Real) &&   # some special numbers like NaN are iterables, they are excluded here
-            (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
-            # Check if the element type is a subtype of any of the allowed types
-            if any(T -> eltype(var) <: T, allowed_types) 
-                push!(data_names, name)
+            # Check if it's an array or a generic iterable     
+            if  !(var isa Real) &&   # some special numbers like NaN are iterables, they are excluded here
+                (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
+                # Check if the element type is a subtype of any of the allowed types
+                if any(T -> eltype(var) <: T, allowed_types) 
+                    push!(data_names, name)
+                end
             end
+        catch
+            # Ignore errors from ambiguous or undefined names
         end
     end
     return data_names
