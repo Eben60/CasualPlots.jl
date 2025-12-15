@@ -528,22 +528,12 @@ end
 
 Create reactive help section that shows/hides based on plot presence.
 
-Returns a NamedTuple with:
-- `has_plot`: Observable tracking if plot is displayed
-- `visibility`: Observable controlling help section visibility
+Returns Observable controlling help section visibility
 """
 function setup_help_section(plot_observable)
-    has_plot = Observable(false)
-    
-    on(plot_observable) do plot_content
-        has_plot[] = plot_content isa Figure
+    return map(plot_observable) do plot_content
+        plot_content isa Figure ? "visible" : "hidden"
     end
-    
-    help_visibility = map(has_plot) do show_help
-        show_help ? "visible" : "hidden"
-    end
-    
-    return (; has_plot, visibility=help_visibility)
 end
 
 """
