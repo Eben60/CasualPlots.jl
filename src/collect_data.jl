@@ -14,28 +14,21 @@ function collect_arrays_from_main()
     
     # Define the types to check for
     allowed_types = Any[Real]
-    disallowed_types = [Irrational, DataType]
     if isdefined(Main, :Unitful)
         push!(allowed_types, Main.Unitful.Quantity)
     end
 
-    for name in names(Main; imported=true,  usings=true)
+    for name in names(Main; imported=true,  usings=true) # this limits package compat to Julia v1.11 !
         name == :ans && continue
-        try
-            var = getfield(Main, name)
+        var = getfield(Main, name)
 
-            # Check if it's an array or a generic iterable
-            
-            if  !(var isa Real) &&   # some special numbers like NaN are iterables, they are excluded here
-                (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
-                # Check if the element type is a subtype of any of the allowed types
-                if any(T -> eltype(var) <: T, allowed_types) && !any(T -> eltype(var) <: T, disallowed_types) 
-                    push!(data_names, name)
-                end
+        # Check if it's an array or a generic iterable     
+        if  !(var isa Real) &&   # some special numbers like NaN are iterables, they are excluded here
+            (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
+            # Check if the element type is a subtype of any of the allowed types
+            if any(T -> eltype(var) <: T, allowed_types) 
+                push!(data_names, name)
             end
-        catch e
-            # TODO
-            # Ignore errors from getfield or eltype
         end
     end
     return data_names
