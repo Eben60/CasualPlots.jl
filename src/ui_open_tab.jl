@@ -7,24 +7,13 @@ function create_extension_status_row(available, available_text, unavailable_text
     icon = available ? "✓" : "✗"
     icon_color = available ? "#28A745" : "#DC3545"
     text = available ? available_text : unavailable_text
-    text_color = available ? "#333" : "#666"
     
+    # We keep color inline because it's data-dependent and specific
+    # But we use classes for font/margin
     DOM.div(
-        DOM.span(icon; style=Styles(
-            "color" => icon_color,
-            "font-size" => "10px",
-            "font-weight" => "bold",
-            "margin-right" => "6px",
-        )),
-        DOM.span(text; style=Styles(
-            "color" => text_color,
-            "font-size" => "10px",
-        ));
-        style=Styles(
-            "display" => "flex",
-            "align-items" => "center",
-            "margin-bottom" => "3px",
-        )
+        DOM.span(icon; class="extension-icon", style=Styles("color" => icon_color)),
+        DOM.span(text; class=available ? "extension-text" : "extension-text-disabled");
+        class="status-row"
     )
 end
 
@@ -38,16 +27,7 @@ function create_open_file_button(trigger, enabled)
         "Open File";
         disabled=!enabled,
         onclick=js"() => { $(trigger).notify($(trigger).value + 1); }",
-        style=Styles(
-            "padding" => "8px 16px",
-            "background-color" => enabled ? "#2196F3" : "#cccccc",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px",
-            "cursor" => enabled ? "pointer" : "not-allowed",
-            "font-size" => "12px",
-            "white-space" => "nowrap",
-        )
+        class=enabled ? "btn btn-primary" : "btn btn-disabled"
     )
 end
 
@@ -63,15 +43,7 @@ function create_sheet_selector(sheet_names, selected_sheet)
             DOM.select(
                 DOM.option("Select sheet"; value="", selected=true);
                 disabled=true,
-                style=Styles(
-                    "padding" => "6px 12px",
-                    "font-size" => "12px",
-                    "border-radius" => "4px",
-                    "border" => "1px solid #ccc",
-                    "background-color" => "#f5f5f5",
-                    "color" => "#999",
-                    "cursor" => "not-allowed",
-                )
+                class="select-standard"
             )
         else
             # XLSX file selected - show sheet options
@@ -82,14 +54,7 @@ function create_sheet_selector(sheet_names, selected_sheet)
             DOM.select(
                 options...;
                 onchange=js"(e) => { $(selected_sheet).notify(e.target.value); }",
-                style=Styles(
-                    "padding" => "6px 12px",
-                    "font-size" => "12px",
-                    "border-radius" => "4px",
-                    "border" => "1px solid #2196F3",
-                    "background-color" => "white",
-                    "cursor" => "pointer",
-                )
+                class="select-standard"
             )
         end
     end
@@ -116,10 +81,7 @@ function create_extensions_status_panel(csv_available, xlsx_available)
     DOM.div(
         csv_row,
         xlsx_row;
-        style=Styles(
-            "display" => "flex",
-            "flex-direction" => "column",
-        )
+        class="flex-col"
     )
 end
 
@@ -143,30 +105,19 @@ function render_open_tab_view(open_file_trigger, sheet_names, selected_sheet)
     top_section = DOM.div(
         open_button,
         extension_status;
-        style=Styles(
-            "display" => "flex",
-            "flex-direction" => "row",
-            "align-items" => "flex-start",
-            "gap" => "15px",
-        )
+        class="flex-row align-start gap-3"
     )
     
     bottom_section = DOM.div(
         sheet_dropdown;
-        style=Styles(
-            "margin-top" => "10px",
-        )
+        class="mt-2"
     )
     
     DOM.div(
         top_section,
         bottom_section;
-        style=Styles(
-            "display" => "flex",
-            "flex-direction" => "column",
-            "padding" => "5px",
-            "height" => "100%",
-        )
+        class="flex-col p-1",
+        style=Styles("height" => "100%") # Keep height:100% just in case
     )
 end
 

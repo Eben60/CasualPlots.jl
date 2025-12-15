@@ -1,0 +1,114 @@
+/* Layout Utilities */
+.flex-col { display: flex; flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.gap-1 { gap: 5px; }
+.gap-2 { gap: 10px; }
+.gap-3 { gap: 15px; }
+.mb-1 { margin-bottom: 5px; }
+.mb-2 { margin-bottom: 10px; }
+.mt-2 { margin-top: 10px; }
+.mr-1 { margin-right: 5px; }
+.p-1 { padding: 5px; }
+.w-full { width: 100%; }
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+}
+.btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+.btn:disabled, .btn-disabled {
+    background-color: #cccccc !important;
+    cursor: not-allowed;
+}
+.btn-primary { background-color: #2196F3; }
+.btn-success { background-color: #4CAF50; }
+.btn-warning { background-color: #FF9800; }
+/* .btn-danger { background-color: #DC3545; } */
+
+/* Inputs & selects */
+.input-text, .input-textarea {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+.input-textarea {
+    resize: vertical;
+    font-family: monospace;
+}
+.form-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.select-standard {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #2196F3;
+    background-color: white;
+    cursor: pointer;
+}
+.select-standard:disabled {
+    border: 1px solid #ccc;
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Specialized */
+.extension-icon {
+    font-size: 10px;
+    font-weight: bold;
+    margin-right: 6px;
+}
+.extension-text {
+    font-size: 10px;
+    color: #333;
+}
+.extension-text-disabled {
+    font-size: 10px;
+    color: #666;
+}
+
+/* Containers */
+.scroll-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Specific Format Tab Utilities */
+.flex-1 { flex: 1; }
+.ml-2 { margin-left: 10px; }
+.w-100px { width: 100px; }
+.input-small {
+    padding: 3px 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 11px;
+}
+.label-fixed { 
+    min-width: 60px;
+    font-weight: bold;
+    font-size: 12px;
+}

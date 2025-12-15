@@ -11,6 +11,7 @@ using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, 
 # using Bonito.DOM
 
 include("electron.jl")
+const GLOBAL_CSS = """$(include("css_styles.css"))"""
 
 include("FileDialogWorkAround.jl")
 using .FileDialogWorkAround

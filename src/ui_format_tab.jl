@@ -12,7 +12,7 @@ DOM.div containing plot type dropdown
 function create_plot_kind_selector(dropdowns)
     DOM.div(
         "Plot type:", dropdowns.plottype_node;
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
+        class="flex-row align-center gap-1 mb-1"
     )
 end
 
@@ -33,14 +33,10 @@ function create_legend_control(show_legend, legend_title_text)
         onchange = js"event => $(show_legend).notify(event.target.checked)"
     )
     
-    # Legend title input
-    legend_title_style = map(show_legend) do show
-        return Styles(
-            "width" => "100px", 
-            "padding" => "2px 5px", 
-            "margin-left" => "10px",
-            "display" => show ? "block" : "none"
-        )
+    # Legend title input visibility
+    # Static styles moved to CSS classes, dynamic visibility kept here
+    legend_visibility = map(show_legend) do show
+        return Styles("display" => show ? "block" : "none")
     end
 
     legend_title_input = DOM.input(
@@ -55,12 +51,13 @@ function create_legend_control(show_legend, legend_title_text)
                 }
             }
         """,
-        style=legend_title_style
+        style=legend_visibility,
+        class="input-small w-100px ml-2"
     )
 
     DOM.div(
         legend_checkbox, " Show Legend", legend_title_input;
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
+        class="flex-row align-center gap-1"
     )
 end
 
@@ -79,7 +76,7 @@ DOM.div containing labeled text input field
 """
 function create_label_input(label_text, label_name, label_observable)
     DOM.div(
-        DOM.label(label_text, style=Styles("min-width" => "60px")),
+        DOM.label(label_text; class="label-fixed"),
         DOM.input(
             type="text", 
             value=label_observable,
@@ -91,9 +88,8 @@ function create_label_input(label_text, label_name, label_observable)
                     }
                 }
             """,
-            style=Styles("flex" => "1", "padding" => "2px 5px")
+            class="input-small flex-1"
         );
-        style=Styles("display" => "flex", "align-items" => "center", 
-                     "gap" => "5px", "margin-bottom" => "5px")
+        class="flex-row align-center gap-1 mb-1"
     )
 end

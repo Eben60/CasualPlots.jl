@@ -1,3 +1,4 @@
+
 """
     create_dataframe_column_checkboxes(columns, selected_columns)
 
@@ -16,13 +17,11 @@ function create_dataframe_column_checkboxes(columns, selected_columns)
     end
     
     # Create checkboxes - NOT reactive on selected_columns
-    # Checkboxes only rebuild when DataFrame changes (via the outer map on selected_dataframe)
-    # Individual checkbox state is managed by native HTML + onchange events
     checkboxes = map(columns) do col_name
         checkbox = DOM.input(
             type="checkbox",
-            class="column-checkbox",  # CSS class for easier identification
-            checked=false,  # Always start unchecked when rebuilding
+            class="column-checkbox mr-1",
+            checked=false,
             value=col_name,
             onchange=js"""
                 event => {
@@ -41,33 +40,21 @@ function create_dataframe_column_checkboxes(columns, selected_columns)
                     }
                     $(selected_columns).notify(current);
                 }
-            """,
-            style=Styles("margin-right" => "5px")  # Space between checkbox and label
+            """
         )
         
         # Horizontal layout: checkbox followed by label
         DOM.div(
             checkbox, col_name;
-            style=Styles(
-                "margin-bottom" => "3px",
-                "display" => "flex",
-                "align-items" => "center"
-            )
+            class="flex-row align-center",
+            style=Styles("margin-bottom" => "3px") # Keep explicit 3px or use mb-1 (5px)
         )
     end
     
     # Wrap in scrollable container
     return DOM.div(
         checkboxes...;
-        style=Styles(
-            "display" => "flex",
-            "flex-direction" => "column",
-            "max-height" => "200px",
-            "overflow-y" => "auto",
-            "border" => "1px solid #ccc",
-            "padding" => "5px",
-            "border-radius" => "4px"
-        )
+        class="scroll-list"
     )
 end
 
@@ -94,7 +81,7 @@ function create_source_type_selector(source_type)
             checked=(source_type[] == "DataFrame"),
             onchange=js"event => $(source_type).notify(event.target.value)"
         ), " File/DataFrame";
-        style=Styles("margin-bottom" => "10px")
+        class="mb-2"
     )
 end
 
@@ -114,12 +101,12 @@ function create_array_mode_content(dropdowns, trigger_update)
     x_source = DOM.div(
         "Select X:", 
         DOM.div(dropdowns.x_node; onclick=js"() => $(trigger_update).notify(true)");
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
+        class="flex-row align-center gap-1 mb-1"
     )
     
     y_source = DOM.div(
         "Select Y:", dropdowns.y_node;
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
+        class="flex-row align-center gap-1 mb-1"
     )
     
     DOM.div(x_source, y_source)
@@ -167,15 +154,7 @@ function create_select_all_button(selected_dataframe, selected_columns, opened_f
                 });
             }""" : js"() => {}",
             disabled=!enabled,
-            style=Styles(
-                "padding" => "5px 15px",
-                "margin-right" => "5px",
-                "cursor" => enabled ? "pointer" : "not-allowed",
-                "background-color" => enabled ? "#2196F3" : "#cccccc",
-                "color" => "white",
-                "border" => "none",
-                "border-radius" => "4px"
-            )
+            class=enabled ? "btn btn-primary mr-1" : "btn btn-disabled mr-1"
         )
     end
     
@@ -213,15 +192,7 @@ function create_deselect_all_button(selected_columns)
                 cb.checked = false;
             });
         }""",
-        style=Styles(
-            "padding" => "5px 15px",
-            "margin-right" => "5px",
-            "cursor" => "pointer",
-            "background-color" => "#FF9800",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px"
-        )
+        class="btn btn-warning mr-1"
     )
 end
 
@@ -242,23 +213,12 @@ function create_plot_button(selected_columns, plot_trigger)
         length(cols) >= 2
     end
     
-    plot_button_style = map(plot_button_enabled) do enabled
-        Styles(
-            "padding" => "5px 15px",
-            "cursor" => enabled ? "pointer" : "not-allowed",
-            "background-color" => enabled ? "#4CAF50" : "#cccccc",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px"
-        )
-    end
-    
-    map(plot_button_enabled, plot_button_style) do enabled, style
+    map(plot_button_enabled) do enabled
         DOM.button(
             "(Re-)Plot",
             onclick=enabled ? js"() => $(plot_trigger).notify($(plot_trigger).value + 1)" : js"() => {}",
             disabled=!enabled,
-            style=style
+            class=enabled ? "btn btn-success" : "btn btn-disabled"
         )
     end
 end
@@ -305,17 +265,17 @@ function create_dataframe_mode_content(dropdowns, selected_dataframe, selected_c
     button_row = map(select_all_button, plot_button) do sel_all, plot_btn
         DOM.div(
             sel_all, deselect_all_button, plot_btn;
-            style=Styles("display" => "flex", "align-items" => "center", "margin-bottom" => "10px", "margin-top" => "10px")
+            class="flex-row align-center mb-2 mt-2"
         )
     end
     
     DOM.div(
         DOM.div(
             "Select Source:", dataframe_dropdown_node;
-            style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "10px")
+            class="flex-row align-center gap-1 mb-2"
         ),
         button_row,
         column_checkboxes_node;
-        style=Styles("display" => "flex", "flex-direction" => "column")
+        class="flex-col"
     )
 end

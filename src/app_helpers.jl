@@ -351,7 +351,10 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     # Create modal dialog overlay (placed last to be on top of everything)
     modal = create_modal_container(state, overwrite_trigger, cancel_trigger)
     
-    return DOM.div(container, modal; style=Styles("padding" => "5px"))
+    # Inject Global CSS
+    global_style = DOM.style(GLOBAL_CSS)
+    
+    return DOM.div(global_style, container, modal; style=Styles("padding" => "5px"))
 end
 
 # ============================================================================
