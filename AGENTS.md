@@ -65,25 +65,46 @@ items = (
 *   **[CSV.jl](https://github.com/JuliaData/CSV.jl)** / **[XLSX.jl](https://github.com/felipenoris/XLSX.jl)**: File I/O via Package Extensions
 
 ### File Structure (src/)
-!!! obsolete! to be re-built! not final source of truth! !!!
+
 ```
 CasualPlots.jl                  # Main module, exports casualplots_app()
 app.jl                          # Main app entry point (casualplots_app function)
-app_helpers.jl                  # Helper functions for app assembly and layout
-get_and_preprocess_data.jl      # Data loading, validation, and preprocessing (file I/O, normalization)
-collect_data.jl                 # Data collection from Main module
-create_demo_data.jl             # Demo data generation
-dropdowns_setup.jl              # Dropdown menu initialization
-create_control_panel_ui.jl      # Control panel UI construction
-create_control_panel_ui_helpers.jl  # UI component helpers
-tabs_component.jl               # Tab-based UI organization
+app_state.jl                    # Application state initialization (Observables)
+css_styles.css                  # Global CSS styles for all UI components
+
+# Core Logic
+plotting.jl                     # Plot generation using AlgebraOfGraphics + force_plot_refresh
 setup_callbacks.jl              # Core reactive callbacks (source, format, DataFrame)
 label_update_callbacks.jl       # Label text field callbacks
-plotting.jl                     # Plot generation using AlgebraOfGraphics
-electron.jl                     # Electron window integration
-create_save_ui.jl               # Save tab UI construction
-modal_dialog.jl                 # Modal dialog component
+dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
+
+# UI Components (ui_*.jl)
+ui_tabs.jl                      # Tab component + create_tab_content wiring
+ui_layout.jl                    # assemble_layout - main pane grid construction
+ui_table.jl                     # Table display with info header
+ui_help_section.jl              # Mouse controls help text
+ui_source_tab.jl                # Source selection UI (Array/DataFrame modes)
+ui_format_tab.jl                # Format controls UI (plot type, legend, labels)
+ui_open_tab.jl                  # File open tab UI
+ui_save_tab.jl                  # Save tab UI
+ui_modal_dialog.jl              # Modal dialog component
+
+# Control Panel
+create_control_panel_ui.jl      # Control panel UI construction
+
+# Data Handling
+collect_data.jl                 # Data collection from Main module
+get_and_preprocess_data.jl      # Data loading, validation, normalization
+create_demo_data.jl             # Demo data generation
+
+# Save/Export
 save_plot.jl                    # Plot saving functionality (CairoMakie backend)
+
+# Other
+electron.jl                     # Electron window integration
+FileDialogWorkAround.jl         # Cross-platform file dialog utilities
+extensions.jl                   # Package extensions loader
+
 scripts/                        # Example/demo scripts
 ../ext/                         # Package Extensions (ReadCSV_Ext.jl, ReadXLSX_Ext.jl)
 ```
@@ -139,8 +160,6 @@ outputs = (
 ```
 
 ### Developer Diagrams
-
-!!! obsolete! to be re-built! not final source of truth! !!!
 
 Diagrams are in the linked files:
 
@@ -263,12 +282,13 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 3. No changes needed in `plotting.jl` (uses generic `visual(plottype)`)
 
 #### Modifying UI Components:
-1. **Control panel**: Edit `create_control_panel_ui.jl` and helpers
-2. **Tabs**: Modify `tabs_component.jl`
-3. **Layout**: Adjust `assemble_layout` in `app_helpers.jl`
+1. **Control panel**: Edit `create_control_panel_ui.jl`
+2. **Tabs**: Modify `ui_tabs.jl`
+3. **Layout**: Adjust `assemble_layout` in `ui_layout.jl`
+4. **Styles**: Edit `css_styles.css` (prefer CSS classes over inline styles)
 
 #### Adding New Observables:
-1. Initialize in `initialize_app_state()` (app_helpers.jl)
+1. Initialize in `initialize_app_state()` (`app_state.jl`)
 2. Add to state NamedTuple unpacking where needed
 3. Connect to callbacks in relevant `setup_*_callback` function
 
