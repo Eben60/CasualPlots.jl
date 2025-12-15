@@ -21,7 +21,7 @@ include("collect_data.jl")
 include("create_demo_data.jl")
 
 include("plotting.jl")
-include("tabs_component.jl")
+include("ui_tabs_component.jl")
 include("setup_callbacks.jl")
 include("label_update_callbacks.jl")
 

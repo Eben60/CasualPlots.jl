@@ -22,9 +22,10 @@ function validate_save_path(path::AbstractString)
     if isempty(ext)
         return (false, "File must have an extension (.png, .svg, or .pdf)")
     end
-    
-    if ext ∉ SUPPORTED_SAVE_FORMATS
-        return (false, "Unsupported format '.$ext'. Use .png, .svg, or .pdf")
+
+    clean_ext = lstrip(ext, '.') 
+    if clean_ext ∉ SUPPORTED_SAVE_FORMATS
+        return (false, "Unsupported format '$ext'. Use .png, .svg, or .pdf")
     end
     
     return (true, "")

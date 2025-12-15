@@ -75,7 +75,7 @@ function create_extensions_status_panel(csv_available, xlsx_available)
     xlsx_row = create_extension_status_row(
         xlsx_available,
         "XLSX extension available",
-        "Import XLSX to be able to read Excel files",
+        "Import XLSX to be able to read excel files",
     )
     
     DOM.div(

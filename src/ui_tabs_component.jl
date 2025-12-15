@@ -25,62 +25,6 @@ function create_tabs_component(tab_configs::Vector; default_active=1)
     # Observable to track which tab is active (1-indexed)
     active_tab = Observable(default_active)
     
-    # CSS styling for the tabs
-    tab_styles = """
-    <style>
-        .tabs-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-        }
-        
-        .tab-buttons {
-            display: flex;
-            gap: 2px;
-            background-color: #e0e0e0;
-            padding: 5px 5px 0 5px;
-            border-bottom: 2px solid #999;
-        }
-        
-        .tab-button {
-            padding: 8px 16px;
-            background-color: #d0d0d0;
-            border: 1px solid #999;
-            border-bottom: none;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background-color 0.2s;
-            border-radius: 4px 4px 0 0;
-        }
-        
-        .tab-button:hover {
-            background-color: #e8e8e8;
-        }
-        
-        .tab-button.active {
-            background-color: whitesmoke;
-            font-weight: bold;
-            border-bottom: 2px solid whitesmoke;
-            margin-bottom: -2px;
-        }
-        
-        .tab-content {
-            flex: 1;
-            padding: 10px;
-            overflow: auto;
-        }
-        
-        .tab-panel {
-            display: none;
-        }
-        
-        .tab-panel.active {
-            display: block;
-        }
-    </style>
-    """
-    
     # Create tab buttons
     tab_buttons = map(enumerate(tab_configs)) do (idx, config)
         is_active = Observable(idx == active_tab[])
@@ -121,12 +65,9 @@ function create_tabs_component(tab_configs::Vector; default_active=1)
     
     # Assemble the complete tabs component
     tabs_html = DOM.div(
-        DOM.style(tab_styles),
-        DOM.div(
-            DOM.div(tab_buttons...; class="tab-buttons"),
-            DOM.div(tab_panels...; class="tab-content");
-            class="tabs-container"
-        )
+        DOM.div(tab_buttons...; class="tab-buttons"),
+        DOM.div(tab_panels...; class="tab-content");
+        class="tabs-container"
     )
     
     return (; dom=tabs_html, active_tab)
