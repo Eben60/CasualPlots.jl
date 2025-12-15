@@ -65,6 +65,19 @@ function get_dims_of_arrays()
     return dims_dict
 end
 
+"""
+    extract_x_candidates(dims_dict)
+
+Filter dimensions dictionary for 1-dimensional arrays (vectors) to be used as X candidates.
+
+# Returns
+Sorted vector of strings representing variable names.
+"""
+function extract_x_candidates(dims_dict)
+    vectors_only = filter(p -> length(last(p)) == 1, dims_dict)
+    return string.(keys(vectors_only)) |> sort!
+end
+
 function get_congruent_y_names(x, dims_dict::Dict)
     new_y_opts_strings = String[]
     if !(isnothing(x) || x == "")

@@ -2,11 +2,14 @@
 
 ## Agents Behavior
 
-DO NOT interpret a question or a review request as an implicit request for action. Example of proper dialogue:
+- **Always clarify first** if a user's request is unclear, before starting the actual action.
 
-- *Human*: Is XY a good idea?
-- *Agent*: Yes, XY is good because of A, B, and C. Should I implement it for you?
-- *Human*: Yes, please
+- **Do not** interpret a question or a review request as an implicit request for action. Example of proper dialogue:
+
+    - *Human*: Is XY a good idea?
+    - *Agent*: Yes, XY is good because of A, B, and C. Should I implement it for you?
+    - *Human*: Yes, please
+
 
 ## Package Overview
 **CasualPlots.jl** is a GUI-based plotting application for Julia which is positioned in the middle ground between purely script-based plotting and standalone GUI plotting applications. Target users are experimental scientists and engineers needing quick visualization without memorizing syntax. Aims to cover 60-80% of common 2D plotting needs (Scatter/Line/BarPlot, basic formatting).

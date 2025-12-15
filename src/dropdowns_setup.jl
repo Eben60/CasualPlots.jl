@@ -15,8 +15,7 @@ function setup_dropdowns(state, supported_plot_types)
     
     # Setup X dropdown to update when data changes
     on(dims_dict_obs) do dims_dict
-        vectors_only = filter(p -> length(last(p)) == 1, dims_dict)
-        array_names = string.(keys(vectors_only)) |> sort!
+        array_names = extract_x_candidates(dims_dict)
         if isempty(array_names)
             array_names = [""]
         end
