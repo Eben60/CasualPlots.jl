@@ -1,17 +1,34 @@
 """
-    create_plot_kind_selector(dropdowns)
+    create_plottype_dropdown(supported_plot_types, selected_plottype)
+
+Create the dropdown for selecting plot types.
+
+# Arguments
+- `supported_plot_types`: List of supported plot type strings
+- `selected_plottype`: Observable tracking the selected plot type
+
+# Returns
+Observable containing the dropdown DOM element
+"""
+function create_plottype_dropdown(supported_plot_types, selected_plottype)
+    # create_dropdown is available from dropdowns_setup.jl (module scope)
+    return Observable(create_dropdown(supported_plot_types, selected_plottype))
+end
+
+"""
+    create_plot_kind_selector(plottype_node)
 
 Create plot type selection UI.
 
 # Arguments
-- `dropdowns`: NamedTuple containing dropdown nodes
+- `plottype_node`: The dropdown node for plot type selection
 
 # Returns
 DOM.div containing plot type dropdown
 """
-function create_plot_kind_selector(dropdowns)
+function create_plot_kind_selector(plottype_node)
     DOM.div(
-        "Plot type:", dropdowns.plottype_node;
+        "Plot type:", plottype_node;
         class="flex-row align-center gap-1 mb-1"
     )
 end

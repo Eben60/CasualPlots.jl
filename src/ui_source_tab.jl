@@ -86,26 +86,27 @@ function create_source_type_selector(source_type)
 end
 
 """
-    create_array_mode_content(dropdowns, trigger_update)
+    create_array_mode_content(x_node, y_node, trigger_update)
 
 Create UI content for array mode (X and Y dropdowns).
 
 # Arguments
-- `dropdowns`: NamedTuple containing dropdown nodes
+- `x_node`: Observable X dropdown node
+- `y_node`: Observable Y dropdown node
 - `trigger_update::Observable`: Observable to trigger plot updates
 
 # Returns
 DOM.div containing X and Y selection dropdowns
 """
-function create_array_mode_content(dropdowns, trigger_update)
+function create_array_mode_content(x_node, y_node, trigger_update)
     x_source = DOM.div(
         "Select X:", 
-        DOM.div(dropdowns.x_node; onclick=js"() => $(trigger_update).notify(true)");
+        DOM.div(x_node; onclick=js"() => $(trigger_update).notify(true)");
         class="flex-row align-center gap-1 mb-1"
     )
     
     y_source = DOM.div(
-        "Select Y:", dropdowns.y_node;
+        "Select Y:", y_node;
         class="flex-row align-center gap-1 mb-1"
     )
     
@@ -224,12 +225,12 @@ function create_plot_button(selected_columns, plot_trigger)
 end
 
 """
-    create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
+    create_dataframe_mode_content(dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
 
 Create UI content for DataFrame mode.
 
 # Arguments
-- `dropdowns`: NamedTuple containing dropdown nodes
+- `dataframe_node`: Observable DataFrame selection dropdown node
 - `selected_dataframe::Observable`: Observable tracking the selected DataFrame
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
 - `plot_trigger::Observable{Int}`: Observable to trigger plot generation
@@ -238,8 +239,8 @@ Create UI content for DataFrame mode.
 # Returns
 DOM.div containing DataFrame selection UI and column checkboxes
 """
-function create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
-    dataframe_dropdown_node = dropdowns.dataframe_node
+function create_dataframe_mode_content(dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
+    dataframe_dropdown_node = dataframe_node
     
     # Column checkboxes - reactive to both selected_dataframe and opened_file_df
     column_checkboxes_node = map(selected_dataframe, opened_file_df) do df_name, opened_df

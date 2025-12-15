@@ -1,6 +1,6 @@
 
 """
-    create_control_panel_ui(dropdowns, state)
+    create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
 
 Create UI elements for the control panel (data source and format controls).
 
@@ -13,7 +13,7 @@ Returns a NamedTuple with:
 - `ylabel_input`: Y-axis label text field
 - `title_input`: Plot title text field
 """
-function create_control_panel_ui(dropdowns, state)
+function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
     (; trigger_update, plot_format, plot_handles, source_type, selected_dataframe, selected_columns, opened_file_df) = state
     (; show_legend) = plot_format
     (; xlabel_text, ylabel_text, title_text, legend_title_text) = plot_handles
@@ -24,10 +24,10 @@ function create_control_panel_ui(dropdowns, state)
     # Create UI components using helper functions
     source_type_selector = create_source_type_selector(source_type)
     
-    array_mode_content = create_array_mode_content(dropdowns, trigger_update)
+    array_mode_content = create_array_mode_content(x_node, y_node, trigger_update)
     
     dataframe_mode_content = create_dataframe_mode_content(
-        dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df
+        dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df
     )
     
     # Dynamic source content that switches based on source_type
@@ -39,7 +39,7 @@ function create_control_panel_ui(dropdowns, state)
         end
     end
     
-    plot_kind = create_plot_kind_selector(dropdowns)
+    plot_kind = create_plot_kind_selector(plottype_node)
     
     legend_control = create_legend_control(show_legend, legend_title_text)
     

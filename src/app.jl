@@ -17,13 +17,16 @@ casualplots_app() = App() do session
     state = initialize_app_state() # reviewed 1 pass
    
     # Setup dropdown menus
-    dropdowns = setup_dropdowns(state, supported_plot_types) # reviewed 1 pass
+    x_node = create_x_dropdown(state)
+    y_node = create_y_dropdown()
+    dataframe_node = create_dataframe_dropdown(state)
+    plottype_node = create_plottype_dropdown(supported_plot_types, state.plot_format.selected_plottype)
     
     # Initialize output observables
     outputs = initialize_output_observables() # reviewed 1 pass
     
     # Setup reactive callbacks
-    setup_x_callback(state, dropdowns.y_node, outputs) # reviewed 1 pass
+    setup_x_callback(state, y_node, outputs) # reviewed 1 pass
     setup_source_callback(state, outputs)
     setup_format_callback(state, outputs)
     
@@ -31,7 +34,7 @@ casualplots_app() = App() do session
     setup_label_update_callbacks(state, outputs)
     
     # Create UI components
-    control_panel = create_control_panel_ui(dropdowns, state)
+    control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
     setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger) # DataFrame mode callbacks
     
     tabs_result = create_tab_content(control_panel, state, outputs)

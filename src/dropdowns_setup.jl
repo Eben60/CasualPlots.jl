@@ -1,16 +1,11 @@
 """
-    setup_dropdowns(dims_dict_obs, selected_x, selected_plottype)
+    create_x_dropdown(state)
 
-Create and configure dropdown menus for X, Y, and plot type selection.
-
-Returns a NamedTuple with:
-- `x_node`: Observable containing X dropdown DOM element
-- `y_node`: Observable containing Y dropdown DOM element  
-- `plottype_node`: Observable containing dropdown DOM element
+Create the X variable selection dropdown.
+Populates based on `state.dims_dict_obs`.
 """
-function setup_dropdowns(state, supported_plot_types)
-    (; dims_dict_obs, selected_x, plot_format) = state
-    (; selected_plottype) = plot_format
+function create_x_dropdown(state)
+    (; dims_dict_obs, selected_x) = state
     dropdown_x_node = Observable(DOM.div("Click to load X variables"))
     
     # Setup X dropdown to update when data changes
@@ -22,26 +17,38 @@ function setup_dropdowns(state, supported_plot_types)
         dropdown_x_node[] = create_dropdown(array_names, selected_x; placeholder="Select X")
     end
     notify(dims_dict_obs)
+    return dropdown_x_node
+end
 
+"""
+    create_y_dropdown()
+
+Create the Y variable selection dropdown (initially disabled).
+"""
+function create_y_dropdown()
     # The actual options will be populated dynamically by setup_x_callback()
-    # when the user selects an X variable.
-    dropdown_y_node = create_dropdown([], nothing; 
+    return create_dropdown([], nothing; 
         placeholder="Select Y after you selected X", 
         disabled=true) |> Observable
+end
 
-    dropdown_plottype_node = Observable(create_dropdown(supported_plot_types, selected_plottype))
-    
-    # Setup DataFrame dropdown with "opened file" option
+"""
+    create_dataframe_dropdown(state)
+
+Create the DataFrame selection dropdown.
+Populates from `state.dataframes_dict_obs` and `state.opened_file_df`.
+"""
+function create_dataframe_dropdown(state)
+    (; dataframes_dict_obs, opened_file_df, selected_dataframe) = state
     dropdown_dataframe_node = Observable(DOM.div("Click to load DataFrames"))
     
     # Update DataFrame dropdown when dataframes_dict_obs or opened_file_df changes
-    onany(state.dataframes_dict_obs, state.opened_file_df) do df_names, opened_df
+    onany(dataframes_dict_obs, opened_file_df) do df_names, opened_df
         df_names_strings = string.(df_names) |> sort!
         
-        # Build options list with "opened file" at the top (after placeholder)
         options = []
         
-        # Add "opened file" option - enabled only if a file has been loaded
+        # Add "opened file" option
         opened_file_enabled = !isnothing(opened_df)
         opened_file_option = DOM.option(
             "opened file";
@@ -58,11 +65,10 @@ function setup_dropdowns(state, supported_plot_types)
             end
         end
         
-        dropdown_dataframe_node[] = create_dropdown(options, state.selected_dataframe; placeholder="Select DataFrame")
+        dropdown_dataframe_node[] = create_dropdown(options, selected_dataframe; placeholder="Select DataFrame")
     end
-    notify(state.dataframes_dict_obs)
-    
-    return (; x_node=dropdown_x_node, y_node=dropdown_y_node, plottype_node=dropdown_plottype_node, dataframe_node=dropdown_dataframe_node)
+    notify(dataframes_dict_obs)
+    return dropdown_dataframe_node
 end
 
 """
