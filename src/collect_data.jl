@@ -18,7 +18,7 @@ function collect_arrays_from_main()
         push!(allowed_types, Main.Unitful.Quantity)
     end
 
-    for name in names(Main; imported=true,  usings=true) # this limits package compat to Julia v1.11 !
+    for name in names(Main; imported=true,  usings=true) # this limits package compat to Julia v1.12 !
         name == :ans && continue
         var = getfield(Main, name)
 
@@ -97,7 +97,7 @@ function collect_dataframes_from_main()
     
     DataFrame_type = getfield(Main, :DataFrame)
     
-    for name in names(Main; imported=true, usings=true)
+    for name in names(Main; imported=true, usings=true)  # this limits package compat to Julia v1.12 !
         name == :ans && continue
         try
             var = getfield(Main, name)
