@@ -242,11 +242,11 @@ function load_csv_to_table(filepath, table_observable, state=nothing)
 end
 
 """
-    create_extension_status_row(name, available, available_text, unavailable_text)
+    create_extension_status_row(available, available_text, unavailable_text)
 
 Create a DOM row showing extension status with green tick or red cross icon.
 """
-function create_extension_status_row(name, available, available_text, unavailable_text)
+function create_extension_status_row(available, available_text, unavailable_text)
     icon = available ? "✓" : "✗"
     icon_color = available ? "#28A745" : "#DC3545"
     text = available ? available_text : unavailable_text
@@ -316,14 +316,12 @@ function create_open_tab_content(refresh_trigger, table_observable, state)
         button_enabled = csv_available || xlsx_available
         
         csv_row = create_extension_status_row(
-            "CSV",
             csv_available,
             "CSV extension available",
             "Import CSV to be able to read CSV files",
         )
         
         xlsx_row = create_extension_status_row(
-            "XLSX", 
             xlsx_available,
             "XLSX extension available",
             "Import XLSX to be able to read Excel files",
