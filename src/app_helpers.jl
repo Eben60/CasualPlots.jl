@@ -157,6 +157,8 @@ end
 # 4. UI COMPONENT CREATION
 # ============================================================================
 
+# include("ui_source_tab.jl")
+# include("ui_format_tab.jl")
 # include("create_control_panel_ui.jl")
 # include("get_preprocess_data.jl")
 
