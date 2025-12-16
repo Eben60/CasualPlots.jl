@@ -20,7 +20,8 @@ It uses [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl), [AlgebraOfGraphi
 
 ## How To Use
 
-Note: it currently needs Julia v1.12 or higher. The package is registered. Keep in mind, the package has a lot (around 300) of downstream dependencies, so it is not recommended to install it into your "main/default" environment like this:
+Note: it currently needs Julia v1.12 or higher. The package is registered. Keep in mind, the package has a heavy dependency footprint (pulling in around 300 transitive dependencies), so, to avoid potential version conflicts, you might want to avoid installing it into your "main/default" environment like this:
+
 ```
 (@v1.12) pkg> add CasualPlots
 ```
@@ -97,7 +98,7 @@ julia> hidespines!(cp_figure_ax, :r, :t)
 
 ## Current State
 
-Let's repeat, it is WIP. Particularly, if you see this README, the package is far from being finished, as it is intended, among other things, to create a Documenter.jl based documentation. However, the main goals are already implemented and the package is usable.
+In short, it is WIP. Particularly, if you see this README, the package is far from being finished, as it is intended, among other things, to create a Documenter.jl based documentation. However, the main goals are already implemented and the package is usable.
 
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
