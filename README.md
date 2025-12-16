@@ -60,8 +60,6 @@ julia> close(app) # you may close the app when you no longer need it
 julia> app = casualplots_app()
 
 julia> server = Bonito.Server(app, "127.0.0.1", 8000)
-
-julia> server = Bonito.Server(app, "127.0.0.1", 8000)
 ┌ Warning: Port in use, using different port. New port: 8001
 └ @ Bonito.HTTPServer ~/.julia/packages/Bonito/18mTs/src/HTTPServer/implementation.jl:346
 Server:
