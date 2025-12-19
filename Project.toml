@@ -1,6 +1,6 @@
 name = "CasualPlots"
 uuid = "96609e94-6212-48a9-9561-4cd28ba001d1"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Eben60"]
 
 [deps]

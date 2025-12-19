@@ -1,6 +1,3 @@
-# UI components for the Save tab
-# Uses Observable-based communication between JS and Julia
-
 """
     create_file_dialog_button(dialog_trigger)
 
@@ -10,15 +7,7 @@ function create_file_dialog_button(dialog_trigger)
     DOM.button(
         "Select File...";
         onclick=js"() => $(dialog_trigger).notify($(dialog_trigger).value + 1)",
-        style=Styles(
-            "padding" => "8px 16px",
-            "cursor" => "pointer",
-            "background-color" => "#2196F3",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px",
-            "margin-bottom" => "10px"
-        )
+        class="btn btn-primary mb-2"
     )
 end
 
@@ -29,28 +18,17 @@ Create a multi-line textarea for displaying/editing the save path.
 """
 function create_path_textarea(save_file_path)
     DOM.div(
-        DOM.label("File Path:"; style=Styles("font-weight" => "bold", "margin-bottom" => "5px", "display" => "block")),
+        DOM.label("File Path:"; class="form-label"),
         DOM.textarea(
             id="save-path-input",
             value=save_file_path,
             placeholder="/path/to/save/plot.png",
             onchange=js"event => $(save_file_path).notify(event.target.value)",
             onblur=js"event => $(save_file_path).notify(event.target.value)",
-            style=Styles(
-                "width" => "100%",
-                "height" => "60px",
-                "padding" => "8px",
-                "border" => "1px solid #ccc",
-                "border-radius" => "4px",
-                "resize" => "vertical",
-                "font-family" => "monospace",
-                "font-size" => "12px",
-                "word-wrap" => "break-word",
-                "overflow-wrap" => "break-word",
-                "box-sizing" => "border-box"
-            )
+            class="input-textarea",
+            style=Styles("height" => "60px") # Height is specific enough to keep inline or add .h-60? Inline is fine for specific dims.
         );
-        style=Styles("margin-bottom" => "10px")
+        class="mb-2"
     )
 end
 
@@ -60,26 +38,13 @@ end
 Create the main Save button that triggers saving.
 """
 function create_save_button(save_trigger, button_enabled)
-    button_style = map(button_enabled) do enabled
-        Styles(
-            "padding" => "10px 20px",
-            "cursor" => enabled ? "pointer" : "not-allowed",
-            "background-color" => enabled ? "#4CAF50" : "#cccccc",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px",
-            "font-size" => "14px",
-            "font-weight" => "bold",
-            "margin-bottom" => "10px"
-        )
-    end
-    
-    map(button_enabled, button_style) do enabled, style
+    # Re-render button when enabled state changes to update interactions/styles
+    map(button_enabled) do enabled
         DOM.button(
             "Save Plot";
             onclick=enabled ? js"() => $(save_trigger).notify($(save_trigger).value + 1)" : js"() => {}",
             disabled=!enabled,
-            style=style
+            class=enabled ? "btn btn-success mb-2" : "btn btn-disabled mb-2"
         )
     end
 end
@@ -217,7 +182,7 @@ function create_save_tab_content(state)
         file_dialog_button,
         path_input,
         save_button;
-        style=Styles("padding" => "5px")
+        class="p-1"
     )
     
     return (; content, overwrite_trigger, cancel_trigger)

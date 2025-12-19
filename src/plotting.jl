@@ -140,4 +140,20 @@ function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractStri
         end
         return nothing
     end
+
+end
+
+"""
+    force_plot_refresh(plot_observable, fig)
+
+Force a complete render of the plot to ensure updates (like label changes) are reflected in the UI.
+This is necessary because ... because this was the only way I could get plot reliably updated after e.g. title change.
+"""
+function force_plot_refresh(plot_observable, fig)
+    # Trigger refresh before
+    plot_observable[] = plot_observable[]
+    # Force Makie render
+    show(IOBuffer(), MIME"text/html"(), fig)
+    # Trigger refresh after
+    plot_observable[] = plot_observable[]
 end
