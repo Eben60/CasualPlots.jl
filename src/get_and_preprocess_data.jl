@@ -194,3 +194,82 @@ function handle_open_file_click(table_observable, state, current_xlsx_path, shee
         end
     end
 end
+"""
+    store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix="") --> Nothing
+
+Common helper for processing a loaded DataFrame: normalize strings, store in state, 
+and update the table display.
+
+# Arguments
+- `df`: The DataFrame to process
+- `filepath`: Path to the file to load
+- `table_observable::Observable`: Table display observable
+- `state::Union{Nothing, NamedTuple}`: Application state (optional, for storing opened file DataFrame)
+- `info_suffix`: Optional suffix to append to info text (e.g., ":SheetName" for XLSX)
+"""
+function store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix="")
+    # Normalize string columns for display compatibility
+    normalize_strings!(df)
+    
+    # Store DataFrame in state if provided
+    if !isnothing(state)
+        # Reset selected_dataframe BEFORE setting opened_file_df
+        # This ensures the dropdown rebuild (triggered by opened_file_df change)
+        # sees selected_dataframe as nothing and shows placeholder, not "opened file"
+        state.selected_dataframe[] = nothing
+        state.opened_file_df[] = df
+        # Extract filename without path or extension
+        state.opened_file_name[] = splitext(basename(filepath))[1]
+    end
+    
+    # Build source info text with normalized absolute path (+ optional suffix)
+    info_text = (abspath(filepath) |> normpath) * info_suffix
+    
+    # Update table display with info line
+    table_observable[] = create_table_with_info(Bonito.Table(df), info_text)
+    return nothing
+end
+
+"""
+    load_xlsx_sheet_to_table(filepath, sheet, table_observable, state) --> Nothing
+
+Load a specific sheet from an XLSX file and display it in the table pane.
+Also stores the DataFrame in state for use in DataFrame mode.
+
+# Arguments
+- `filepath`: Path to the file to load
+- `sheet::AbstractString`: excel sheet
+- `table_observable::Observable`: Table display observable
+- `state::Union{Nothing, NamedTuple}`: Application state (optional, for storing opened file DataFrame)
+"""
+function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothing)
+    try
+        df = readtable_xlsx(filepath, sheet)
+        store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix=":" * string(sheet))
+    catch e
+        @warn "Error loading XLSX sheet: $e"
+        table_observable[] = DOM.div("Error loading sheet: $sheet")
+    end
+end
+
+"""
+    load_csv_to_table(filepath, table_observable, state) --> Nothing
+
+Load a CSV/TSV file and display it in the table pane.
+Also stores the DataFrame in state for use in DataFrame mode.
+"""
+function load_csv_to_table(filepath, table_observable, state=nothing)
+    if !is_extension_available(:CSV)
+        @warn "CSV extension not available"
+        return nothing
+    end
+    
+    try
+        df = read_csv(filepath)
+        store_and_display_dataframe!(df, filepath, table_observable, state)
+    catch e
+        @warn "Error loading file: $e"
+        table_observable[] = DOM.div("Error loading file: $(basename(filepath))")
+    end
+    return nothing
+end
