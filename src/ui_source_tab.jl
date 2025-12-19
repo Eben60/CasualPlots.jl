@@ -1,3 +1,4 @@
+
 """
     create_dataframe_column_checkboxes(columns, selected_columns)
 
@@ -16,13 +17,11 @@ function create_dataframe_column_checkboxes(columns, selected_columns)
     end
     
     # Create checkboxes - NOT reactive on selected_columns
-    # Checkboxes only rebuild when DataFrame changes (via the outer map on selected_dataframe)
-    # Individual checkbox state is managed by native HTML + onchange events
     checkboxes = map(columns) do col_name
         checkbox = DOM.input(
             type="checkbox",
-            class="column-checkbox",  # CSS class for easier identification
-            checked=false,  # Always start unchecked when rebuilding
+            class="column-checkbox mr-1",
+            checked=false,
             value=col_name,
             onchange=js"""
                 event => {
@@ -41,33 +40,21 @@ function create_dataframe_column_checkboxes(columns, selected_columns)
                     }
                     $(selected_columns).notify(current);
                 }
-            """,
-            style=Styles("margin-right" => "5px")  # Space between checkbox and label
+            """
         )
         
         # Horizontal layout: checkbox followed by label
         DOM.div(
             checkbox, col_name;
-            style=Styles(
-                "margin-bottom" => "3px",
-                "display" => "flex",
-                "align-items" => "center"
-            )
+            class="flex-row align-center",
+            style=Styles("margin-bottom" => "3px") # Keep explicit 3px or use mb-1 (5px)
         )
     end
     
     # Wrap in scrollable container
     return DOM.div(
         checkboxes...;
-        style=Styles(
-            "display" => "flex",
-            "flex-direction" => "column",
-            "max-height" => "200px",
-            "overflow-y" => "auto",
-            "border" => "1px solid #ccc",
-            "padding" => "5px",
-            "border-radius" => "4px"
-        )
+        class="scroll-list"
     )
 end
 
@@ -94,32 +81,33 @@ function create_source_type_selector(source_type)
             checked=(source_type[] == "DataFrame"),
             onchange=js"event => $(source_type).notify(event.target.value)"
         ), " File/DataFrame";
-        style=Styles("margin-bottom" => "10px")
+        class="mb-2"
     )
 end
 
 """
-    create_array_mode_content(dropdowns, trigger_update)
+    create_array_mode_content(x_node, y_node, trigger_update)
 
 Create UI content for array mode (X and Y dropdowns).
 
 # Arguments
-- `dropdowns`: NamedTuple containing dropdown nodes
+- `x_node`: Observable X dropdown node
+- `y_node`: Observable Y dropdown node
 - `trigger_update::Observable`: Observable to trigger plot updates
 
 # Returns
 DOM.div containing X and Y selection dropdowns
 """
-function create_array_mode_content(dropdowns, trigger_update)
+function create_array_mode_content(x_node, y_node, trigger_update)
     x_source = DOM.div(
         "Select X:", 
-        DOM.div(dropdowns.x_node; onclick=js"() => $(trigger_update).notify(true)");
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
+        DOM.div(x_node; onclick=js"() => $(trigger_update).notify(true)");
+        class="flex-row align-center gap-1 mb-1"
     )
     
     y_source = DOM.div(
-        "Select Y:", dropdowns.y_node;
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
+        "Select Y:", y_node;
+        class="flex-row align-center gap-1 mb-1"
     )
     
     DOM.div(x_source, y_source)
@@ -167,15 +155,7 @@ function create_select_all_button(selected_dataframe, selected_columns, opened_f
                 });
             }""" : js"() => {}",
             disabled=!enabled,
-            style=Styles(
-                "padding" => "5px 15px",
-                "margin-right" => "5px",
-                "cursor" => enabled ? "pointer" : "not-allowed",
-                "background-color" => enabled ? "#2196F3" : "#cccccc",
-                "color" => "white",
-                "border" => "none",
-                "border-radius" => "4px"
-            )
+            class=enabled ? "btn btn-primary mr-1" : "btn btn-disabled mr-1"
         )
     end
     
@@ -213,15 +193,7 @@ function create_deselect_all_button(selected_columns)
                 cb.checked = false;
             });
         }""",
-        style=Styles(
-            "padding" => "5px 15px",
-            "margin-right" => "5px",
-            "cursor" => "pointer",
-            "background-color" => "#FF9800",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px"
-        )
+        class="btn btn-warning mr-1"
     )
 end
 
@@ -242,34 +214,23 @@ function create_plot_button(selected_columns, plot_trigger)
         length(cols) >= 2
     end
     
-    plot_button_style = map(plot_button_enabled) do enabled
-        Styles(
-            "padding" => "5px 15px",
-            "cursor" => enabled ? "pointer" : "not-allowed",
-            "background-color" => enabled ? "#4CAF50" : "#cccccc",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px"
-        )
-    end
-    
-    map(plot_button_enabled, plot_button_style) do enabled, style
+    map(plot_button_enabled) do enabled
         DOM.button(
             "(Re-)Plot",
             onclick=enabled ? js"() => $(plot_trigger).notify($(plot_trigger).value + 1)" : js"() => {}",
             disabled=!enabled,
-            style=style
+            class=enabled ? "btn btn-success" : "btn btn-disabled"
         )
     end
 end
 
 """
-    create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
+    create_dataframe_mode_content(dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
 
 Create UI content for DataFrame mode.
 
 # Arguments
-- `dropdowns`: NamedTuple containing dropdown nodes
+- `dataframe_node`: Observable DataFrame selection dropdown node
 - `selected_dataframe::Observable`: Observable tracking the selected DataFrame
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
 - `plot_trigger::Observable{Int}`: Observable to trigger plot generation
@@ -278,8 +239,8 @@ Create UI content for DataFrame mode.
 # Returns
 DOM.div containing DataFrame selection UI and column checkboxes
 """
-function create_dataframe_mode_content(dropdowns, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
-    dataframe_dropdown_node = dropdowns.dataframe_node
+function create_dataframe_mode_content(dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
+    dataframe_dropdown_node = dataframe_node
     
     # Column checkboxes - reactive to both selected_dataframe and opened_file_df
     column_checkboxes_node = map(selected_dataframe, opened_file_df) do df_name, opened_df
@@ -305,117 +266,17 @@ function create_dataframe_mode_content(dropdowns, selected_dataframe, selected_c
     button_row = map(select_all_button, plot_button) do sel_all, plot_btn
         DOM.div(
             sel_all, deselect_all_button, plot_btn;
-            style=Styles("display" => "flex", "align-items" => "center", "margin-bottom" => "10px", "margin-top" => "10px")
+            class="flex-row align-center mb-2 mt-2"
         )
     end
     
     DOM.div(
         DOM.div(
             "Select Source:", dataframe_dropdown_node;
-            style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "10px")
+            class="flex-row align-center gap-1 mb-2"
         ),
         button_row,
         column_checkboxes_node;
-        style=Styles("display" => "flex", "flex-direction" => "column")
-    )
-end
-
-"""
-    create_plot_kind_selector(dropdowns)
-
-Create plot type selection UI.
-
-# Arguments
-- `dropdowns`: NamedTuple containing dropdown nodes
-
-# Returns
-DOM.div containing plot type dropdown
-"""
-function create_plot_kind_selector(dropdowns)
-    DOM.div(
-        "Plot type:", dropdowns.plottype_node;
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px", "margin-bottom" => "5px")
-    )
-end
-
-"""
-    create_legend_control(show_legend, legend_title_text)
-
-Create legend visibility checkbox and title input UI.
-
-# Arguments
-- `show_legend::Observable{Bool}`: Observable tracking legend visibility
-- `legend_title_text::Observable{String}`: Observable tracking legend title text
-
-# Returns
-DOM.div containing legend checkbox and title input
-"""
-function create_legend_control(show_legend, legend_title_text)
-    legend_checkbox = DOM.input(type="checkbox", checked=show_legend;
-        onchange = js"event => $(show_legend).notify(event.target.checked)"
-    )
-    
-    # Legend title input
-    legend_title_style = map(show_legend) do show
-        return Styles(
-            "width" => "100px", 
-            "padding" => "2px 5px", 
-            "margin-left" => "10px",
-            "display" => show ? "block" : "none"
-        )
-    end
-
-    legend_title_input = DOM.input(
-        type="text", 
-        value=legend_title_text,
-        placeholder="Legend Title",
-        onkeydown=js"""
-            event => {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    $(legend_title_text).notify(event.target.value);
-                }
-            }
-        """,
-        style=legend_title_style
-    )
-
-    DOM.div(
-        legend_checkbox, " Show Legend", legend_title_input;
-        style=Styles("display" => "flex", "align-items" => "center", "gap" => "5px")
-    )
-end
-
-"""
-    create_label_input(label_text, label_name, label_observable)
-
-Create a text input field for plot labels (xlabel, ylabel, or title).
-
-# Arguments
-- `label_text::String`: Display label for the input field
-- `label_name::String`: Name/identifier for the label
-- `label_observable::Observable{String}`: Observable tracking the label text
-
-# Returns
-DOM.div containing labeled text input field
-"""
-function create_label_input(label_text, label_name, label_observable)
-    DOM.div(
-        DOM.label(label_text, style=Styles("min-width" => "60px")),
-        DOM.input(
-            type="text", 
-            value=label_observable,
-            onkeydown=js"""
-                event => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        $(label_observable).notify(event.target.value);
-                    }
-                }
-            """,
-            style=Styles("flex" => "1", "padding" => "2px 5px")
-        );
-        style=Styles("display" => "flex", "align-items" => "center", 
-                     "gap" => "5px", "margin-bottom" => "5px")
+        class="flex-col"
     )
 end

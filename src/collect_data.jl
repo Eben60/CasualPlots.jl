@@ -14,28 +14,25 @@ function collect_arrays_from_main()
     
     # Define the types to check for
     allowed_types = Any[Real]
-    disallowed_types = [Irrational, DataType]
     if isdefined(Main, :Unitful)
         push!(allowed_types, Main.Unitful.Quantity)
     end
 
-    for name in names(Main; imported=true,  usings=true)
+    for name in names(Main; imported=true,  usings=true) # this limits package compat to Julia v1.12 !
         name == :ans && continue
         try
             var = getfield(Main, name)
 
-            # Check if it's an array or a generic iterable
-            
+            # Check if it's an array or a generic iterable     
             if  !(var isa Real) &&   # some special numbers like NaN are iterables, they are excluded here
                 (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
                 # Check if the element type is a subtype of any of the allowed types
-                if any(T -> eltype(var) <: T, allowed_types) && !any(T -> eltype(var) <: T, disallowed_types) 
+                if any(T -> eltype(var) <: T, allowed_types) 
                     push!(data_names, name)
                 end
             end
-        catch e
-            # TODO
-            # Ignore errors from getfield or eltype
+        catch
+            # Ignore errors from ambiguous or undefined names
         end
     end
     return data_names
@@ -66,6 +63,19 @@ function get_dims_of_arrays()
         end
     end
     return dims_dict
+end
+
+"""
+    extract_x_candidates(dims_dict)
+
+Filter dimensions dictionary for 1-dimensional arrays (vectors) to be used as X candidates.
+
+# Returns
+Sorted vector of strings representing variable names.
+"""
+function extract_x_candidates(dims_dict)
+    vectors_only = filter(p -> length(last(p)) == 1, dims_dict)
+    return string.(keys(vectors_only)) |> sort!
 end
 
 function get_congruent_y_names(x, dims_dict::Dict)
@@ -104,7 +114,7 @@ function collect_dataframes_from_main()
     
     DataFrame_type = getfield(Main, :DataFrame)
     
-    for name in names(Main; imported=true, usings=true)
+    for name in names(Main; imported=true, usings=true)  # this limits package compat to Julia v1.12 !
         name == :ans && continue
         try
             var = getfield(Main, name)

@@ -1,0 +1,243 @@
+/* Layout Utilities */
+.flex-col { display: flex; flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.align-center { align-items: center; }
+.align-start { align-items: flex-start; }
+.gap-1 { gap: 5px; }
+.gap-2 { gap: 10px; }
+.gap-3 { gap: 15px; }
+.mb-1 { margin-bottom: 5px; }
+.mb-2 { margin-bottom: 10px; }
+.mt-2 { margin-top: 10px; }
+.mr-1 { margin-right: 5px; }
+.p-1 { padding: 5px; }
+.w-full { width: 100%; }
+
+/* Buttons */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+}
+.btn:hover:not(:disabled) {
+    opacity: 0.9;
+}
+.btn:disabled, .btn-disabled {
+    background-color: #cccccc !important;
+    cursor: not-allowed;
+}
+.btn-primary { background-color: #2196F3; }
+.btn-success { background-color: #4CAF50; }
+.btn-warning { background-color: #FF9800; }
+/* .btn-danger { background-color: #DC3545; } */
+
+/* Inputs & selects */
+.input-text, .input-textarea {
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+.input-textarea {
+    resize: vertical;
+    font-family: monospace;
+}
+.form-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.select-standard {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #2196F3;
+    background-color: white;
+    cursor: pointer;
+}
+.select-standard:disabled {
+    border: 1px solid #ccc;
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+}
+
+/* Specialized */
+.extension-icon {
+    font-size: 10px;
+    font-weight: bold;
+    margin-right: 6px;
+}
+.extension-text {
+    font-size: 10px;
+    color: #333;
+}
+.extension-text-disabled {
+    font-size: 10px;
+    color: #666;
+}
+
+/* Containers */
+.scroll-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Specific Format Tab Utilities */
+.flex-1 { flex: 1; }
+.ml-2 { margin-left: 10px; }
+.w-100px { width: 100px; }
+.input-small {
+    padding: 3px 6px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 11px;
+}
+.label-fixed { 
+    min-width: 60px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+/* Tabs Component */
+.tabs-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.tab-buttons {
+    display: flex;
+    gap: 2px;
+    background-color: #e0e0e0;
+    padding: 5px 5px 0 5px;
+    border-bottom: 2px solid #999;
+}
+
+.tab-button {
+    padding: 8px 16px;
+    background-color: #d0d0d0;
+    border: 1px solid #999;
+    border-bottom: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+    border-radius: 4px 4px 0 0;
+}
+
+.tab-button:hover {
+    background-color: #e8e8e8;
+}
+
+.tab-button.active {
+    background-color: whitesmoke;
+    font-weight: bold;
+    border-bottom: 2px solid whitesmoke;
+    margin-bottom: -2px;
+}
+
+.tab-content {
+    flex: 1;
+    padding: 10px;
+    overflow: auto;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Help Section */
+.help-title {
+    font-weight: bold;
+    font-size: 11px;
+    margin-bottom: 3px;
+}
+
+.help-item {
+    font-size: 10px;
+    margin-bottom: 1px;
+}
+
+.help-container {
+    padding: 5px;
+    background-color: #f5f5f5;
+}
+
+.separator-line {
+    border-top: 1px solid #ccc;
+}
+
+.no-shrink {
+    flex-shrink: 0;
+}
+
+/* Table Info Pane */
+.info-line {
+    font-size: 10px;
+    background-color: #E3F2FD;
+    padding: 4px 8px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table-pane-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.table-scroll-wrapper {
+    overflow: auto;
+    flex: 1;
+}
+
+/* Layout Panes */
+.ctrl-pane-split {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.ctrl-pane-content {
+    flex: 1;
+    overflow: auto;
+}
+
+.pane-card {
+    padding: 5px;
+}
+/* Note: background-color support in Bonito Card might need style attribute if class not supported on Card directly? 
+   No, usually Card accepts class. But background-color might be via style in original code.
+   I'll try using class. If Card is a component wrapping a div, it should pass class.
+   However, Card(..., style=...) usage suggests it supports style.
+   I'll define classes with background colors. 
+*/
+.pane-card-ctrl { background-color: whitesmoke; }
+.pane-card-table { background-color: silver; }
+.pane-card-plot { background-color: lightgray; }
+
+.main-layout-container {
+    padding: 5px;
+}
