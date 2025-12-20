@@ -1,5 +1,7 @@
 # CasualPlots
 
+[![Build Status](https://github.com/Eben60/CasualPlots.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Eben60/CasualPlots.jl/actions/workflows/CI.yml?query=branch%3Amain)
+
 **This package is a work in progress.**
 
 ## Aims
