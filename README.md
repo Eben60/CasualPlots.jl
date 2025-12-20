@@ -1,5 +1,7 @@
 # CasualPlots
 
+[![Build Status](https://github.com/Eben60/CasualPlots.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Eben60/CasualPlots.jl/actions/workflows/CI.yml?query=branch%3Amain)
+
 **This package is a work in progress.**
 
 ## Aims
@@ -8,7 +10,7 @@
 
 The tool is intended to be started from a Julia command line, providing access to the variables defined in the script's environment.
 
-The intended user is someone who wants an easy way to create common plot types without memorizing dozens or hundreds of options.
+The expected user is someone who wants an easy way to create common plot types without memorizing dozens or hundreds of options.
 
 ## What It Does
 

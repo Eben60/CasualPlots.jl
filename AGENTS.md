@@ -55,6 +55,11 @@ items = (
 )
 ```
 
+### JavaScript Conventions
+*   **External Logic**: All non-trivial JavaScript logic must be placed in `src/javascripts.js` and namespaced under `window.CasualPlots`.
+*   **Inline Minimization**: Inline JS in Julia files (`js"..."`) should be restricted to simple calls to these external functions or mandatory one-liners.
+*   **Loading**: The `javascripts.js` file is read and injected as a script tag in the main application layout (`app.jl`).
+
 ### Technology Stack
 *   **[Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)**: Web-based reactive GUI framework
 *   **[WGLMakie](https://github.com/MakieOrg/Makie.jl)**: WebGL-based plotting backend
@@ -71,6 +76,7 @@ CasualPlots.jl                  # Main module, exports casualplots_app()
 app.jl                          # Main app entry point (casualplots_app function)
 app_state.jl                    # Application state initialization (Observables)
 css_styles.css                  # Global CSS styles for all UI components
+javascripts.js                  # Global JavaScript functions (namespaced window.CasualPlots)
 
 # Core Logic
 plotting.jl                     # Plot generation using AlgebraOfGraphics + force_plot_refresh

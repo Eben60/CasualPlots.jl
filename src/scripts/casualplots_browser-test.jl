@@ -1,4 +1,4 @@
-include("setup_test.jl");
+include("casualplots_test_setup.jl");
 
 app = casualplots_app();
 # this opens the GUI in browser for debugging

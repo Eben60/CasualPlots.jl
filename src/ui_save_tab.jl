@@ -6,7 +6,7 @@ Create a button that triggers the OS file save dialog.
 function create_file_dialog_button(dialog_trigger)
     DOM.button(
         "Select File...";
-        onclick=js"() => $(dialog_trigger).notify($(dialog_trigger).value + 1)",
+        onclick=js"() => window.CasualPlots.incrementObservable($(dialog_trigger))",
         class="btn btn-primary mb-2"
     )
 end
@@ -23,8 +23,8 @@ function create_path_textarea(save_file_path)
             id="save-path-input",
             value=save_file_path,
             placeholder="/path/to/save/plot.png",
-            onchange=js"event => $(save_file_path).notify(event.target.value)",
-            onblur=js"event => $(save_file_path).notify(event.target.value)",
+            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(save_file_path))",
+            onblur=js"event => window.CasualPlots.updateObservableValue(event, $(save_file_path))",
             class="input-textarea",
             style=Styles("height" => "60px") # Height is specific enough to keep inline or add .h-60? Inline is fine for specific dims.
         );
@@ -42,7 +42,7 @@ function create_save_button(save_trigger, button_enabled)
     map(button_enabled) do enabled
         DOM.button(
             "Save Plot";
-            onclick=enabled ? js"() => $(save_trigger).notify($(save_trigger).value + 1)" : js"() => {}",
+            onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(save_trigger))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-success mb-2" : "btn btn-disabled mb-2"
         )
