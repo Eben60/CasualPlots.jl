@@ -40,8 +40,16 @@ casualplots_app() = App() do session
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)
     
+    # Load JavaScripts
+    js_content = read(joinpath(@__DIR__, "javascripts.js"), String)
+    
     # Assemble and return final layout (with modal dialog)
-    return assemble_layout(tabs_result.tabs, help_visibility, outputs.plot, outputs.table, 
+    layout = assemble_layout(tabs_result.tabs, help_visibility, outputs.plot, outputs.table, 
                            state, tabs_result.overwrite_trigger, tabs_result.cancel_trigger)
+                           
+    return DOM.div(
+        DOM.script(js_content),
+        layout
+    )
 end
 

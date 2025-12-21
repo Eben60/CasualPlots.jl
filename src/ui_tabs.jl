@@ -42,7 +42,7 @@ function create_tabs_component(tab_configs::Vector; default_active=1)
         DOM.button(
             config.name;
             class=button_class,
-            onclick=js"() => $(active_tab).notify($idx)"
+            onclick=js"() => window.CasualPlots.setObservableValue($(active_tab), $idx)"
         )
     end
     

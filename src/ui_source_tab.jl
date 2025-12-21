@@ -23,24 +23,7 @@ function create_dataframe_column_checkboxes(columns, selected_columns)
             class="column-checkbox mr-1",
             checked=false,
             value=col_name,
-            onchange=js"""
-                event => {
-                    const checked = event.target.checked;
-                    const value = event.target.value;
-                    let current = $(selected_columns).value;
-                    if (checked) {
-                        if (!current.includes(value)) {
-                            current.push(value);
-                        }
-                    } else {
-                        const index = current.indexOf(value);
-                        if (index > -1) {
-                            current.splice(index, 1);
-                        }
-                    }
-                    $(selected_columns).notify(current);
-                }
-            """
+            onchange=js"event => window.CasualPlots.handleColumnCheckboxChange(event, $(selected_columns))"
         )
         
         # Horizontal layout: checkbox followed by label
@@ -74,12 +57,12 @@ function create_source_type_selector(source_type)
         DOM.input(
             type="radio", name="source_type", value="X, Y Arrays", 
             checked=(source_type[] == "X, Y Arrays"),
-            onchange=js"event => $(source_type).notify(event.target.value)"
+            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(source_type))"
         ), " X, Y Arrays  ",
         DOM.input(
             type="radio", name="source_type", value="DataFrame",
             checked=(source_type[] == "DataFrame"),
-            onchange=js"event => $(source_type).notify(event.target.value)"
+            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(source_type))"
         ), " File/DataFrame";
         class="mb-2"
     )
@@ -101,7 +84,7 @@ DOM.div containing X and Y selection dropdowns
 function create_array_mode_content(x_node, y_node, trigger_update)
     x_source = DOM.div(
         "Select X:", 
-        DOM.div(x_node; onclick=js"() => $(trigger_update).notify(true)");
+        DOM.div(x_node; onclick=js"() => window.CasualPlots.setObservableValue($(trigger_update), true)");
         class="flex-row align-center gap-1 mb-1"
     )
     
@@ -144,16 +127,7 @@ function create_select_all_button(selected_dataframe, selected_columns, opened_f
         
         DOM.button(
             "Select All",
-            onclick=enabled ? js"""() => {
-                // Pass column list from Julia side - no DOM scraping needed
-                const allCols = $(columns);
-                // 1. Update Julia state
-                $(selected_columns).notify(allCols);
-                // 2. Manually sync UI (since checkboxes aren't reactive on selected_columns)
-                document.querySelectorAll('.column-checkbox').forEach(cb => {
-                    cb.checked = true;
-                });
-            }""" : js"() => {}",
+            onclick=enabled ? js"() => window.CasualPlots.selectAllColumns($(columns), $(selected_columns))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-primary mr-1" : "btn btn-disabled mr-1"
         )
@@ -185,14 +159,7 @@ DOM.button that deselects all columns when clicked
 function create_deselect_all_button(selected_columns)
     DOM.button(
         "Deselect All",
-        onclick=js"""() => {
-            // 1. Update Julia state
-            $(selected_columns).notify([]);
-            // 2. Manually sync UI (since checkboxes aren't reactive on selected_columns)
-            document.querySelectorAll('.column-checkbox').forEach(cb => {
-                cb.checked = false;
-            });
-        }""",
+        onclick=js"() => window.CasualPlots.deselectAllColumns($(selected_columns))",
         class="btn btn-warning mr-1"
     )
 end
@@ -217,7 +184,7 @@ function create_plot_button(selected_columns, plot_trigger)
     map(plot_button_enabled) do enabled
         DOM.button(
             "(Re-)Plot",
-            onclick=enabled ? js"() => $(plot_trigger).notify($(plot_trigger).value + 1)" : js"() => {}",
+            onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(plot_trigger))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-success" : "btn btn-disabled"
         )

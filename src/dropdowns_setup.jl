@@ -118,7 +118,7 @@ function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=n
     end
     
     if !isnothing(selected_val_obs)
-        attributes[:onchange] = js"event => $(selected_val_obs).notify(event.target.value)"
+        attributes[:onchange] = js"event => window.CasualPlots.updateObservableValue(event, $(selected_val_obs))"
     end
     
     return DOM.select(final_options...; attributes...)

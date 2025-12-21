@@ -47,7 +47,7 @@ DOM.div containing legend checkbox and title input
 """
 function create_legend_control(show_legend, legend_title_text)
     legend_checkbox = DOM.input(type="checkbox", checked=show_legend;
-        onchange = js"event => $(show_legend).notify(event.target.checked)"
+        onchange = js"event => window.CasualPlots.updateObservableChecked(event, $(show_legend))"
     )
     
     # Legend title input visibility
@@ -60,14 +60,7 @@ function create_legend_control(show_legend, legend_title_text)
         type="text", 
         value=legend_title_text,
         placeholder="Legend Title",
-        onkeydown=js"""
-            event => {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    $(legend_title_text).notify(event.target.value);
-                }
-            }
-        """,
+        onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(legend_title_text))",
         style=legend_visibility,
         class="input-small w-100px ml-2"
     )
@@ -97,14 +90,7 @@ function create_label_input(label_text, label_name, label_observable)
         DOM.input(
             type="text", 
             value=label_observable,
-            onkeydown=js"""
-                event => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        $(label_observable).notify(event.target.value);
-                    }
-                }
-            """,
+            onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(label_observable))",
             class="input-small flex-1"
         );
         class="flex-row align-center gap-1 mb-1"

@@ -26,7 +26,7 @@ function create_open_file_button(trigger, enabled)
     DOM.button(
         "Open File";
         disabled=!enabled,
-        onclick=js"() => { $(trigger).notify($(trigger).value + 1); }",
+        onclick=js"() => { window.CasualPlots.incrementObservable($(trigger)); }",
         class=enabled ? "btn btn-primary" : "btn btn-disabled"
     )
 end
@@ -53,7 +53,7 @@ function create_sheet_selector(sheet_names, selected_sheet)
             end
             DOM.select(
                 options...;
-                onchange=js"(e) => { $(selected_sheet).notify(e.target.value); }",
+                onchange=js"(e) => { window.CasualPlots.updateObservableValue(e, $(selected_sheet)); }",
                 class="select-standard"
             )
         end

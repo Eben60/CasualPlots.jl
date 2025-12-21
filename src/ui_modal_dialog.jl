@@ -112,7 +112,7 @@ Create an "OK" button for dismissing the modal.
 function create_ok_button(dismiss_trigger)
     DOM.button(
         "OK";
-        onclick=js"() => $(dismiss_trigger).notify($(dismiss_trigger).value + 1)",
+        onclick=js"() => window.CasualPlots.incrementObservable($(dismiss_trigger))",
         style=Styles(
             "padding" => "8px 24px",
             "background-color" => "#007BFF",
@@ -134,7 +134,7 @@ function create_confirm_buttons(overwrite_trigger, cancel_trigger)
     DOM.div(
         DOM.button(
             "Overwrite";
-            onclick=js"() => $(overwrite_trigger).notify($(overwrite_trigger).value + 1)",
+            onclick=js"() => window.CasualPlots.incrementObservable($(overwrite_trigger))",
             style=Styles(
                 "padding" => "8px 20px",
                 "background-color" => "#DC3545",
@@ -148,7 +148,7 @@ function create_confirm_buttons(overwrite_trigger, cancel_trigger)
         ),
         DOM.button(
             "Cancel";
-            onclick=js"() => $(cancel_trigger).notify($(cancel_trigger).value + 1)",
+            onclick=js"() => window.CasualPlots.incrementObservable($(cancel_trigger))",
             style=Styles(
                 "padding" => "8px 20px",
                 "background-color" => "#6C757D",
