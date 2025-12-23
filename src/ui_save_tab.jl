@@ -56,9 +56,9 @@ Setup Julia-side callbacks for save functionality.
 Callbacks now show popup modals instead of inline status displays.
 """
 function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
-    (; save_file_path, save_status_message, save_status_type, 
-       show_overwrite_confirm, show_modal, modal_type, plot_handles) = state
-    (; current_figure) = plot_handles
+    (; save_file_path, save_status_message, save_status_type, show_overwrite_confirm) = state.file_saving
+    (; show_modal, modal_type) = state.dialogs
+    (; current_figure) = state.plotting.handles
     
     # Callback for file dialog button
     on(dialog_trigger) do _
@@ -137,7 +137,8 @@ end
 Actually perform the save operation and show result in modal popup.
 """
 function do_save(path, fig, state)
-    (; save_status_message, save_status_type, show_modal, modal_type) = state
+    (; save_status_message, save_status_type) = state.file_saving
+    (; show_modal, modal_type) = state.dialogs
     (success, message) = save_current_plot(path, fig)
     save_status_message[] = message
     save_status_type[] = success ? :success : :error
@@ -156,8 +157,8 @@ Returns a NamedTuple with:
 - `cancel_trigger`: Observable for cancel button (used by modal)
 """
 function create_save_tab_content(state)
-    (; save_file_path, plot_handles) = state
-    (; current_figure) = plot_handles
+    (; save_file_path) = state.file_saving
+    (; current_figure) = state.plotting.handles
     
     # Create trigger observables for button clicks
     dialog_trigger = Observable(0)

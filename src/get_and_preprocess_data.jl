@@ -216,10 +216,10 @@ function store_and_display_dataframe!(df, filepath, table_observable, state; inf
         # Reset selected_dataframe BEFORE setting opened_file_df
         # This ensures the dropdown rebuild (triggered by opened_file_df change)
         # sees selected_dataframe as nothing and shows placeholder, not "opened file"
-        state.selected_dataframe[] = nothing
-        state.opened_file_df[] = df
+        state.data_selection.selected_dataframe[] = nothing
+        state.file_opening.opened_file_df[] = df
         # Extract filename without path or extension
-        state.opened_file_name[] = splitext(basename(filepath))[1]
+        state.file_opening.opened_file_name[] = splitext(basename(filepath))[1]
     end
     
     # Build source info text with normalized absolute path (+ optional suffix)

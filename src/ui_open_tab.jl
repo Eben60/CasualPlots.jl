@@ -204,7 +204,7 @@ Create the complete options section for file reading configuration.
 Uses CSS Grid layout with 3 columns: control, label, info.
 """
 function create_options_section(state)
-    (; header_row, skip_after_header, skip_empty_rows, delimiter, decimal_separator) = state
+    (; header_row, skip_after_header, skip_empty_rows, delimiter, decimal_separator) = state.file_opening
     
     # Get tuples of (control, label, info) for each option
     header = create_header_input(header_row)
@@ -281,7 +281,7 @@ end
 Create reactive content for the Open tab.
 """
 function create_open_tab_content(refresh_trigger, table_observable, state)
-    (; opened_file_name) = state
+    (; opened_file_name) = state.file_opening
     
     # Create trigger for Open File button clicks
     open_file_trigger = Observable(0)

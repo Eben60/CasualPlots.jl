@@ -118,39 +118,57 @@ scripts/                        # Example/demo scripts
 ### Reactive State Architecture
 
 #### State Structure
-The application uses a `NamedTuple` called `state` containing all reactive `Observable` objects:
+The application uses a `NamedTuple` called `state` with nested categories:
 
 ```julia
-state = (
-    selected_x::Observable{Union{String,Nothing}},
-    selected_y::Observable{Union{String,Nothing}},
-    plot_format = (
-        selected_plottype::Observable{String},
-        show_legend::Observable{Bool}
+state = (;
+    file_opening = (;
+        opened_file_df::Observable{Union{Nothing, DataFrame}},
+        opened_file_name::Observable{String},
+        header_row::Observable{Int},          # 0 = no headers
+        skip_after_header::Observable{Int},
+        skip_empty_rows::Observable{Bool},
+        delimiter::Observable{String},        # Auto, Comma, Tab, etc.
+        decimal_separator::Observable{String}
     ),
-    plot_handles = (
-        xlabel_text::Observable{String},
-        ylabel_text::Observable{String},
-        title_text::Observable{String},
-        legend_title_text::Observable{String},
-        current_figure::Observable{Union{Figure,Nothing}},
-        current_axis::Observable{Union{Axis,Nothing}}
+    file_saving = (;
+        save_file_path::Observable{String},
+        save_status_message::Observable{String},
+        save_status_type::Observable{Symbol},  # :none, :success, :warning, :error
+        show_overwrite_confirm::Observable{Bool}
     ),
-    block_format_update::Observable{Bool},  # Race condition prevention
-    # DataFrame mode
-    selected_df::Observable{Union{String,Nothing}},
-    selected_cols::Observable{Vector{String}},
-    # File Opening
-    opened_file_df::Observable{Union{Nothing, DataFrame}}, # DataFrame from loaded file
-    opened_file_name::Observable{String},         # Filename for display
-    # Save functionality
-    save_file_path::Observable{String},           # Persists across plots
-    save_status_message::Observable{String},
-    save_status_type::Observable{Symbol},         # :none, :success, :warning, :error
-    show_overwrite_confirm::Observable{Bool},     # Kept for backward compat / specific path flows
-    # Modal Dialog
-    show_modal::Observable{Bool},
-    modal_type::Observable{Symbol}                # :none, :success, :warning, :confirm
+    dialogs = (;
+        show_modal::Observable{Bool},
+        modal_type::Observable{Symbol}         # :none, :success, :warning, :confirm
+    ),
+    data_selection = (;
+        source_type::Observable{String},       # "X, Y Arrays" or "DataFrame"
+        dims_dict_obs::Observable{Dict},
+        dataframes_dict_obs::Observable{Vector},
+        selected_dataframe::Observable{Union{String, Nothing}},
+        selected_columns::Observable{Vector{String}},
+        selected_x::Observable{Union{String, Nothing}},
+        selected_y::Observable{Union{String, Nothing}}
+    ),
+    plotting = (;
+        format = (;
+            selected_plottype::Observable{String},
+            show_legend::Observable{Bool}
+        ),
+        handles = (;
+            xlabel_text::Observable{String},
+            ylabel_text::Observable{String},
+            title_text::Observable{String},
+            legend_title_text::Observable{String},
+            current_figure::Observable{Union{Figure, Nothing}},
+            current_axis::Observable{Union{Axis, Nothing}}
+        )
+    ),
+    misc = (;
+        trigger_update::Observable{Bool},
+        last_update::Ref{Float64},
+        block_format_update::Observable{Bool}  # Race condition prevention
+    )
 )
 ```
 

@@ -188,7 +188,8 @@ The modal type (success/error/warning/confirm) is determined by `state.modal_typ
 The message content comes from `state.save_status_message`.
 """
 function create_modal_container(state, overwrite_trigger, cancel_trigger)
-    (; show_modal, modal_type, save_status_message) = state
+    (; show_modal, modal_type) = state.dialogs
+    (; save_status_message) = state.file_saving
     
     # Create trigger for OK button (dismisses modal)
     dismiss_trigger = Observable(0)

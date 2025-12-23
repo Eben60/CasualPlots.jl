@@ -8,7 +8,7 @@ When `selected_x` updates:
 3. Updates the Y-variable dropdown (`dropdown_y_node`) to show only variables congruent with the new X selection (based on `dims_dict_obs`).
 """
 function setup_x_callback(state, dropdown_y_node, outputs)
-    (; dims_dict_obs, selected_x, selected_y) = state
+    (; dims_dict_obs, selected_x, selected_y) = state.data_selection
     on(selected_x) do x
         # println("selected x: $x")
         selected_y[] = nothing
@@ -42,9 +42,10 @@ Handle data source changes (X or Y selection updates).
 """
 function setup_source_callback(state, outputs)
     
-    (; selected_x, selected_y, plot_format, plot_handles) = state
-    (; selected_plottype, show_legend) = plot_format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = plot_handles
+    (; selected_x, selected_y) = state.data_selection
+    (; format, handles) = state.plotting
+    (; selected_plottype, show_legend) = format
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
@@ -59,7 +60,7 @@ function setup_source_callback(state, outputs)
             current_plot_y[] = y
             
             # Block format callback to prevent double plotting and ensure atomic update
-            state.block_format_update[] = true
+            state.misc.block_format_update[] = true
             
             try
                 # Reset legend title for new plot
@@ -80,7 +81,7 @@ function setup_source_callback(state, outputs)
                     show_legend[] = fig.fig_params.updated_show_legend
                 end
             finally
-                state.block_format_update[] = false
+                state.misc.block_format_update[] = false
             end
             
             # Create/update table (source-related only)
@@ -109,14 +110,14 @@ Triggers a replot using the currently stored data (`current_plot_x`, `current_pl
 Updates the `plot_observable` and text fields, but does *not* regenerate the data table.
 """
 function setup_format_callback(state, outputs)
-    (; selected_plottype, show_legend) = state.plot_format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plot_handles
+    (; selected_plottype, show_legend) = state.plotting.format
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
 
     onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
-        if state.block_format_update[]
+        if state.misc.block_format_update[]
             return
         end
 
@@ -131,7 +132,7 @@ function setup_format_callback(state, outputs)
             saved_title = title_text[]
             
             # Block label callbacks during plot recreation
-            state.block_format_update[] = true
+            state.misc.block_format_update[] = true
             try
                 plottype = plottype_str |> Symbol |> eval
                 # Pass saved labels and title through plot_format so they're baked into the plot during creation
@@ -155,7 +156,7 @@ function setup_format_callback(state, outputs)
                     
                 end
             finally
-                state.block_format_update[] = false
+                state.misc.block_format_update[] = false
             end
             
             # UNBLOCKED Force Notify:
@@ -192,9 +193,10 @@ Handles the common plotting logic used by both plot trigger and format callbacks
 - `update_table`: If true, updates the table observable (only for new plot data)
 """
 function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
-    (; plot_format, plot_handles, show_modal, modal_type) = state
-    (; selected_plottype, show_legend) = plot_format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = plot_handles
+    (; format, handles) = state.plotting
+    (; show_modal, modal_type) = state.dialogs
+    (; selected_plottype, show_legend) = format
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
     plot_observable = outputs.plot
     table_observable = outputs.table
     
@@ -210,8 +212,8 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         
         if df_name == "__opened_file__"
             # Use DataFrame loaded from file (already has strings normalized)
-            df = state.opened_file_df[]
-            display_name = state.opened_file_name[]
+            df = state.file_opening.opened_file_df[]
+            display_name = state.file_opening.opened_file_name[]
             if isnothing(df)
                 plot_observable[] = DOM.div("Error: No file has been opened. Use the Open tab to load a file.")
                 return false
@@ -243,8 +245,8 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
             warning_msg = "Converted non-numeric values to missing in column(s): $(join(dirty_cols, ", "))"
             @warn warning_msg
             # Show popup warning
-            state.save_status_message[] = warning_msg
-            state.save_status_type[] = :warning
+            state.file_saving.save_status_message[] = warning_msg
+            state.file_saving.save_status_type[] = :warning
             modal_type[] = :warning
             show_modal[] = true
         end
@@ -260,7 +262,7 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         end
         
         # Block label callbacks during plot recreation
-        state.block_format_update[] = true
+        state.misc.block_format_update[] = true
         
         plottype = selected_plottype[] |> Symbol |> eval
         # Use xcol=1 since df_selected has X as first column
@@ -300,7 +302,7 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
             end
         end
         
-        state.block_format_update[] = false
+        state.misc.block_format_update[] = false
         
         # UNBLOCKED Force Notify:
         # Update text observables AFTER unblocking.
@@ -345,9 +347,10 @@ Handles:
 - Plot button click (triggers plot update when columns are selected)
 """
 function setup_dataframe_callbacks(state, outputs, plot_trigger)
-    (; source_type, selected_dataframe, selected_columns, plot_format, plot_handles) = state
-    (; selected_plottype, show_legend) = plot_format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = plot_handles
+    (; source_type, selected_dataframe, selected_columns, selected_x, selected_y) = state.data_selection
+    (; format, handles) = state.plotting
+    (; selected_plottype, show_legend) = format
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
     plot_observable = outputs.plot
     table_observable = outputs.table
     
@@ -355,8 +358,8 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
     on(source_type) do st
         # Clear array mode selections when switching to DataFrame
         if st == "DataFrame"
-            state.selected_x[] = nothing
-            state.selected_y[] = nothing
+            selected_x[] = nothing
+            selected_y[] = nothing
         # Clear DataFrame mode selections when switching to arrays
         else
             selected_dataframe[] = nothing
@@ -402,7 +405,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
     
     # Listen to format changes (plot type, legend) and replot with current DataFrame selection
     onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
-        if state.block_format_update[]
+        if state.misc.block_format_update[]
             return
         end
         

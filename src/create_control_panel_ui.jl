@@ -14,9 +14,12 @@ Returns a NamedTuple with:
 - `title_input`: Plot title text field
 """
 function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
-    (; trigger_update, plot_format, plot_handles, source_type, selected_dataframe, selected_columns, opened_file_df) = state
-    (; show_legend) = plot_format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text) = plot_handles
+    (; trigger_update) = state.misc
+    (; format, handles) = state.plotting
+    (; show_legend) = format
+    (; xlabel_text, ylabel_text, title_text, legend_title_text) = handles
+    (; source_type, selected_dataframe, selected_columns) = state.data_selection
+    (; opened_file_df) = state.file_opening
     
     # Create plot trigger observable for DataFrame mode
     plot_trigger = Observable(0)

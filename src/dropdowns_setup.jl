@@ -2,10 +2,10 @@
     create_x_dropdown(state)
 
 Create the X variable selection dropdown.
-Populates based on `state.dims_dict_obs`.
+Populates based on `state.data_selection.dims_dict_obs`.
 """
 function create_x_dropdown(state)
-    (; dims_dict_obs, selected_x) = state
+    (; dims_dict_obs, selected_x) = state.data_selection
     dropdown_x_node = Observable(DOM.div("Click to load X variables"))
     
     # Setup X dropdown to update when data changes
@@ -36,10 +36,11 @@ end
     create_dataframe_dropdown(state)
 
 Create the DataFrame selection dropdown.
-Populates from `state.dataframes_dict_obs` and `state.opened_file_df`.
+Populates from `state.data_selection.dataframes_dict_obs` and `state.file_opening.opened_file_df`.
 """
 function create_dataframe_dropdown(state)
-    (; dataframes_dict_obs, opened_file_df, selected_dataframe) = state
+    (; dataframes_dict_obs, selected_dataframe) = state.data_selection
+    (; opened_file_df) = state.file_opening
     dropdown_dataframe_node = Observable(DOM.div("Click to load DataFrames"))
     
     # Update DataFrame dropdown when dataframes_dict_obs or opened_file_df changes
