@@ -74,6 +74,32 @@ function check_if_log_noise(s, starttime)
     return nothing
 end
 
+"""
+    extension_to_uti(ext)
+
+Convert a file extension to its corresponding UTI (Uniform Type Identifier).
+AppleScript's `choose file of type` requires UTIs, not plain extensions.
+"""
+function extension_to_uti(ext::AbstractString)
+    ext = lowercase(ext)
+    # Common UTI mappings for file extensions
+    uti_map = Dict(
+        "csv" => "public.comma-separated-values-text",
+        "tsv" => "public.tab-separated-values-text",
+        "xlsx" => "org.openxmlformats.spreadsheetml.sheet",
+        "xls" => "com.microsoft.excel.xls",
+        "txt" => "public.plain-text",
+        "json" => "public.json",
+        "xml" => "public.xml",
+        "pdf" => "com.adobe.pdf",
+        "png" => "public.png",
+        "jpg" => "public.jpeg",
+        "jpeg" => "public.jpeg",
+    )
+    # Return mapped UTI or fallback to "public.<ext>" format
+    return get(uti_map, ext, "public.$ext")
+end
+
 function pick_workaround(path, picktype; filterlist="")
     path = string(path)
     if picktype == :pickfile
@@ -100,9 +126,11 @@ function pick_workaround(path, picktype; filterlist="")
     else
         startswith(filterlist, ".") && (filterlist = filterlist[2:end])
         filterlist = filterlist |> lowercase
-        # Convert comma-separated string to AppleScript list format: {"csv", "tsv", "xlsx"}
+        # Convert comma-separated extensions to UTIs (Uniform Type Identifiers)
+        # AppleScript's "of type" requires UTIs, not plain extensions
         extensions = split(filterlist, ",")
-        applescript_list = "{" * join(["\"$(strip(ext))\"" for ext in extensions], ", ") * "}"
+        utis = [extension_to_uti(strip(ext)) for ext in extensions]
+        applescript_list = "{" * join(["\"$(uti)\"" for uti in utis], ", ") * "}"
         filterdef = """set filetype to $applescript_list\n"""
         filtercall = "of type filetype"
     end

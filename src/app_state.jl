@@ -30,6 +30,7 @@ function initialize_app_state()
     # --- File Opening ---
     opened_file_df = Observable{Union{Nothing, DataFrame}}(nothing)
     opened_file_name = Observable("")
+    opened_file_path = Observable("")  # Full path of currently loaded file (for reload)
     header_row = Observable(1)
     skip_after_header = Observable(0)
     skip_empty_rows = Observable(true)
@@ -37,7 +38,7 @@ function initialize_app_state()
     decimal_separator = Observable("Dot")
     
     file_opening = (; 
-        opened_file_df, opened_file_name,
+        opened_file_df, opened_file_name, opened_file_path,
         header_row, skip_after_header, skip_empty_rows, delimiter, decimal_separator
     )
     
