@@ -241,3 +241,75 @@
 .main-layout-container {
     padding: 5px;
 }
+
+/* Open Tab Options Section - CSS Grid Layout */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr; /* equal columns for consistent width */
+    gap: 6px 8px;
+    margin-top: 10px;
+    align-items: center;
+    width: 100%;
+}
+
+.options-header {
+    font-weight: bold;
+    font-size: 12px;
+    text-align: center;
+    justify-self: center;
+}
+
+/* Empty placeholder cells for grid alignment */
+.options-empty {
+    display: block;
+}
+
+/* Column 1: Controls - right aligned */
+.option-control {
+    justify-self: end;
+}
+
+/* Column 2: Labels - left aligned with horizontal padding */
+.option-label {
+    justify-self: start;
+    font-size: 12px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+/* Column 3: Info text - left aligned with horizontal padding */
+.option-info {
+    justify-self: start;
+    font-size: 10px;
+    color: #666;
+    font-style: italic;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+/* Number input fields - narrower width */
+.input-number {
+    width: 30px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: right;
+}
+
+/* Dropdown selects in options grid */
+.select-option {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: white;
+    cursor: pointer;
+}
+
+/* Checkbox in options grid */
+.checkbox-option {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}

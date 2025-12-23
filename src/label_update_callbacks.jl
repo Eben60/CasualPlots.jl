@@ -5,13 +5,13 @@ This function creates reactive callbacks that update the Makie axis properties
 (xlabel, ylabel, title) when the user edits the text fields and presses Enter.
 """
 function setup_label_update_callbacks(state, outputs)
-    (; xlabel_text, ylabel_text, title_text, current_axis, current_figure) = state.plot_handles
+    (; xlabel_text, ylabel_text, title_text, current_axis, current_figure) = state.plotting.handles
     plot_observable = outputs.plot
 
     # Update X-axis label when text field changes
     on(xlabel_text) do new_label
         # Skip if format update is in progress to prevent interference
-        if state.block_format_update[]
+        if state.misc.block_format_update[]
             return
         end
         ax = current_axis[]
@@ -27,7 +27,7 @@ function setup_label_update_callbacks(state, outputs)
     # Update Y-axis label when text field changes  
     on(ylabel_text) do new_label
         # Skip if format update is in progress to prevent interference
-        if state.block_format_update[]
+        if state.misc.block_format_update[]
             return
         end
         ax = current_axis[]
@@ -43,7 +43,7 @@ function setup_label_update_callbacks(state, outputs)
     # Update title when text field changes
     on(title_text) do new_title
         # Skip if format update is in progress to prevent interference
-        if state.block_format_update[]
+        if state.misc.block_format_update[]
             return
         end
         ax = current_axis[]

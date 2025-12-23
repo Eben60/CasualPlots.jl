@@ -20,7 +20,7 @@ casualplots_app() = App() do session
     x_node = create_x_dropdown(state)
     y_node = create_y_dropdown()
     dataframe_node = create_dataframe_dropdown(state)
-    plottype_node = create_plottype_dropdown(supported_plot_types, state.plot_format.selected_plottype)
+    plottype_node = create_plottype_dropdown(supported_plot_types, state.plotting.format.selected_plottype)
     
     # Initialize output observables
     outputs = initialize_output_observables() # reviewed 1 pass
