@@ -210,7 +210,6 @@ and update the table display.
 function store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix="")
     # Normalize string columns for display compatibility
     normalize_strings!(df)
-    
     # Store DataFrame in state if provided
     if !isnothing(state)
         # Reset selected_dataframe BEFORE setting opened_file_df
@@ -220,6 +219,8 @@ function store_and_display_dataframe!(df, filepath, table_observable, state; inf
         state.file_opening.opened_file_df[] = df
         # Extract filename without path or extension
         state.file_opening.opened_file_name[] = splitext(basename(filepath))[1]
+        # Store the full path for reload functionality
+        state.file_opening.opened_file_path[] = abspath(filepath) |> normpath
     end
     
     # Build source info text with normalized absolute path (+ optional suffix)
@@ -243,8 +244,10 @@ Also stores the DataFrame in state for use in DataFrame mode.
 - `state::Union{Nothing, NamedTuple}`: Application state (optional, for storing opened file DataFrame)
 """
 function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothing)
+    (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
     try
-        df = readtable_xlsx(filepath, sheet)
+        df = readtable_xlsx(filepath, sheet; infer_eltypes=true, stop_in_empty_row=false, kwargs...)
+        skip_rows!(df, skip_subheaders, skip_empty_rows)
         store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix=":" * string(sheet))
     catch e
         @warn "Error loading XLSX sheet: $e"
@@ -263,13 +266,155 @@ function load_csv_to_table(filepath, table_observable, state=nothing)
         @warn "CSV extension not available"
         return nothing
     end
-    
+
+    kwargs = collect_csv_options(state)
+
     try
-        df = read_csv(filepath)
+        df = read_csv(filepath; kwargs...)
+        skip_rows!(df, 0, kwargs.ignoreemptyrows)
         store_and_display_dataframe!(df, filepath, table_observable, state)
     catch e
         @warn "Error loading file: $e"
         table_observable[] = DOM.div("Error loading file: $(basename(filepath))")
     end
     return nothing
+end
+
+"""
+    skip_rows!(df, skip_firstrows::UInt, skip_empty_rows::Bool) -> DataFrame
+
+Mutate DataFrame by removing rows:
+1. Delete the first `skip_firstrows` rows (if > 0)
+2. Delete all rows where every element is missing (if `skip_empty_rows` is true)
+
+If any rows were deleted and a column's original eltype was not a concrete type 
+(or Union{Missing, ConcreteType}), re-collect the column values to potentially narrow the type.
+
+Returns the mutated DataFrame.
+"""
+function skip_rows!(df, skip_firstrows, skip_empty_rows)
+    # Store original eltypes to check if re-collection is needed
+    original_eltypes = Dict(col => eltype(df[!, col]) for col in names(df))
+    
+    mutated = false
+    
+    # Step 1: Delete first skip_firstrows rows if > 0
+    if skip_firstrows > 0 && nrow(df) >= skip_firstrows
+        deleteat!(df, 1:skip_firstrows)
+        mutated = true
+    end
+    
+    # Step 2: Delete rows where all elements are missing
+    if skip_empty_rows
+        all_missing_rows = findall(row -> all(ismissing, row), eachrow(df))
+        if !isempty(all_missing_rows)
+            deleteat!(df, all_missing_rows)
+            mutated = true
+        end
+    end
+    
+    # Step 3: Re-collect columns if df was mutated and original eltype was not concrete
+    if mutated
+        for col in names(df)
+            orig_eltype = original_eltypes[col]
+            base_type = nonmissingtype(orig_eltype)
+            # Re-collect if original type was NOT concrete (e.g., Any, complex unions)
+            if !isconcretetype(base_type)
+                df[!, col] = collect(df[!, col])
+            end
+        end
+    end
+    
+    return df
+end
+
+function mapping(x, options, vals)
+    mapping = Dict(zip(options, vals))
+    return mapping[x]
+end    
+
+map_delimiter(x) = mapping(
+    x, 
+    ["Auto", "Comma", "Tab", "Space", "Semicolon", "Pipe"],
+    [nothing, ',', '\t', ' ', ';', '|'],
+    )
+
+map_decimal_separator(x) = mapping(
+    x, 
+    ["Dot", "Comma", "Dot / Comma", "Comma / Dot"] ,
+    ['.', ',' ,'.', ','],
+    )
+
+map_thousand_separator(x) = mapping(
+    x, 
+    ["Dot", "Comma", "Dot / Comma", "Comma / Dot"] ,
+    [nothing, nothing, ',' ,'.'],
+    )
+
+
+function process_options(state)
+    (;  header_row, 
+        skip_after_header, 
+        skip_empty_rows, 
+        delimiter, 
+        decimal_separator,
+    ) = state.file_opening
+
+    header_row_val = header_row[] == 0 ? false : header_row[]
+    decimal_separator_val = map_decimal_separator(decimal_separator[])
+    delimiter_val = map_delimiter(delimiter[])
+    groupmark = map_thousand_separator(decimal_separator[])
+    return (;  
+        header_row = header_row_val, 
+        skip_after_header = skip_after_header[], 
+        skip_empty_rows = skip_empty_rows[], 
+        delimiter = delimiter_val, 
+        decimal_separator = decimal_separator_val,
+        groupmark,
+    )
+end
+
+function collect_csv_options(state)
+    (;  
+        header_row, 
+        skip_after_header, 
+        skip_empty_rows, 
+        delimiter, 
+        decimal_separator,
+        groupmark,
+    ) = process_options(state)
+
+        skipto = skip_after_header + 1 + header_row
+
+        kwargs = (; 
+            header = header_row, 
+            ignoreemptyrows = skip_empty_rows, 
+            decimal = decimal_separator,
+            skipto,
+            )
+
+        isnothing(delimiter) || (kwargs = merge(kwargs, (; delim = delimiter)))
+        isnothing(groupmark) || (kwargs = merge(kwargs, (; groupmark)))
+        return kwargs
+end
+
+function collect_xlsx_options(state)
+    (;  
+        header_row, 
+        skip_after_header, 
+        skip_empty_rows, 
+    ) = process_options(state)
+
+    header = header_row > 0
+
+    if header
+        first_row = header_row
+        skip_subheaders = skip_after_header
+    else
+        first_row = skip_after_header + 1
+        skip_subheaders = 0
+    end
+
+    kwargs = (; header, first_row, keep_empty_rows = !skip_empty_rows)
+    return (; kwargs, skip_subheaders, skip_empty_rows)
 end

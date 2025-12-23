@@ -10,3 +10,4 @@ stacktraces.txt
 **tmp*
 .gitattributes
 tools/*
+**/.~lock.*

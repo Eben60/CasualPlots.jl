@@ -123,7 +123,7 @@ end
 """
     create_skip_after_header_input(skip_after_header)
 
-Create the input field for specifying rows to skip after header.
+Create the input field for specifying rows to skip after header, if any, of from table top otherwise.
 Returns a tuple of (control, label, info) for grid placement.
 """
 function create_skip_after_header_input(skip_after_header)
@@ -134,7 +134,7 @@ function create_skip_after_header_input(skip_after_header)
         onblur=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(skip_after_header)); }",
         class="input-number option-control"
     )
-    label = DOM.span("Skip after header"; class="option-label")
+    label = DOM.span("Skip subheaders"; class="option-label")
     info = DOM.span(""; class="option-info")  # Empty placeholder for grid alignment
     return (control, label, info)
 end
@@ -311,10 +311,32 @@ function create_open_tab_content(refresh_trigger, table_observable, state)
         end
     end
     
-    # Callback for reload button (placeholder - functionality to be implemented later)
+    # Callback for reload button - reloads the currently loaded file/sheet with current options
     on(reload_trigger) do _
-        # TODO: Implement reload functionality using the file reading options
-        @info "Reload triggered (functionality to be implemented)"
+        filepath = state.file_opening.opened_file_path[]
+        if isempty(filepath)
+            @warn "No file loaded to reload"
+            return
+        end
+        
+        ext = lowercase(splitext(filepath)[2])
+        
+        if ext in [".csv", ".tsv"]
+            # Reload CSV/TSV file
+            load_csv_to_table(filepath, table_observable, state)
+            @info "Reloaded CSV file: $(basename(filepath))"
+        elseif ext == ".xlsx"
+            # Reload XLSX sheet (use currently selected sheet)
+            sheet = selected_sheet[]
+            if !isempty(sheet)
+                load_xlsx_sheet_to_table(filepath, sheet, table_observable, state)
+                @info "Reloaded XLSX sheet: $(basename(filepath)):$sheet"
+            else
+                @warn "No sheet selected for XLSX reload"
+            end
+        else
+            @warn "Unknown file type for reload: $ext"
+        end
     end
     
     # Render view on refresh

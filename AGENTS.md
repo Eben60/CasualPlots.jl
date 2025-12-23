@@ -125,8 +125,9 @@ state = (;
     file_opening = (;
         opened_file_df::Observable{Union{Nothing, DataFrame}},
         opened_file_name::Observable{String},
+        opened_file_path::Observable{String},  # Full path for reload
         header_row::Observable{Int},          # 0 = no headers
-        skip_after_header::Observable{Int},
+        skip_after_header::Observable{Int},   # Rows to skip after header
         skip_empty_rows::Observable{Bool},
         delimiter::Observable{String},        # Auto, Comma, Tab, etc.
         decimal_separator::Observable{String}
@@ -228,6 +229,23 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
         - Generates plot with **default labels** (resets legend title).
         - Updates table view.
 
+**C. File Import with Reading Options (Open Tab):**
+The Open tab provides configurable file reading options before/after loading:
+1.  **Reading Options** (configured via UI controls):
+    - `header_row`: Row number containing headers (0 = no headers)
+    - `skip_after_header`: Rows to skip after header (subheaders)
+    - `skip_empty_rows`: Remove rows where all elements are missing
+    - `delimiter`: CSV delimiter (Auto, Comma, Tab, Space, Semicolon, Pipe)
+    - `decimal_separator`: Decimal/thousands separator format
+2.  **File Loading**:
+    - CSV/TSV: Options passed to `CSV.read()` via `collect_csv_options()`
+    - XLSX: Options passed to `XLSX.readtable()` via `collect_xlsx_options()`
+    - Both call `skip_rows!()` for post-load row processing
+3.  **Reload Button**:
+    - Enabled when a file is loaded (CSV) or sheet selected (XLSX)
+    - Re-reads the same file (`opened_file_path`) with current options
+    - Useful for adjusting options after seeing initial import results
+
 #### 2. Formatting & Updates
 Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
 
@@ -291,7 +309,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 #### Planned Enhancements (as of v0.0.6)
 
-- Importing data from external files (mostly done)
+- ~~Importing data from external files~~ ✓ (CSV/XLSX with configurable options + reload)
 - Optional regression‑fit overlays  
 - Automatic Julia code generation from GUI actions  
 - Additional formatting options (e.g., axis limits, themes)  

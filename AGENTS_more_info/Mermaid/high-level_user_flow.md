@@ -1,6 +1,6 @@
 # High-Level User Flow
 
-This flowchart shows the main user paths through the application, highlighting the two distinct data input modes (Array and DataFrame) and Save functionality.
+This flowchart shows the main user paths through the application, highlighting the two distinct data input modes (Array and DataFrame), file import with configurable reading options (header, skip rows, delimiter), reload functionality, and Save functionality.
 
 ```mermaid
 flowchart TD
@@ -11,17 +11,25 @@ flowchart TD
     TabSelect -->|Open Tab| OpenMode[Open File Tab]
 
     %% Open File Flow
-    OpenMode --> SelectFile[Click Open File Button]
+    OpenMode --> ConfigOptions[Configure Reading Options]
+    ConfigOptions --> SelectFile[Click Open File Button]
     SelectFile --> HandleClick[handle_open_file_click]
     HandleClick --> FileType{File Type?}
     FileType -->|CSV/TSV| LoadCSV[load_csv_to_table]
     FileType -->|XLSX| ShowSheets[Show Sheet Dropdown]
     ShowSheets --> SelectSheet[User Selects Sheet]
     SelectSheet --> LoadXLSX[load_xlsx_sheet_to_table]
-    LoadCSV --> NormalizeLoad[normalize_strings!]
-    LoadXLSX --> NormalizeLoad
-    NormalizeLoad --> StoreDF[Store in 'opened_file_df']
+    LoadCSV --> SkipRows[skip_rows!]
+    LoadXLSX --> SkipRows
+    SkipRows --> NormalizeLoad[normalize_strings!]
+    NormalizeLoad --> StoreDF[Store in opened_file_df + opened_file_path]
     StoreDF --> DFMode
+    
+    %% Reload Flow
+    ConfigOptions --> ReloadBtn{Reload Button}
+    ReloadBtn -->|File Loaded| ReloadFile[Reload with New Options]
+    ReloadFile --> FileType
+    ReloadBtn -->|No File| ConfigOptions
     
     %% Array Mode Flow
     ArrayMode --> SelectX[Select X Variable from Dropdown]
@@ -96,4 +104,5 @@ flowchart TD
     style ConfirmOverwrite fill:#fff3cd
     style GlobalVars fill:#fff3cd
     style SaveSuccess fill:#d4edda
+    style ConfigOptions fill:#e8f4fd
 ```
