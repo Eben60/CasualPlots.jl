@@ -98,3 +98,21 @@ window.CasualPlots.deselectAllColumns = (selectedColumnsObs) => {
         cb.checked = false;
     });
 }
+
+/**
+ * Updates an observable with a non-negative integer from an input field.
+ * Validates and sanitizes the input to only accept non-negative integers.
+ * @param {Event} event - The DOM event
+ * @param {Observable} observable - The observable to update
+ */
+window.CasualPlots.updateObservableInteger = (event, observable) => {
+    const input = event.target;
+    // Remove any non-digit characters
+    let value = input.value.replace(/[^0-9]/g, '');
+    // Parse as integer, default to 0 if empty
+    const intValue = value === '' ? 0 : parseInt(value, 10);
+    // Update the input display with cleaned value
+    input.value = intValue;
+    // Notify Julia with the integer value
+    observable.notify(intValue);
+}

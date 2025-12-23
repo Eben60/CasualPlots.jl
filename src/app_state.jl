@@ -42,6 +42,13 @@ function initialize_app_state()
     opened_file_df = Observable{Union{Nothing, DataFrame}}(nothing)
     opened_file_name = Observable("")  # Display name (filename without path/suffix)
     
+    # File reading options (for CSV/XLSX import)
+    header_row = Observable(1)              # Row number for headers (0 = no headers)
+    skip_after_header = Observable(0)       # Rows to skip after header
+    skip_empty_rows = Observable(true)      # Whether to skip empty rows
+    delimiter = Observable("Auto")          # CSV delimiter: Auto, Comma, Tab, Space, Semicolon, Pipe
+    decimal_separator = Observable("Dot")   # Decimal/thousands: Dot, Comma, Dot / Comma, Comma / Dot
+    
     # Text field observables for plot labels
     xlabel_text = Observable("")
     ylabel_text = Observable("")
@@ -71,6 +78,7 @@ function initialize_app_state()
               plot_format, plot_handles, block_format_update,
               source_type, dataframes_dict_obs, selected_dataframe, selected_columns,
               opened_file_df, opened_file_name,
+              header_row, skip_after_header, skip_empty_rows, delimiter, decimal_separator,
               save_file_path, save_status_message, save_status_type, show_overwrite_confirm,
               show_modal, modal_type)
 end
