@@ -1,24 +1,24 @@
-map_delimiter(x) = mapping(
+map_delimiter(x) = mp(
     x, 
     ["Auto", "Comma", "Tab", "Space", "Semicolon", "Pipe"],
     [nothing, ',', '\t', ' ', ';', '|'],
     )
 
-map_decimal_separator(x) = mapping(
+map_decimal_separator(x) = mp(
     x, 
     ["Dot", "Comma", "Dot / Comma", "Comma / Dot"] ,
     ['.', ',' ,'.', ','],
     )
 
-map_thousand_separator(x) = mapping(
+map_thousand_separator(x) = mp(
     x, 
     ["Dot", "Comma", "Dot / Comma", "Comma / Dot"] ,
     [nothing, nothing, ',' ,'.'],
     )
 
-function mapping(x, options, vals)
-    mapping = Dict(zip(options, vals))
-    return mapping[x]
+function mp(x, options, vals)
+    m = Dict(zip(options, vals))
+    return m[x]
 end   
 
 """
