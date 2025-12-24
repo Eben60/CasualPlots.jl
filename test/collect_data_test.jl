@@ -87,3 +87,48 @@ end
         @test isempty(columns)
     end
 end
+
+@testset "extract_x_candidates" begin
+    # Test 1: Mixed dimensions - should only return 1D arrays
+    dims_dict = Dict{Symbol, Tuple}(
+        :vec1 => (10,),
+        :vec2 => (5,),
+        :mat1 => (10, 3),
+        :mat2 => (5, 2),
+        :tensor => (3, 4, 5)
+    )
+    
+    result = CasualPlots.extract_x_candidates(dims_dict)
+    @test length(result) == 2
+    @test "vec1" in result
+    @test "vec2" in result
+    @test !("mat1" in result)
+    @test !("mat2" in result)
+    @test !("tensor" in result)
+    
+    # Test 2: Result should be sorted
+    @test issorted(result)
+    
+    # Test 3: Empty dictionary
+    empty_dict = Dict{Symbol, Tuple}()
+    result = CasualPlots.extract_x_candidates(empty_dict)
+    @test isempty(result)
+    
+    # Test 4: All matrices (no vectors)
+    no_vectors = Dict{Symbol, Tuple}(
+        :mat1 => (10, 3),
+        :mat2 => (5, 2)
+    )
+    result = CasualPlots.extract_x_candidates(no_vectors)
+    @test isempty(result)
+    
+    # Test 5: All vectors
+    all_vectors = Dict{Symbol, Tuple}(
+        :a => (10,),
+        :b => (20,),
+        :c => (5,)
+    )
+    result = CasualPlots.extract_x_candidates(all_vectors)
+    @test length(result) == 3
+    @test result == ["a", "b", "c"]  # sorted
+end

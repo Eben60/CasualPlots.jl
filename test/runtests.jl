@@ -8,3 +8,5 @@ using SafeTestsets
 @safetestset "Plotting Utilities" include("plotting_utils_test.jl")
 @safetestset "File Extensions (CSV/XLSX)" include("extensions_test.jl")
 @safetestset "Data Normalization" include("normalization_test.jl")
+@safetestset "Save Plot Validation" include("save_plot_test.jl")
+@safetestset "File Reading Options" include("file_reading_options_test.jl")
