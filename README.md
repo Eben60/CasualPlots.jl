@@ -2,8 +2,6 @@
 
 [![Build Status](https://github.com/Eben60/CasualPlots.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/Eben60/CasualPlots.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-**This package is a work in progress.**
-
 ## Aims
 
 `CasualPlots.jl` aims to provide a graphical user interface (GUI) to simplify the creation of plots in Julia. The tool is positioned in the middle ground between purely script-based plotting and standalone GUI plotting applications.
@@ -103,12 +101,11 @@ In short, it is WIP. Particularly, if you see this README, the package is far fr
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
 - [✅] Data sources: CSV and XLSX files.
-    - [🚧] Support for CSV/XLSX file reading options (kwargs) planned.
+    - [✅] Support for CSV/XLSX file reading options (kwargs).
 - [✅] Plotting: Lines and Scatter plots.
     - [🚧] More plot formatting options.
 - [✅] Saving plot to a file.
 - [✅] Exporting the Figure object.
-- [❌] Saving the Figure object to `JLD2` file.
 - [❌] Precompile to reduce TTFP.
 - [❌] Documenter.jl based documentation.
 - [❌] Automatic generation of Julia code corresponding to the user’s actions.

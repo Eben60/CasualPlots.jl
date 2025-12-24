@@ -378,5 +378,5 @@ export Ele                  # Displaying Bonito `app` in Electron window
 ![Format Pane](AGENTS_more_info/ScreenShots/Format%20pane%20for%20DataFrames%20source.png)
 
 ## Development Status
-**Status**: Early Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.
+**Status**: Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.
 
