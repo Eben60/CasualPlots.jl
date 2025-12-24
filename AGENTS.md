@@ -100,7 +100,9 @@ create_control_panel_ui.jl      # Control panel UI construction
 
 # Data Handling
 collect_data.jl                 # Data collection from Main module
-get_and_preprocess_data.jl      # Data loading, validation, normalization
+preprocess_dataframes.jl        # Data frame normalization and validation
+read_from_file.jl               # File reading logic (CSV/XLSX) and loading callbacks
+file_reading_options.jl         # Options processing for file reading
 create_demo_data.jl             # Demo data generation
 
 # Save/Export
