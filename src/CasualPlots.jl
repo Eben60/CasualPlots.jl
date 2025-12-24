@@ -50,6 +50,7 @@ include("ui_layout.jl")
 include("app_state.jl")
 include("app.jl")
 include("extensions.jl")
+include("precompile.jl")
 
 export casualplots_app
 export cp_figure, cp_figure_ax
