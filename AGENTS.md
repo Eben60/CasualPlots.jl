@@ -109,9 +109,10 @@ create_demo_data.jl             # Demo data generation
 save_plot.jl                    # Plot saving functionality (CairoMakie backend)
 
 # Other
-electron.jl                     # Electron window integration
+electron.jl                     # Electron window integration (show kwarg for hidden windows)
 FileDialogWorkAround.jl         # Cross-platform file dialog utilities
 extensions.jl                   # Package extensions loader
+precompile.jl                   # PrecompileTools workload for reducing TTFP
 
 scripts/                        # Example/demo scripts
 ../ext/                         # Package Extensions (ReadCSV_Ext.jl, ReadXLSX_Ext.jl)
@@ -347,6 +348,10 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
 - Test suite WIP in early stage.
   - Tests for non-GUI-functions only yet
+
+### Precompilation
+
+See [Precompilation](AGENTS_more_info/specific_issues.md/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
 
 
 ### Exports

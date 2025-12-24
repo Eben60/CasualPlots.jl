@@ -96,7 +96,7 @@ julia> hidespines!(cp_figure_ax, :r, :t)
 
 ## Current State
 
-In short, it is WIP. Particularly, if you see this README, the package is far from being finished, as it is intended, among other things, to create a Documenter.jl based documentation. However, the main goals are already implemented and the package is usable.
+In short, it is WIP, however, the main goals are already implemented and the package is usable.
 
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
@@ -106,7 +106,7 @@ In short, it is WIP. Particularly, if you see this README, the package is far fr
     - [🚧] More plot formatting options.
 - [✅] Saving plot to a file.
 - [✅] Exporting the Figure object.
-- [❌] Precompile to reduce TTFP.
+- [✅] Precompile to reduce TTFP.
 - [❌] Documenter.jl based documentation.
 - [❌] Automatic generation of Julia code corresponding to the user’s actions.
 - [❌] Applying a least-squares fit from the GUI.

@@ -6,8 +6,17 @@ using Bonito: Bonito, HTTPServer
 const ELECTRON_APP = Ref{Any}(nothing)
 const ELECTRON_DISP = Ref{Any}(nothing)
 
-function serve_app(app)
-    disp = get_electron_display()
+"""
+    serve_app(app; show=true)
+
+Display the app in an Electron window.
+
+# Arguments
+- `app`: The Bonito app to display
+- `show::Bool=true`: If `false`, the window is created but hidden (useful for precompilation/testing)
+"""
+function serve_app(app; show::Bool=true)
+    disp = get_electron_display(; show)
     display(disp, app)
     nothing
 end
@@ -24,16 +33,16 @@ function close_display(; strict)
     end
 end
 
-function get_electron_display()
+function get_electron_display(; show::Bool=true)
     app = get_electron_app()
-    window = get_electron_window()
+    window = get_electron_window(; show)
     return HTTPServer.ElectronDisplay(
         HTTPServer.EWindow(app, window),
         HTTPServer.BrowserDisplay(; open_browser=false)
     )
 end
 
-function get_electron_window()
+function get_electron_window(; show::Bool=true)
     app = get_electron_app()
 
     any(w -> !w.exists, windows(app)) && @warn "App contains reference to nonexistent window(s)"
@@ -41,7 +50,12 @@ function get_electron_window()
     window = if isempty(windows(app))
         # x, y = CURRENT_DISPLAY[] isa ElectronDisp ? CURRENT_DISPLAY[].resolution : (1200, 800)
         x,y = (1200, 900)
-        opts = Dict(:width => x, :height => y, :webPreferences => Dict(:enableRemoteModule => true))
+        opts = Dict(
+            :width => x, 
+            :height => y, 
+            :show => show,  # Control window visibility
+            :webPreferences => Dict(:enableRemoteModule => true)
+        )
         @info "Create new Electron Window with $opts"
         Electron.Window(app, opts)
     else
