@@ -98,9 +98,9 @@ Variables (`Vector`, `Matrix`, `DataFrame`) in `Main` are automatically detected
 
 In the **Source** tab:
 
-- First, select an **X** variable. Only 1D arrays (vectors) of numeric or `Unitful` values are shown.
-- The **Y** dropdown then shows variables whose first dimension matches X's length. As soon as **Y** is selected, the plot is created automatically.
-- For **DataFrames**, select one from the dropdown, then pick your columns. The first selected column becomes the X-values. Click **(Re-)Plot** to visualize.
+-  For **X, Y Arrays** source, first, select an **X** variable. Only 1D arrays (vectors) of numeric or `Unitful` values are shown.
+    - The **Y** dropdown then shows variables whose first dimension matches X's length. As soon as **Y** is selected, the plot is created automatically.
+- For **File/DataFrame**, select one from the dropdown, then pick your columns. The first selected column becomes the X-values. Click **(Re-)Plot** to visualize.
 
 The selected data is also displayed in the table view.
 
@@ -118,7 +118,7 @@ In the **Open** tab:
     - **CSV** files are read immediately.
     - For **Excel** files, select a sheet from the dropdown and click **Reload**.
 - The data is displayed in the table. You can adjust options and click **Reload** to read the data anew.
-- Once loaded, the data is available under "opened file" in the **Source** tab's DataFrame dropdown.
+- Once loaded, the data is available under "opened file" in the **Source** tab's **File/DataFrame** dropdown.
 
 ### Plot Formatting Options
 
@@ -135,7 +135,7 @@ julia> hidespines!(cp_figure_ax, :r, :t)
 
 ## Current State
 
-In short, it is WIP, however, the main goals are already implemented and the package is usable. In the next step it is planned to implement more plot formatting options.
+In short, it is WIP, however, the main goals are already implemented and the package is usable. As the next step, it is planned to implement more plot formatting options.
 
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
