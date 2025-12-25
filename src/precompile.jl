@@ -32,30 +32,32 @@ using PrecompileTools
         
         plot_df = DataFrame(x = 1:5, y = [1.0, 4.0, 9.0, 16.0, 25.0])
         
-        try
-            app = casualplots_app()
-            
-            # Serve app in Electron window (show=true for testing, change to false later)
-            Ele.serve_app(app; show=false)
-            
-            sleep(0.5)
-            
-            WGLMakie.activate!()
-            
-            for plottype in [Lines, Scatter, BarPlot]
-                plot_format = (; plottype=plottype, show_legend=false, legend_title="")
-                create_plot(plot_df; xcol=1, x_name="x", y_name="y", plot_format)
+        if !(Sys.islinux() && get(ENV, "CI", "false") == "true")
+            try
+                app = casualplots_app()
+                
+                # Serve app in Electron window (show=true for testing, change to false later)
+                Ele.serve_app(app; show=false)
+                
+                sleep(0.5)
+                
+                WGLMakie.activate!()
+                
+                for plottype in [Lines, Scatter, BarPlot]
+                    plot_format = (; plottype=plottype, show_legend=false, legend_title="")
+                    create_plot(plot_df; xcol=1, x_name="x", y_name="y", plot_format)
+                end
+                
+                # Cleanup
+                global cp_figure = nothing
+                global cp_figure_ax = nothing
+                
+                sleep(0.3)
+                try close(app) catch end
+                try Ele.close_display(; strict=true) catch end
+            catch e
+                @debug "Electron precompilation skipped" exception=e
             end
-            
-            # Cleanup
-            global cp_figure = nothing
-            global cp_figure_ax = nothing
-            
-            sleep(0.3)
-            try close(app) catch end
-            try Ele.close_display(; strict=true) catch end
-        catch e
-            @debug "Electron precompilation skipped" exception=e
         end
         
         # ===========================
