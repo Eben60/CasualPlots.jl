@@ -14,7 +14,7 @@ casualplots_app() = App() do session
     supported_plot_types = ["Lines", "Scatter", "BarPlot"]
 
     # Initialize application state
-    state = initialize_app_state() # reviewed 1 pass
+    state = initialize_app_state()
    
     # Setup dropdown menus
     x_node = create_x_dropdown(state)
@@ -23,10 +23,10 @@ casualplots_app() = App() do session
     plottype_node = create_plottype_dropdown(supported_plot_types, state.plotting.format.selected_plottype)
     
     # Initialize output observables
-    outputs = initialize_output_observables() # reviewed 1 pass
+    outputs = initialize_output_observables()
     
     # Setup reactive callbacks
-    setup_x_callback(state, y_node, outputs) # reviewed 1 pass
+    setup_x_callback(state, y_node, outputs)
     setup_source_callback(state, outputs)
     setup_format_callback(state, outputs)
     
