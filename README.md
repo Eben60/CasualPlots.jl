@@ -20,6 +20,8 @@ It uses [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl), [AlgebraOfGraphi
 
 ## How To Use
 
+### Installation
+
 Note: it currently needs Julia v1.12 or higher. The package is registered. Keep in mind, the package has a heavy dependency footprint (pulling in around 300 transitive dependencies), so, to avoid potential version conflicts, you might want to avoid installing it into your "main/default" environment like this:
 
 ```
@@ -36,11 +38,12 @@ julia> @usingany CasualPlots
 
 `@usingany` would import a package from any shared environment if available, otherwise first install it into a shared env of your choice.
 
+### Accessing GUI
+
 The package creates a Bonito GUI app, which can be opened in an [Electron.jl](https://github.com/JuliaGizmos/Electron.jl) window, in a browser, or in a plot pane of VSCode. If you need to read data from CSV and/or "excel" files, you need to import `CSV` and/or `XLSX` packages, as these are implemented as extensions.
 
-Examples:
 
-### Default display, which may be plot pane or browser
+#### Default display, which may be plot pane or browser
 
 ```
 julia> using CasualPlots
@@ -54,7 +57,7 @@ julia> display(app)
 julia> close(app) # you may close the app when you no longer need it
 ```
 
-### Serving to browser
+#### Serving to browser
 
 ```
 julia> app = casualplots_app()
@@ -73,7 +76,7 @@ Server:
 
 After starting the server, go to browser and navigate to `http://localhost:8000` or `http://127.0.0.1:8000`. You get a message in the Terminal if the port 8000 is busy and other port is used.
 
-### Opening a Standalone Electron Window
+#### Opening a Standalone Electron Window
 
 ```
 julia> app = casualplots_app()
@@ -84,6 +87,42 @@ julia> Ele.serve_app(app)
 The author sees Electron as the preferred usage way.
 
 See usage/testing examples in the scripts in the folder `src/scripts` of the package.
+
+### Accessing Data and Plotting
+
+> **Note:** Even on a fast computer, there may be a noticeable "Time To First Plot" delay. Please be patient on the first use.
+
+#### Existing Variables
+
+Variables (`Vector`, `Matrix`, `DataFrame`) in `Main` are automatically detected. For DataFrames, the ["wide" format](https://aog.makie.org/stable/examples/data-manipulations/wide-data#Long-vs-Wide-Data-Formats) is expected.
+
+In the **Source** tab:
+
+- First, select an **X** variable. Only 1D arrays (vectors) of numeric or `Unitful` values are shown.
+- The **Y** dropdown then shows variables whose first dimension matches X's length. As soon as **Y** is selected, the plot is created automatically.
+- For **DataFrames**, select one from the dropdown, then pick your columns. The first selected column becomes the X-values. Click **(Re-)Plot** to visualize.
+
+The selected data is also displayed in the table view.
+
+#### From Disk
+
+Supported formats are **CSV** and **XLSX** (Excel).
+*These features use package extensions, so you must import the `CSV` and/or `XLSX` packages separately.*
+
+The GUI provides just a small subset of the file reading options available in the respective packages. If you have a file with some fancy formatting, you might need to load it into a `DataFrame` manually in the REPL; the data will then be available as a standard variable.
+
+In the **Open** tab:
+
+- Optionally configure reading options (header row, delimiter, decimal separator, etc.).
+- Click **Open File** to select your file.
+    - **CSV** files are read immediately.
+    - For **Excel** files, select a sheet from the dropdown and click **Reload**.
+- The data is displayed in the table. You can adjust options and click **Reload** to read the data anew.
+- Once loaded, the data is available under "opened file" in the **Source** tab's DataFrame dropdown.
+
+### Plot Formatting Options
+
+Currently, only a few basic options are available. Substantial expansion of these capabilities is planned for the future.
 
 ### Accessing Created Plot
 
@@ -96,7 +135,7 @@ julia> hidespines!(cp_figure_ax, :r, :t)
 
 ## Current State
 
-In short, it is WIP, however, the main goals are already implemented and the package is usable.
+In short, it is WIP, however, the main goals are already implemented and the package is usable. In the next step it is planned to implement more plot formatting options.
 
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
