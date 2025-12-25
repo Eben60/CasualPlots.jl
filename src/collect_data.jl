@@ -1,42 +1,70 @@
 """
-    collect_arrays_from_main()
+    _collect_variables_from_main(predicate)
 
-Collects names of variables from the `Main` module that are arrays or other iterable data structures 
-with elements of type `Real` or `Unitful.Quantity` (if `Unitful` is loaded).
-    
-It iterates through all names in `Main`. For each name, it checks if the corresponding variable is an 
-`AbstractArray` or an iterable, and if its elements are `Real` or `Unitful.Quantity`.
-
-Returns a vector of Symbol.
+Internal helper function to iterate over variables in `Main` and collect those satisfying `predicate`.
+Handles `UndefVarError` quietly and warns on other errors.
 """
-function collect_arrays_from_main()
-    data_names = Symbol[]
-    
-    # Define the types to check for
+function _collect_variables_from_main(predicate::Function)
+    collected_names = Symbol[]
+    @static if VERSION ≥ v"1.12"
+        nms = names(Main; imported=true, usings=true)
+    else 
+        nms = names(Main; imported=true)
+    end
+
+    for name in nms
+        name == :ans && continue
+        try
+            var = getfield(Main, name)
+            if predicate(var)
+                push!(collected_names, name)
+            end
+        catch e
+            if isa(e, UndefVarError)
+                continue
+            else
+                @warn "`Main.$name` causes an error." exception=e
+            end
+        end
+    end
+    return collected_names
+end
+
+"""
+    is_main_numeric_iterable(var)
+
+Check if `var` is an array or iterable with `Real` or `Unitful.Quantity` elements.
+"""
+function is_main_numeric_iterable(var)
     allowed_types = Any[Real]
     if isdefined(Main, :Unitful)
         push!(allowed_types, Main.Unitful.Quantity)
     end
 
-    for name in names(Main; imported=true,  usings=true) # this limits package compat to Julia v1.12 !
-        name == :ans && continue
-        try
-            var = getfield(Main, name)
-
-            # Check if it's an array or a generic iterable     
-            if  !(var isa Real) &&   # some special numbers like NaN are iterables, they are excluded here
-                (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
-                # Check if the element type is a subtype of any of the allowed types
-                if any(T -> eltype(var) <: T, allowed_types) 
-                    push!(data_names, name)
-                end
-            end
-        catch
-            # Ignore errors from ambiguous or undefined names
-        end
+    if !(var isa Real) &&
+       (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))
+        return any(T -> eltype(var) <: T, allowed_types)
     end
-    return data_names
+    return false
 end
+
+collect_arrays_from_main() = _collect_variables_from_main(is_main_numeric_iterable)
+
+
+"""
+    is_main_dataframe(var)
+
+Check if `var` is a `DataFrame` (from `Main`).
+"""
+function is_main_dataframe(var)
+    if !isdefined(Main, :DataFrame)
+        return false
+    end
+    DataFrame_type = getfield(Main, :DataFrame)
+    return isa(var, DataFrame_type)
+end
+
+collect_dataframes_from_main() = _collect_variables_from_main(is_main_dataframe)
 
 """
     get_dims_of_arrays()
@@ -84,7 +112,7 @@ function get_congruent_y_names(x, dims_dict::Dict)
         x_sym = Symbol(x)
         if haskey(dims_dict, x_sym)
             x_dims = dims_dict[x_sym]
-            vec_length = x_dims[1] 
+            vec_length = x_dims[1]
             for (key, dims) in dims_dict
                 if key != x_sym && !isempty(dims) && dims[1] == vec_length
                     push!(new_y_opts_strings, string(key))
@@ -93,39 +121,6 @@ function get_congruent_y_names(x, dims_dict::Dict)
         end
     end
     return new_y_opts_strings |> sort!
-end
-
-"""
-    collect_dataframes_from_main()
-
-Collects names of DataFrame variables from the `Main` module.
-
-Iterates through all names in `Main` and checks if the corresponding variable is a DataFrame.
-
-Returns a vector of Symbol representing DataFrame variable names.
-"""
-function collect_dataframes_from_main()
-    df_names = Symbol[]
-    
-    # Check if DataFrames is loaded
-    if !isdefined(Main, :DataFrame)
-        return df_names
-    end
-    
-    DataFrame_type = getfield(Main, :DataFrame)
-    
-    for name in names(Main; imported=true, usings=true)  # this limits package compat to Julia v1.12 !
-        name == :ans && continue
-        try
-            var = getfield(Main, name)
-            if isa(var, DataFrame_type)
-                push!(df_names, name)
-            end
-        catch e
-            # Ignore errors from getfield
-        end
-    end
-    return df_names
 end
 
 """

@@ -22,7 +22,7 @@ It uses [Bonito.jl](https://github.com/SimonDanisch/Bonito.jl), [AlgebraOfGraphi
 
 ### Installation
 
-Note: it currently needs Julia v1.12 or higher. The package is registered. Keep in mind, the package has a heavy dependency footprint (pulling in around 300 transitive dependencies), so, to avoid potential version conflicts, you might want to avoid installing it into your "main/default" environment like this:
+Note: it needs Julia v1.10 or higher. The package is registered. Keep in mind, the package has a heavy dependency footprint (pulling in around 300 transitive dependencies), so, to avoid potential version conflicts, you might want to avoid installing it into your "main/default" environment like this:
 
 ```
 (@v1.12) pkg> add CasualPlots
