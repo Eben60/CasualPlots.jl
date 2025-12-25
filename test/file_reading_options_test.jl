@@ -40,7 +40,7 @@ end
 end
 
 @testset "mapping helper function" begin
-    mapping_fn = CasualPlots.mapping
+    mapping_fn = CasualPlots.mp
 
     # Test generic mapping
     options = ["a", "b", "c"]
