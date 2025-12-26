@@ -1,6 +1,6 @@
 # High-Level User Flow
 
-This flowchart shows the main user paths through the application, highlighting the two distinct data input modes (Array and DataFrame), file import with configurable reading options (header, skip rows, delimiter), reload functionality, and Save functionality.
+This flowchart shows the main user paths through the application, highlighting the two distinct data input modes (Array and DataFrame), optional range selection for data subsetting, file import with configurable reading options (header, skip rows, delimiter), reload functionality, and Save functionality.
 
 ```mermaid
 flowchart TD
@@ -36,21 +36,31 @@ flowchart TD
     SelectX --> SelectY[Select Y Variable from Dropdown]
     SelectY --> ValidateArrays{Both X & Y Valid?}
     ValidateArrays -->|No| WaitArrays[Wait for Selection]
-    ValidateArrays -->|Yes| FetchData[Fetch Data from Main Module]
-    FetchData --> CreatePlot[Generate Plot with Default Labels]
+    ValidateArrays -->|Yes| UpdateBounds[Update Data Bounds Display]
+    UpdateBounds --> OptionalRange{User Sets Range?}
+    OptionalRange -->|Optional| SetRange[Enter range_from / range_to]
+    SetRange --> FetchData
+    OptionalRange -->|Skip| FetchData[Fetch Data from Main Module]
+    FetchData --> ApplyRange[Apply Range Slicing]
+    ApplyRange --> CreatePlot[Generate Plot with Default Labels]
     CreatePlot --> DisplayPlot[Display Plot + Table]
     
     %% DataFrame Mode Flow
     DFMode --> SelectDF["Select DataFrame (Main or Opened File)"]
     SelectDF --> ValidateDF{DataFrame Valid?}
     ValidateDF -->|No| WaitDF[Wait for Selection]
-    ValidateDF -->|Yes| ShowCols[Display Column Checkboxes]
+    ValidateDF -->|Yes| UpdateDFBounds[Update Data Bounds Display]
+    UpdateDFBounds --> ShowCols[Display Column Checkboxes]
     ShowCols --> SelectCols[Select Columns via Checkboxes]
-    SelectCols --> TriggerPlot[Trigger plot_trigger Observable]
+    SelectCols --> OptionalDFRange{User Sets Range?}
+    OptionalDFRange -->|Optional| SetDFRange[Enter range_from / range_to]
+    SetDFRange --> TriggerPlot
+    OptionalDFRange -->|Skip| TriggerPlot[Click Re-Plot Button]
     TriggerPlot --> ValidateCols{Columns Valid?}
     ValidateCols -->|No| Error[Show Error]
     ValidateCols -->|Yes| NormalizeNumeric[Normalize Numeric Columns]
-    NormalizeNumeric --> WarnDirty{Data Issues?}
+    NormalizeNumeric --> ApplyDFRange[Apply Range Slicing]
+    ApplyDFRange --> WarnDirty{Data Issues?}
     WarnDirty -->|Yes| ShowDirtyWarning[Show Warning Popup]
     WarnDirty -->|No| CreateDFPlot
     ShowDirtyWarning --> CreateDFPlot[Generate DataFrame Plot]

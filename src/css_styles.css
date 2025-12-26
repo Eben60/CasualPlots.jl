@@ -313,3 +313,33 @@
     height: 16px;
     cursor: pointer;
 }
+
+/* Range Selection Row */
+.range-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.range-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.range-caption {
+    font-size: 11px;
+    font-weight: bold;
+    color: #555;
+}
+
+.range-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+

@@ -15,6 +15,7 @@ isdefined(Main, :caspl_x_100) || (caspl_x_100 = 0:0.1:10)
 isdefined(Main, :caspl_z100) || (caspl_z100 = caspl_x_100 .|> sqrt)
 isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl_x_100, 10))
 isdefined(Main, :caspl_u_10) || (caspl_u_10 = (1:10).*u"mm^2")
+isdefined(Main, :OffsetArrays) && (isdefined(Main, :caspl_xoff_100) || (caspl_xoff_100 = OffsetVector(caspl_x_100, -50:50)))
 
 
 # Create test DataFrames from existing arrays

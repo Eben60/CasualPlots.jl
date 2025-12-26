@@ -146,3 +146,57 @@ function get_dataframe_columns(df_name::AbstractString)
     end
     return String[]
 end
+
+"""
+    get_array_bounds(name::AbstractString)
+
+Get the firstindex and lastindex of an array variable from Main module.
+Returns (firstindex, lastindex) tuple, or (nothing, nothing) if the variable
+doesn't exist or doesn't support indexing.
+
+# Arguments
+- `name::AbstractString`: Name of the array variable in Main
+
+# Returns
+Tuple of (first_idx, last_idx) or (nothing, nothing) on error.
+"""
+function get_array_bounds(name::AbstractString)
+    try
+        arr = getfield(Main, Symbol(name))
+        if arr isa AbstractArray
+            return (firstindex(arr), lastindex(arr))
+        end
+    catch e
+        @warn "Could not get bounds for array `$(name)`" exception=e
+    end
+    return (nothing, nothing)
+end
+
+"""
+    get_dataframe_bounds(df_name::AbstractString, opened_file_df=nothing)
+
+Get the row index bounds (1, nrow) for a DataFrame.
+DataFrames are always 1-indexed, so returns (1, nrow(df)).
+
+# Arguments
+- `df_name::AbstractString`: Name of the DataFrame variable in Main, or "__opened_file__"
+- `opened_file_df`: Optional DataFrame from opened file (when df_name == "__opened_file__")
+
+# Returns
+Tuple of (1, num_rows) or (nothing, nothing) on error.
+"""
+function get_dataframe_bounds(df_name::AbstractString, opened_file_df=nothing)
+    try
+        if df_name == "__opened_file__" && !isnothing(opened_file_df)
+            return (1, nrow(opened_file_df))
+        else
+            df = getfield(Main, Symbol(df_name))
+            if isdefined(Main, :DataFrame) && isa(df, getfield(Main, :DataFrame))
+                return (1, nrow(df))
+            end
+        end
+    catch e
+        @warn "Could not get bounds for DataFrame `$(df_name)`" exception=e
+    end
+    return (nothing, nothing)
+end

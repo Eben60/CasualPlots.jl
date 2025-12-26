@@ -165,20 +165,30 @@ function create_deselect_all_button(selected_columns)
 end
 
 """
-    create_plot_button(selected_columns, plot_trigger)
+    create_plot_button(source_type, selected_x, selected_y, selected_columns, plot_trigger)
 
-Create a plot button that is enabled only when >= 2 columns are selected.
+Create a plot button that is enabled when any data source is selected.
+For X,Y Arrays mode: enabled when both X and Y are selected.
+For DataFrame mode: enabled when >= 2 columns are selected.
 
 # Arguments
+- `source_type::Observable{String}`: Observable tracking the source type
+- `selected_x::Observable`: Observable tracking selected X variable
+- `selected_y::Observable`: Observable tracking selected Y variable
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
 - `plot_trigger::Observable{Int}`: Observable to trigger plot generation
 
 # Returns
 Observable DOM.button for triggering plot generation
 """
-function create_plot_button(selected_columns, plot_trigger)
-    plot_button_enabled = map(selected_columns) do cols
-        length(cols) >= 2
+function create_plot_button(source_type, selected_x, selected_y, selected_columns, plot_trigger)
+    plot_button_enabled = map(source_type, selected_x, selected_y, selected_columns) do st, x, y, cols
+        if st == "DataFrame"
+            length(cols) >= 2
+        else
+            # X,Y Arrays mode - enabled when both X and Y are selected
+            !isnothing(x) && x != "" && !isnothing(y) && y != ""
+        end
     end
     
     map(plot_button_enabled) do enabled
@@ -192,23 +202,90 @@ function create_plot_button(selected_columns, plot_trigger)
 end
 
 """
-    create_dataframe_mode_content(dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
+    create_range_input_row(range_from, range_to, data_bounds_from, data_bounds_to, plot_button_node)
 
-Create UI content for DataFrame mode.
+Create a row with range input fields and the plot button.
+
+# Arguments
+- `range_from::Observable{Union{Nothing,Int}}`: Observable for range start value
+- `range_to::Observable{Union{Nothing,Int}}`: Observable for range end value  
+- `data_bounds_from::Observable{Union{Nothing,Int}}`: Observable for data's first index (default)
+- `data_bounds_to::Observable{Union{Nothing,Int}}`: Observable for data's last index (default)
+- `plot_button_node`: The reactive plot button node
+
+# Returns
+DOM.div containing range inputs and plot button in a 3-column layout
+"""
+function create_range_input_row(range_from, range_to, data_bounds_from, data_bounds_to, plot_button_node)
+    # Caption row
+    caption_row = DOM.div(
+        DOM.div("Range from:"; class="range-caption"),
+        DOM.div("Range to:"; class="range-caption"),
+        DOM.div();
+        class="range-row"
+    )
+    
+    # Create input fields OUTSIDE the reactive map so they persist
+    from_input = DOM.input(
+        type="number",
+        id="range-from-input",
+        class="range-input",
+        placeholder="",
+        onchange=js"event => window.CasualPlots.updateIntObservable(event, $(range_from))"
+    )
+    
+    to_input = DOM.input(
+        type="number",
+        id="range-to-input",
+        class="range-input",
+        placeholder="",
+        onchange=js"event => window.CasualPlots.updateIntObservable(event, $(range_to))"
+    )
+    
+    # Input row - inputs are fixed, only button is reactive
+    input_row = DOM.div(
+        from_input,
+        to_input,
+        plot_button_node;  # This is already reactive (Observable)
+        class="range-row"
+    )
+    
+    DOM.div(caption_row, input_row; class="range-section mb-2")
+end
+
+
+"""
+    create_dataframe_dropdown_row(dataframe_node)
+
+Create the DataFrame source selection dropdown row.
 
 # Arguments
 - `dataframe_node`: Observable DataFrame selection dropdown node
+
+# Returns
+DOM.div containing the DataFrame dropdown with label
+"""
+function create_dataframe_dropdown_row(dataframe_node)
+    DOM.div(
+        "Select Source:", dataframe_node;
+        class="flex-row align-center gap-1 mb-2"
+    )
+end
+
+"""
+    create_dataframe_column_controls(selected_dataframe, selected_columns, opened_file_df)
+
+Create UI content for DataFrame column selection (Select All/Deselect All buttons + checkboxes).
+
+# Arguments
 - `selected_dataframe::Observable`: Observable tracking the selected DataFrame
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
-- `plot_trigger::Observable{Int}`: Observable to trigger plot generation
 - `opened_file_df::Observable`: Observable containing the opened file DataFrame
 
 # Returns
-DOM.div containing DataFrame selection UI and column checkboxes
+DOM.div containing button row and column checkboxes
 """
-function create_dataframe_mode_content(dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df)
-    dataframe_dropdown_node = dataframe_node
-    
+function create_dataframe_column_controls(selected_dataframe, selected_columns, opened_file_df)
     # Column checkboxes - reactive to both selected_dataframe and opened_file_df
     column_checkboxes_node = map(selected_dataframe, opened_file_df) do df_name, opened_df
         if isnothing(df_name) || df_name == ""
@@ -227,23 +304,14 @@ function create_dataframe_mode_content(dataframe_node, selected_dataframe, selec
     
     select_all_button = create_select_all_button(selected_dataframe, selected_columns, opened_file_df)
     deselect_all_button = create_deselect_all_button(selected_columns)
-    plot_button = create_plot_button(selected_columns, plot_trigger)
     
-    # Button row: Select All, Deselect All, and Plot buttons
-    button_row = map(select_all_button, plot_button) do sel_all, plot_btn
+    # Button row: Select All and Deselect All buttons only
+    button_row = map(select_all_button) do sel_all
         DOM.div(
-            sel_all, deselect_all_button, plot_btn;
+            sel_all, deselect_all_button;
             class="flex-row align-center mb-2 mt-2"
         )
     end
     
-    DOM.div(
-        DOM.div(
-            "Select Source:", dataframe_dropdown_node;
-            class="flex-row align-center gap-1 mb-2"
-        ),
-        button_row,
-        column_checkboxes_node;
-        class="flex-col"
-    )
+    DOM.div(button_row, column_checkboxes_node; class="flex-col")
 end

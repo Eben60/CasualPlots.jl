@@ -50,6 +50,8 @@ stateDiagram-v2
     
     note right of Plotting
         block_format_update = true
+        data_bounds updated
+        range slicing applied
         normalize_numeric_columns!
     end note
     

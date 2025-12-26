@@ -116,7 +116,9 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     return (; fig, axis, fig_params = (; title, x_name, y_name, updated_show_legend=show_legend))
 end
 
-function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol
+function check_data_create_plot(x_name, y_name; plot_format, 
+                                 range_from::Union{Nothing,Int}=nothing,
+                                 range_to::Union{Nothing,Int}=nothing) # x, y AbstractString or Symbol
     try
         x_data = getfield(Main, Symbol(x_name))
         y_data = getfield(Main, Symbol(y_name))
@@ -126,7 +128,32 @@ function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractStri
         end
 
         if y_data isa AbstractMatrix && x_data isa AbstractVector
-            return create_plot(x_data, y_data, x_name, y_name; plot_format)
+            # Get actual bounds for X
+            x_first = firstindex(x_data)
+            x_last = lastindex(x_data)
+            
+            # Use provided range or default to full bounds (in X's index space)
+            from_idx = isnothing(range_from) ? x_first : range_from
+            to_idx = isnothing(range_to) ? x_last : range_to
+            
+            # Clamp to valid X range
+            from_idx = clamp(from_idx, x_first, x_last)
+            to_idx = clamp(to_idx, x_first, x_last)
+            
+            # Slice X data using X's indices
+            x_slice = x_data[from_idx:to_idx]
+            
+            # Convert X indices to linear positions for Y (1-based)
+            # For example: if X has indices -50:50 and we want -50:50,
+            # the linear positions are 1:101
+            y_first = firstindex(y_data, 1)  # Y's first row index
+            pos_from = from_idx - x_first + y_first
+            pos_to = to_idx - x_first + y_first
+            
+            # Slice Y using linear positions
+            y_slice = y_data[pos_from:pos_to, :]
+            
+            return create_plot(x_slice, y_slice, x_name, y_name; plot_format)
         else
             println("Error: Unsupported data types for plotting. x must be a vector, and y can be a vector or a matrix.")
             return nothing

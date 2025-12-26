@@ -29,7 +29,12 @@ sequenceDiagram
     Note over SourceCB: Prevent format callback race
     
     SourceCB->>SourceCB: Fetch data from Main module
-    SourceCB->>Plot: create_plot(x_data, y_data)
+    SourceCB->>Obs: data_bounds_from[] = 1
+    SourceCB->>Obs: data_bounds_to[] = length(data)
+    Note over SourceCB: Update data bounds for UI display
+    
+    SourceCB->>SourceCB: Apply range slicing (range_from, range_to)
+    SourceCB->>Plot: create_plot(x_data[range], y_data[range])
     Plot-->>SourceCB: fig_result (with defaults)
     
     SourceCB->>Obs: current_plot_x[] = x_data

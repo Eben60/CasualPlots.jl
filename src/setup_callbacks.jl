@@ -6,9 +6,11 @@ When `selected_x` updates:
 1. Clears the current `selected_y`.
 2. Resets the plot and table views.
 3. Updates the Y-variable dropdown (`dropdown_y_node`) to show only variables congruent with the new X selection (based on `dims_dict_obs`).
+4. Sets data bounds from the X array's firstindex/lastindex.
 """
 function setup_x_callback(state, dropdown_y_node, outputs)
-    (; dims_dict_obs, selected_x, selected_y) = state.data_selection
+    (; dims_dict_obs, selected_x, selected_y, data_bounds_from, data_bounds_to, 
+       range_from, range_to) = state.data_selection
     on(selected_x) do x
         # println("selected x: $x")
         selected_y[] = nothing
@@ -22,6 +24,20 @@ function setup_x_callback(state, dropdown_y_node, outputs)
             # println("trying to set Y menu to $new_y_opts_strings")
             dropdown_y_node[] = create_dropdown(new_y_opts_strings, selected_y; placeholder="Select Y")
         end
+        
+        # Set data bounds from X array
+        if !isnothing(x) && x != ""
+            (first_idx, last_idx) = get_array_bounds(x)
+            data_bounds_from[] = first_idx
+            data_bounds_to[] = last_idx
+            range_from[] = first_idx
+            range_to[] = last_idx
+        else
+            data_bounds_from[] = nothing
+            data_bounds_to[] = nothing
+            range_from[] = nothing
+            range_to[] = nothing
+        end
     end
 end
 
@@ -31,18 +47,14 @@ end
 Handle data source changes (X or Y selection updates).
 - If valid X and Y are selected:
     - Updates `current_plot_x` and `current_plot_y`.
-    - Generates a new plot using `check_data_create_plot`.
-    - Updates `plot_observable` with the new figure.
-    - Updates `table_observable` with the new data table.
-    - Initializes label text fields (`xlabel_text`, `ylabel_text`, `title_text`) from the plot parameters.
-    - Stores the figure and axis references.
+    - Auto-plots with full range (range values are already set from X selection).
 - If selection is invalid/incomplete:
     - Clears the plot and table views.
     - Resets internal state and text fields.
 """
 function setup_source_callback(state, outputs)
     
-    (; selected_x, selected_y) = state.data_selection
+    (; selected_x, selected_y, range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     (; format, handles) = state.plotting
     (; selected_plottype, show_legend) = format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
@@ -59,6 +71,16 @@ function setup_source_callback(state, outputs)
             current_plot_x[] = x
             current_plot_y[] = y
             
+            # Get range values (use bounds as defaults)
+            from_val = range_from[]
+            to_val = range_to[]
+            if isnothing(from_val)
+                from_val = data_bounds_from[]
+            end
+            if isnothing(to_val)
+                to_val = data_bounds_to[]
+            end
+            
             # Block format callback to prevent double plotting and ensure atomic update
             state.misc.block_format_update[] = true
             
@@ -67,7 +89,9 @@ function setup_source_callback(state, outputs)
                 legend_title_text[] = ""
 
                 plottype = selected_plottype[] |> Symbol |> eval
-                fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=nothing, legend_title=legend_title_text[]))
+                fig = check_data_create_plot(x, y; 
+                    plot_format = (;plottype=plottype, show_legend=nothing, legend_title=legend_title_text[]),
+                    range_from=from_val, range_to=to_val)
                 
                 if !isnothing(fig)
                     plot_observable[] = fig.fig
@@ -84,8 +108,8 @@ function setup_source_callback(state, outputs)
                 state.misc.block_format_update[] = false
             end
             
-            # Create/update table (source-related only)
-            table_observable[] = create_data_table(x, y)
+            # Create/update table with range
+            table_observable[] = create_data_table(x, y; range_from=from_val, range_to=to_val)
         else
             # Clear everything
             current_plot_x[] = nothing
@@ -112,6 +136,7 @@ Updates the `plot_observable` and text fields, but does *not* regenerate the dat
 function setup_format_callback(state, outputs)
     (; selected_plottype, show_legend) = state.plotting.format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
+    (; range_from, range_to) = state.data_selection
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
@@ -131,6 +156,10 @@ function setup_format_callback(state, outputs)
             saved_ylabel = ylabel_text[]
             saved_title = title_text[]
             
+            # Get current range values
+            from_val = range_from[]
+            to_val = range_to[]
+            
             # Block label callbacks during plot recreation
             state.misc.block_format_update[] = true
             try
@@ -143,7 +172,7 @@ function setup_format_callback(state, outputs)
                     xlabel=saved_xlabel,  # Pass custom xlabel
                     ylabel=saved_ylabel,  # Pass custom ylabel
                     title=saved_title     # Pass custom title
-                ))
+                ), range_from=from_val, range_to=to_val)
                 if !isnothing(fig)
                     current_figure[] = fig.fig
                     current_axis[] = fig.axis
@@ -179,7 +208,7 @@ function setup_format_callback(state, outputs)
 end
 
 """
-    update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+    update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false, range_from=nothing, range_to=nothing)
 
 Helper function to update DataFrame plot with selected columns and format settings.
 Handles the common plotting logic used by both plot trigger and format callbacks.
@@ -191,8 +220,13 @@ Handles the common plotting logic used by both plot trigger and format callbacks
 - `cols`: Selected column names
 - `reset_legend_title`: If true, resets legend title to empty string (for new plots)
 - `update_table`: If true, updates the table observable (only for new plot data)
+- `range_from`: Starting row index (1-based for DataFrames)
+- `range_to`: Ending row index
 """
-function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+function update_dataframe_plot(state, outputs, df_name, cols; 
+                               reset_legend_title=false, update_table=false,
+                               range_from::Union{Nothing,Int}=nothing, 
+                               range_to::Union{Nothing,Int}=nothing)
     (; format, handles) = state.plotting
     (; show_modal, modal_type) = state.dialogs
     (; selected_plottype, show_legend) = format
@@ -236,6 +270,19 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         
         # Use select to get selected columns
         df_selected = select(df, valid_cols)
+        
+        # Apply range slicing if provided
+        n_rows = nrow(df_selected)
+        from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
+        to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
+        
+        # Ensure from <= to
+        if from_idx > to_idx
+            from_idx, to_idx = to_idx, from_idx
+        end
+        
+        # Slice the DataFrame
+        df_selected = df_selected[from_idx:to_idx, :]
         
         # Normalize numeric columns for plotting and track any columns with data issues
         df_selected, dirty_cols = normalize_numeric_columns!(df_selected, valid_cols)
@@ -325,7 +372,18 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
         
         # Update table if requested (only for new plot data)
         if update_table
-            table_observable[] = create_table_with_info(Bonito.Table(df_selected), display_name)
+            # Build table info with range info
+            if from_idx == 1 && to_idx == n_rows
+                info_text = display_name
+            else
+                info_text = "$display_name [$(from_idx):$(to_idx)]"
+            end
+            
+            # Add Index column to df_selected for display
+            df_with_index = copy(df_selected)
+            insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
+            
+            table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text)
         end
         
         return true  # Success
@@ -347,10 +405,12 @@ Handles:
 - Plot button click (triggers plot update when columns are selected)
 """
 function setup_dataframe_callbacks(state, outputs, plot_trigger)
-    (; source_type, selected_dataframe, selected_columns, selected_x, selected_y) = state.data_selection
+    (; source_type, selected_dataframe, selected_columns, selected_x, selected_y,
+       data_bounds_from, data_bounds_to, range_from, range_to) = state.data_selection
     (; format, handles) = state.plotting
     (; selected_plottype, show_legend) = format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
+    (; opened_file_df) = state.file_opening
     plot_observable = outputs.plot
     table_observable = outputs.table
     
@@ -366,7 +426,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             selected_columns[] = String[]
         end
         
-        # Clear plot and table
+        # Clear plot, table, and bounds
         plot_observable[] = DOM.div("Plot Pane")
         table_observable[] = DOM.div("Table Pane")
         xlabel_text[] = ""
@@ -374,33 +434,134 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         title_text[] = ""
         current_figure[] = nothing
         current_axis[] = nothing
+        data_bounds_from[] = nothing
+        data_bounds_to[] = nothing
+        range_from[] = nothing
+        range_to[] = nothing
     end
     
-    # When DataFrame selection changes, clear column selections
+    # When DataFrame selection changes, clear column selections and set bounds
     on(selected_dataframe) do df_name
         selected_columns[] = String[]
         plot_observable[] = DOM.div("Plot Pane")
         table_observable[] = DOM.div("Table Pane")
+        
+        # Set data bounds for the DataFrame
+        if !isnothing(df_name) && df_name != ""
+            (first_idx, last_idx) = get_dataframe_bounds(df_name, opened_file_df[])
+            data_bounds_from[] = first_idx
+            data_bounds_to[] = last_idx
+            range_from[] = first_idx
+            range_to[] = last_idx
+        else
+            data_bounds_from[] = nothing
+            data_bounds_to[] = nothing
+            range_from[] = nothing
+            range_to[] = nothing
+        end
     end
     
     # When Plot button is clicked, create plot if valid selection
     on(plot_trigger) do _
-        # Skip if not in DataFrame mode
-        if source_type[] != "DataFrame"
-            return
+        if source_type[] == "DataFrame"
+            # DataFrame mode
+            cols = selected_columns[]
+            df_name = selected_dataframe[]
+            if isnothing(df_name) || df_name == "" || length(cols) < 2
+                # Need at least 2 columns (X and Y)
+                plot_observable[] = DOM.div("Select at least 2 columns (first = X, others = Y)")
+                table_observable[] = DOM.div("Table Pane")
+                return
+            end
+            
+            # Validate and apply range
+            from_val = range_from[]
+            to_val = range_to[]
+            bounds_from = data_bounds_from[]
+            bounds_to = data_bounds_to[]
+            
+            # Fill in defaults for empty values
+            if isnothing(from_val) && !isnothing(bounds_from)
+                from_val = bounds_from
+                range_from[] = from_val
+            end
+            if isnothing(to_val) && !isnothing(bounds_to)
+                to_val = bounds_to
+                range_to[] = to_val
+            end
+            
+            # Validate from <= to (don't swap, just reject)
+            if !isnothing(from_val) && !isnothing(to_val) && from_val > to_val
+                plot_observable[] = DOM.div("Range Error: \"Range from\" must be less than or equal to \"Range to\"")
+                return
+            end
+            
+            # Use helper function with range values
+            update_dataframe_plot(state, outputs, df_name, cols; 
+                                  reset_legend_title=true, update_table=true,
+                                  range_from=from_val, range_to=to_val)
+        else
+            # Array mode
+            x = outputs.current_x[]
+            y = outputs.current_y[]
+            
+            if isnothing(x) || x == "" || isnothing(y) || y == ""
+                plot_observable[] = DOM.div("Select X and Y arrays to plot")
+                return
+            end
+            
+            # Get range values (already validated by JavaScript on input)
+            from_val = range_from[]
+            to_val = range_to[]
+            bounds_from = data_bounds_from[]
+            bounds_to = data_bounds_to[]
+            
+            # Fill in defaults for empty values
+            if isnothing(from_val) && !isnothing(bounds_from)
+                from_val = bounds_from
+                range_from[] = from_val
+            end
+            if isnothing(to_val) && !isnothing(bounds_to)
+                to_val = bounds_to
+                range_to[] = to_val
+            end
+            
+            # Validate from <= to (don't swap, just reject)
+            if !isnothing(from_val) && !isnothing(to_val) && from_val > to_val
+                plot_observable[] = DOM.div("Range Error: \"Range from\" must be less than or equal to \"Range to\"")
+                return
+            end
+            
+            # Block format callback to prevent double plotting
+            state.misc.block_format_update[] = true
+            
+            try
+                # Reset legend title for new plot
+                legend_title_text[] = ""
+
+                plottype = selected_plottype[] |> Symbol |> eval
+                fig = check_data_create_plot(x, y; 
+                    plot_format = (;plottype=plottype, show_legend=nothing, legend_title=legend_title_text[]),
+                    range_from=from_val, range_to=to_val)
+                
+                if !isnothing(fig)
+                    plot_observable[] = fig.fig
+                    current_figure[] = fig.fig
+                    current_axis[] = fig.axis
+                    
+                    # Initialize text fields with default values
+                    xlabel_text[] = fig.fig_params.x_name
+                    ylabel_text[] = fig.fig_params.y_name
+                    title_text[] = fig.fig_params.title
+                    show_legend[] = fig.fig_params.updated_show_legend
+                end
+            finally
+                state.misc.block_format_update[] = false
+            end
+            
+            # Create/update table with range
+            table_observable[] = create_data_table(x, y; range_from=from_val, range_to=to_val)
         end
-        
-        cols = selected_columns[]
-        df_name = selected_dataframe[]
-        if isnothing(df_name) || df_name == "" || length(cols) < 2
-            # Need at least 2 columns (X and Y)
-            plot_observable[] = DOM.div("Select at least 2 columns (first = X, others = Y)")
-            table_observable[] = DOM.div("Table Pane")
-            return
-        end
-        
-        # Use helper function with reset_legend_title=true and update_table=true for new plots
-        update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=true, update_table=true)
     end
     
     # Listen to format changes (plot type, legend) and replot with current DataFrame selection
@@ -423,6 +584,33 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         end
         
         # Use helper function with reset_legend_title=false and update_table=false for format changes
-        update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+        # Pass current range values
+        update_dataframe_plot(state, outputs, df_name, cols; 
+                              reset_legend_title=false, update_table=false,
+                              range_from=range_from[], range_to=range_to[])
+    end
+end
+
+"""
+    setup_range_ui_sync(session, state)
+
+Set up a callback to sync range input field values with data bounds.
+When data_bounds_from or data_bounds_to changes, updates the HTML input fields
+with the new values. Uses requestAnimationFrame to ensure DOM is ready.
+"""
+function setup_range_ui_sync(session, state)
+    (; data_bounds_from, data_bounds_to) = state.data_selection
+    
+    onany(data_bounds_from, data_bounds_to) do from_val, to_val
+        # Update the input fields via JavaScript with a slight delay to ensure DOM is ready
+        # Pass actual values (or nothing/null) - Bonito handles the conversion
+        from_js = isnothing(from_val) ? nothing : from_val
+        to_js = isnothing(to_val) ? nothing : to_val
+        # Use requestAnimationFrame to ensure DOM updates are complete
+        Bonito.evaljs(session, js"""
+            requestAnimationFrame(() => {
+                window.CasualPlots.setRangeInputValues($from_js, $to_js);
+            });
+        """)
     end
 end

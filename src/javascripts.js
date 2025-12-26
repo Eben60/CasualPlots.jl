@@ -116,3 +116,137 @@ window.CasualPlots.updateObservableInteger = (event, observable) => {
     // Notify Julia with the integer value
     observable.notify(intValue);
 }
+
+/**
+ * Updates an observable with an integer from an input field, allowing null for empty.
+ * Used for optional range values where empty means "no limit".
+ * Validates against stored bounds and resets to min/max on invalid input.
+ * @param {Event} event - The DOM event
+ * @param {Observable} observable - The observable to update
+ */
+window.CasualPlots.updateIntObservable = (event, observable) => {
+    const input = event.target;
+    const value = input.value.trim();
+    const bounds = window.CasualPlots._rangeBounds || { from: null, to: null };
+    
+    // Helper to ensure a value is a proper integer
+    const toInt = (val) => {
+        if (val === null || val === undefined) return null;
+        if (typeof val === 'number') return Math.round(val);
+        if (typeof val === 'string') return parseInt(val, 10);
+        return null;
+    };
+    
+    const boundsFrom = toInt(bounds.from);
+    const boundsTo = toInt(bounds.to);
+    
+    if (value === '') {
+        // Empty: reset to the appropriate bound
+        if (input.id === 'range-from-input' && boundsFrom !== null) {
+            input.value = boundsFrom;
+            observable.notify(boundsFrom);
+        } else if (input.id === 'range-to-input' && boundsTo !== null) {
+            input.value = boundsTo;
+            observable.notify(boundsTo);
+        } else {
+            observable.notify(null);
+        }
+    } else {
+        // Parse as integer
+        const intValue = parseInt(value, 10);
+        if (isNaN(intValue)) {
+            // Invalid: reset to bound
+            if (input.id === 'range-from-input' && boundsFrom !== null) {
+                input.value = boundsFrom;
+                observable.notify(boundsFrom);
+            } else if (input.id === 'range-to-input' && boundsTo !== null) {
+                input.value = boundsTo;
+                observable.notify(boundsTo);
+            }
+        } else {
+            // Validate against bounds
+            if (boundsFrom !== null && boundsTo !== null) {
+                if (input.id === 'range-from-input') {
+                    if (intValue < boundsFrom) {
+                        input.value = boundsFrom;
+                        observable.notify(boundsFrom);
+                    } else if (intValue > boundsTo) {
+                        input.value = boundsTo;
+                        observable.notify(boundsTo);
+                    } else {
+                        observable.notify(intValue);
+                    }
+                } else if (input.id === 'range-to-input') {
+                    if (intValue > boundsTo) {
+                        input.value = boundsTo;
+                        observable.notify(boundsTo);
+                    } else if (intValue < boundsFrom) {
+                        input.value = boundsFrom;
+                        observable.notify(boundsFrom);
+                    } else {
+                        observable.notify(intValue);
+                    }
+                } else {
+                    observable.notify(intValue);
+                }
+            } else {
+                observable.notify(intValue);
+            }
+        }
+    }
+}
+
+// Global state for range bounds
+window.CasualPlots._rangeBounds = { from: null, to: null };
+
+/**
+ * Sets the values of range input fields by their IDs and stores bounds.
+ * Called from Julia when data source changes to populate initial range values.
+ * @param {number|null} fromValue - Value for range_from input (null clears)
+ * @param {number|null} toValue - Value for range_to input (null clears)
+ */
+window.CasualPlots.setRangeInputValues = (fromValue, toValue) => {
+    console.log('setRangeInputValues called with:', fromValue, toValue, typeof fromValue, typeof toValue);
+    
+    // Normalize null/undefined/"null" to null, and ensure numbers are numbers
+    const normalizeValue = (val) => {
+        if (val === null || val === undefined || val === "null") return null;
+        if (typeof val === 'string') return parseInt(val, 10);
+        return val;
+    };
+    
+    const normalizedFrom = normalizeValue(fromValue);
+    const normalizedTo = normalizeValue(toValue);
+    
+    // Store bounds for validation
+    window.CasualPlots._rangeBounds = { from: normalizedFrom, to: normalizedTo };
+    console.log('Stored bounds:', window.CasualPlots._rangeBounds);
+    
+    const fromInput = document.getElementById('range-from-input');
+    const toInput = document.getElementById('range-to-input');
+    console.log('Found inputs:', fromInput, toInput);
+    
+    if (fromInput) {
+        fromInput.value = normalizedFrom !== null ? normalizedFrom : '';
+        console.log('Set from input to:', fromInput.value);
+    }
+    if (toInput) {
+        toInput.value = normalizedTo !== null ? normalizedTo : '';
+        console.log('Set to input to:', toInput.value);
+    }
+}
+
+/**
+ * Validates that range_from <= range_to before plotting.
+ * @param {number} fromValue - Current range_from value
+ * @param {number} toValue - Current range_to value
+ * @returns {boolean} true if validation passed, false otherwise
+ */
+window.CasualPlots.validateRangeOrder = (fromValue, toValue) => {
+    if (fromValue !== null && toValue !== null && fromValue > toValue) {
+        alert('Range Error: "Range from" must be less than or equal to "Range to"');
+        return false;
+    }
+    return true;
+}
+

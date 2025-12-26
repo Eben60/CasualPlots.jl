@@ -120,72 +120,7 @@ scripts/                        # Example/demo scripts
 
 ### Reactive State Architecture
 
-#### State Structure
-The application uses a `NamedTuple` called `state` with nested categories:
-
-```julia
-state = (;
-    file_opening = (;
-        opened_file_df::Observable{Union{Nothing, DataFrame}},
-        opened_file_name::Observable{String},
-        opened_file_path::Observable{String},  # Full path for reload
-        header_row::Observable{Int},          # 0 = no headers
-        skip_after_header::Observable{Int},   # Rows to skip after header
-        skip_empty_rows::Observable{Bool},
-        delimiter::Observable{String},        # Auto, Comma, Tab, etc.
-        decimal_separator::Observable{String}
-    ),
-    file_saving = (;
-        save_file_path::Observable{String},
-        save_status_message::Observable{String},
-        save_status_type::Observable{Symbol},  # :none, :success, :warning, :error
-        show_overwrite_confirm::Observable{Bool}
-    ),
-    dialogs = (;
-        show_modal::Observable{Bool},
-        modal_type::Observable{Symbol}         # :none, :success, :warning, :confirm
-    ),
-    data_selection = (;
-        source_type::Observable{String},       # "X, Y Arrays" or "DataFrame"
-        dims_dict_obs::Observable{Dict},
-        dataframes_dict_obs::Observable{Vector},
-        selected_dataframe::Observable{Union{String, Nothing}},
-        selected_columns::Observable{Vector{String}},
-        selected_x::Observable{Union{String, Nothing}},
-        selected_y::Observable{Union{String, Nothing}}
-    ),
-    plotting = (;
-        format = (;
-            selected_plottype::Observable{String},
-            show_legend::Observable{Bool}
-        ),
-        handles = (;
-            xlabel_text::Observable{String},
-            ylabel_text::Observable{String},
-            title_text::Observable{String},
-            legend_title_text::Observable{String},
-            current_figure::Observable{Union{Figure, Nothing}},
-            current_axis::Observable{Union{Axis, Nothing}}
-        )
-    ),
-    misc = (;
-        trigger_update::Observable{Bool},
-        last_update::Ref{Float64},
-        block_format_update::Observable{Bool}  # Race condition prevention
-    )
-)
-```
-
-#### Output Observables
-Separate `outputs` NamedTuple for UI display:
-```julia
-outputs = (
-    plot::Observable{Any},           # DOM element for plot pane
-    table::Observable{Any},          # DOM element for table pane
-    current_x::Observable{Any},      # Currently plotted X data
-    current_y::Observable{Any}       # Currently plotted Y data
-)
-```
+See [State Structure](AGENTS_more_info/specific_issues/state_structure.md) for details on the `state` and `outputs` NamedTuples containing all Observables.
 
 ### Developer Diagrams
 
@@ -210,6 +145,8 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - User selects Y variable.
     - **Immediately triggers plotting**:
         - Fetches data from `Main`.
+        - Updates `data_bounds_from` and `data_bounds_to` for range input UI.
+        - **Range Slicing**: Applies `range_from`/`range_to` to subset the data before plotting.
         - Generates plot with **default labels**.
         - Updates `current_plot_x`, `current_plot_y`.
         - Updates table view.
@@ -222,17 +159,37 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - If needed (opened file), strings are normalized (`normalize_strings!`) at load time.
     - Triggers population of column checkboxes.
     - Clears current column selection.
+    - Updates `data_bounds_from` and `data_bounds_to` for range input UI.
 2.  **Step 2: Column Selection & Plotting** (`setup_dataframe_callbacks`)
     - User selects columns (checkboxes).
     - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
     - `plot_trigger` observable fires:
         - Validates selection (at least 2 columns).
         - **Data Normalization**: Calls `normalize_numeric_columns!` to convert Abstract/Any types to Float64/Int. Warns if non-numeric values are lost (popup + log).
+        - **Range Slicing**: Applies `range_from`/`range_to` to subset the data before plotting.
         - Calls `update_dataframe_plot` helper.
         - Generates plot with **default labels** (resets legend title).
         - Updates table view.
 
-**C. File Import with Reading Options (Open Tab):**
+**C. Range Selection (Both Modes):**
+Range selection allows users to plot a subset of their data without modifying the original source.
+
+1.  **Data Bounds Display**:
+    - When data is selected (X/Y arrays or DataFrame), `data_bounds_from` and `data_bounds_to` are updated to reflect the actual data indices (1 to `nrow` for DataFrames, 1 to `length` for arrays).
+    - These bounds are displayed as placeholder text in the range input fields.
+
+2.  **User Range Input**:
+    - Optional `range_from` and `range_to` integer input fields (Source tab, below dropdowns).
+    - Empty values mean "use data bounds" (no restriction).
+    - Validation: `range_from` must be ≤ `range_to`; both must be within data bounds.
+
+3.  **Range Application**:
+    - Applied during plotting before `create_plot` is called.
+    - For Arrays: `x_data[range_from:range_to]`, `y_data[range_from:range_to]`
+    - For DataFrames: `df[range_from:range_to, selected_columns]`
+    - Range is also applied when updating table view.
+
+**D. File Import with Reading Options (Open Tab):**
 The Open tab provides configurable file reading options before/after loading:
 1.  **Reading Options** (configured via UI controls):
     - `header_row`: Row number containing headers (0 = no headers)
@@ -351,7 +308,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Precompilation
 
-See [Precompilation](AGENTS_more_info/specific_issues.md/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
+See [Precompilation](AGENTS_more_info/specific_issues/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
 
 
 ### Exports

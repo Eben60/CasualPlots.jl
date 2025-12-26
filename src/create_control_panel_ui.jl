@@ -18,7 +18,8 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     (; format, handles) = state.plotting
     (; show_legend) = format
     (; xlabel_text, ylabel_text, title_text, legend_title_text) = handles
-    (; source_type, selected_dataframe, selected_columns) = state.data_selection
+    (; source_type, selected_dataframe, selected_columns, selected_x, selected_y, 
+       range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     (; opened_file_df) = state.file_opening
     
     # Create plot trigger observable for DataFrame mode
@@ -27,18 +28,31 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     # Create UI components using helper functions
     source_type_selector = create_source_type_selector(source_type)
     
-    array_mode_content = create_array_mode_content(x_node, y_node, trigger_update)
+    # Create array mode content (X/Y dropdowns only)
+    array_dropdowns = create_array_mode_content(x_node, y_node, trigger_update)
     
-    dataframe_mode_content = create_dataframe_mode_content(
-        dataframe_node, selected_dataframe, selected_columns, plot_trigger, opened_file_df
+    # Create dataframe mode content (dropdown row and column controls separately)
+    dataframe_dropdown = create_dataframe_dropdown_row(dataframe_node)
+    dataframe_column_controls = create_dataframe_column_controls(
+        selected_dataframe, selected_columns, opened_file_df
     )
     
+    # Create the plot button (enabled when any data source is selected)
+    plot_button = create_plot_button(source_type, selected_x, selected_y, selected_columns, plot_trigger)
+    
+    # Create range input row with plot button and bounds observables
+    range_row = create_range_input_row(range_from, range_to, data_bounds_from, data_bounds_to, plot_button)
+    
     # Dynamic source content that switches based on source_type
+    # Array mode: X/Y dropdowns + range row
+    # DataFrame mode: DataFrame dropdown + range row + column selection controls
     source_content = map(source_type) do st
         if st == "DataFrame"
-            return dataframe_mode_content
+            # Layout: dropdown -> range row -> column controls
+            return DOM.div(dataframe_dropdown, range_row, dataframe_column_controls; class="flex-col")
         else
-            return array_mode_content
+            # Layout: X/Y dropdowns -> range row
+            return DOM.div(array_dropdowns, range_row; class="flex-col")
         end
     end
     
