@@ -48,6 +48,15 @@ window.CasualPlots.handleEnterKey = (event, observable) => {
 }
 
 /**
+ * Handles blur (leaving field) on text inputs to notify an observable.
+ * @param {Event} event - The DOM event
+ * @param {Observable} observable - The observable to notify
+ */
+window.CasualPlots.handleTextInputBlur = (event, observable) => {
+    observable.notify(event.target.value);
+}
+
+/**
  * Handles changes on dataframe column checkboxes.
  * Adds/removes the value from the selected columns list.
  * @param {Event} event - The DOM event
@@ -248,5 +257,58 @@ window.CasualPlots.validateRangeOrder = (fromValue, toValue) => {
         return false;
     }
     return true;
+}
+
+/**
+ * Updates an observable with a float from an input field, allowing null for empty.
+ * Used for axis limits where empty means "auto".
+ * @param {Event} event - The DOM event
+ * @param {Observable} observable - The observable to update
+ */
+window.CasualPlots.updateFloatObservable = (event, observable) => {
+    const input = event.target;
+    const value = input.value.trim();
+    
+    if (value === '') {
+        // Empty: set to null (auto)
+        observable.notify(null);
+    } else {
+        // Parse as float
+        const floatValue = parseFloat(value);
+        if (isNaN(floatValue)) {
+            // Invalid: clear the input and set to null
+            input.value = '';
+            observable.notify(null);
+        } else {
+            // Valid float value
+            observable.notify(floatValue);
+        }
+    }
+}
+
+/**
+ * Handles Enter key press for float input fields.
+ * Triggers the same logic as updateFloatObservable.
+ * @param {Event} event - The DOM keydown event
+ * @param {Observable} observable - The observable to update
+ */
+window.CasualPlots.handleFloatEnterKey = (event, observable) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        window.CasualPlots.updateFloatObservable(event, observable);
+    }
+}
+
+/**
+ * Handles Enter key press for integer input fields.
+ * Triggers the same logic as updateIntObservable.
+ * @param {Event} event - The DOM keydown event
+ * @param {Observable} observable - The observable to update
+ */
+window.CasualPlots.handleIntEnterKey = (event, observable) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        window.CasualPlots.updateIntObservable(event, observable);
+    }
 }
 

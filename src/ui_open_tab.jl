@@ -113,6 +113,7 @@ function create_header_input(header_row)
         value=string(header_row[]),
         onchange=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(header_row)); }",
         onblur=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(header_row)); }",
+        onkeydown=js"(e) => { if (e.key === 'Enter') { e.preventDefault(); window.CasualPlots.updateObservableInteger(e, $(header_row)); } }",
         class="input-number option-control"
     )
     label = DOM.span("Header"; class="option-label")
@@ -132,6 +133,7 @@ function create_skip_after_header_input(skip_after_header)
         value=string(skip_after_header[]),
         onchange=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(skip_after_header)); }",
         onblur=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(skip_after_header)); }",
+        onkeydown=js"(e) => { if (e.key === 'Enter') { e.preventDefault(); window.CasualPlots.updateObservableInteger(e, $(skip_after_header)); } }",
         class="input-number option-control"
     )
     label = DOM.span("Skip subheaders"; class="option-label")

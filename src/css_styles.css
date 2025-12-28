@@ -343,3 +343,35 @@
     box-sizing: border-box;
 }
 
+/* Axis Limits Row (Format Tab) */
+.axis-limits-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.axis-limits-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.axis-limits-caption {
+    font-size: 11px;
+    font-weight: bold;
+    color: #555;
+    text-align: center;
+}
+
+.axis-limits-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    box-sizing: border-box;
+    text-align: right;
+}
+

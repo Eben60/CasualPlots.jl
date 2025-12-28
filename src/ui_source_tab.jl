@@ -231,7 +231,8 @@ function create_range_input_row(range_from, range_to, data_bounds_from, data_bou
         id="range-from-input",
         class="range-input",
         placeholder="",
-        onchange=js"event => window.CasualPlots.updateIntObservable(event, $(range_from))"
+        onchange=js"event => window.CasualPlots.updateIntObservable(event, $(range_from))",
+        onkeydown=js"event => window.CasualPlots.handleIntEnterKey(event, $(range_from))"
     )
     
     to_input = DOM.input(
@@ -239,7 +240,8 @@ function create_range_input_row(range_from, range_to, data_bounds_from, data_bou
         id="range-to-input",
         class="range-input",
         placeholder="",
-        onchange=js"event => window.CasualPlots.updateIntObservable(event, $(range_to))"
+        onchange=js"event => window.CasualPlots.updateIntObservable(event, $(range_to))",
+        onkeydown=js"event => window.CasualPlots.handleIntEnterKey(event, $(range_to))"
     )
     
     # Input row - inputs are fixed, only button is reactive

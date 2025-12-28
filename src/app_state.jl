@@ -77,7 +77,12 @@ function initialize_app_state()
     # --- Plotting ---
     selected_plottype = Observable("Scatter")
     show_legend = Observable(true)
-    plot_format = (; selected_plottype, show_legend)
+    # Axis limits - Union{Nothing, Float64} allows empty (auto) or specific values
+    x_min = Observable{Union{Nothing, Float64}}(nothing)
+    x_max = Observable{Union{Nothing, Float64}}(nothing)
+    y_min = Observable{Union{Nothing, Float64}}(nothing)
+    y_max = Observable{Union{Nothing, Float64}}(nothing)
+    plot_format = (; selected_plottype, show_legend, x_min, x_max, y_min, y_max)
     
     xlabel_text = Observable("")
     ylabel_text = Observable("")

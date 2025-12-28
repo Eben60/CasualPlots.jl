@@ -12,11 +12,12 @@ Returns a NamedTuple with:
 - `xlabel_input`: X-axis label text field
 - `ylabel_input`: Y-axis label text field
 - `title_input`: Plot title text field
+- `axis_limits`: Axis limits input row (X min, X max, Y min, Y max)
 """
 function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
     (; trigger_update) = state.misc
     (; format, handles) = state.plotting
-    (; show_legend) = format
+    (; show_legend, x_min, x_max, y_min, y_max) = format
     (; xlabel_text, ylabel_text, title_text, legend_title_text) = handles
     (; source_type, selected_dataframe, selected_columns, selected_x, selected_y, 
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
@@ -65,7 +66,10 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     ylabel_input = create_label_input("Y-Axis:", "ylabel", ylabel_text)
     title_input = create_label_input("Title:", "title", title_text)
     
+    # Axis limits input row
+    axis_limits = create_axis_limits_row(x_min, x_max, y_min, y_max)
+    
     return (; source_type_selector, source_content, plot_kind, legend_control,
-              xlabel_input, ylabel_input, title_input, plot_trigger)
+              xlabel_input, ylabel_input, title_input, axis_limits, plot_trigger)
 end
 

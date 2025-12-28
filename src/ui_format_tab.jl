@@ -61,6 +61,7 @@ function create_legend_control(show_legend, legend_title_text)
         value=legend_title_text,
         placeholder="Legend Title",
         onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(legend_title_text))",
+        onblur=js"event => window.CasualPlots.handleTextInputBlur(event, $(legend_title_text))",
         style=legend_visibility,
         class="input-small w-100px ml-2"
     )
@@ -91,8 +92,87 @@ function create_label_input(label_text, label_name, label_observable)
             type="text", 
             value=label_observable,
             onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(label_observable))",
+            onblur=js"event => window.CasualPlots.handleTextInputBlur(event, $(label_observable))",
             class="input-small flex-1"
         );
         class="flex-row align-center gap-1 mb-1"
     )
 end
+
+"""
+    create_axis_limits_row(x_min, x_max, y_min, y_max)
+
+Create a row with axis limits input fields (X min, X max, Y min, Y max).
+
+# Arguments
+- `x_min::Observable{Union{Nothing,Float64}}`: Observable for X axis minimum
+- `x_max::Observable{Union{Nothing,Float64}}`: Observable for X axis maximum  
+- `y_min::Observable{Union{Nothing,Float64}}`: Observable for Y axis minimum
+- `y_max::Observable{Union{Nothing,Float64}}`: Observable for Y axis maximum
+
+# Returns
+DOM.div containing axis limits inputs in a 4-column layout
+"""
+function create_axis_limits_row(x_min, x_max, y_min, y_max)
+    # Caption row
+    caption_row = DOM.div(
+        DOM.div("X min"; class="axis-limits-caption"),
+        DOM.div("X max"; class="axis-limits-caption"),
+        DOM.div("Y min"; class="axis-limits-caption"),
+        DOM.div("Y max"; class="axis-limits-caption");
+        class="axis-limits-row"
+    )
+    
+    # Create input fields
+    x_min_input = DOM.input(
+        type="number",
+        step="any",
+        id="axis-x-min-input",
+        class="axis-limits-input",
+        placeholder="",
+        onchange=js"event => window.CasualPlots.updateFloatObservable(event, $(x_min))",
+        onkeydown=js"event => window.CasualPlots.handleFloatEnterKey(event, $(x_min))"
+    )
+    
+    x_max_input = DOM.input(
+        type="number",
+        step="any",
+        id="axis-x-max-input",
+        class="axis-limits-input",
+        placeholder="",
+        onchange=js"event => window.CasualPlots.updateFloatObservable(event, $(x_max))",
+        onkeydown=js"event => window.CasualPlots.handleFloatEnterKey(event, $(x_max))"
+    )
+    
+    y_min_input = DOM.input(
+        type="number",
+        step="any",
+        id="axis-y-min-input",
+        class="axis-limits-input",
+        placeholder="",
+        onchange=js"event => window.CasualPlots.updateFloatObservable(event, $(y_min))",
+        onkeydown=js"event => window.CasualPlots.handleFloatEnterKey(event, $(y_min))"
+    )
+    
+    y_max_input = DOM.input(
+        type="number",
+        step="any",
+        id="axis-y-max-input",
+        class="axis-limits-input",
+        placeholder="",
+        onchange=js"event => window.CasualPlots.updateFloatObservable(event, $(y_max))",
+        onkeydown=js"event => window.CasualPlots.handleFloatEnterKey(event, $(y_max))"
+    )
+    
+    # Input row
+    input_row = DOM.div(
+        x_min_input,
+        x_max_input,
+        y_min_input,
+        y_max_input;
+        class="axis-limits-row"
+    )
+    
+    DOM.div(caption_row, input_row; class="axis-limits-section")
+end
+
