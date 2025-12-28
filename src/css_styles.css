@@ -373,5 +373,12 @@
     font-size: 12px;
     box-sizing: border-box;
     text-align: right;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+/* Warning state when min == max (user may be swapping limits) */
+.axis-limits-input.warning {
+    border-color: #FF9800;
+    background-color: #FFF3E0;
 }
 

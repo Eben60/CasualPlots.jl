@@ -98,6 +98,9 @@ function setup_source_callback(state, outputs)
                     current_figure[] = fig.fig  # Store figure reference
                     current_axis[] = fig.axis    # Store axis reference
                     
+                    # Initialize axis limits from the new plot (set_defaults=true for new plot)
+                    update_axis_limits_from_axis(state, fig.axis; set_defaults=true)
+                    
                     # Initialize text fields with default values
                     xlabel_text[] = fig.fig_params.x_name
                     ylabel_text[] = fig.fig_params.y_name
@@ -122,6 +125,7 @@ function setup_source_callback(state, outputs)
             title_text[] = ""
             current_figure[] = nothing
             current_axis[] = nothing
+            clear_axis_limits(state)
         end
     end
 end
@@ -333,6 +337,9 @@ function update_dataframe_plot(state, outputs, df_name, cols;
             current_axis[] = fig.axis
             
             if reset_legend_title
+                # New plot: initialize axis limits (set_defaults=true)
+                update_axis_limits_from_axis(state, fig.axis; set_defaults=true)
+                
                 # New plot: publish figure first, then initialize text fields
                 plot_observable[] = fig.fig
                 xlabel_text[] = fig.fig_params.x_name
@@ -434,6 +441,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         title_text[] = ""
         current_figure[] = nothing
         current_axis[] = nothing
+        clear_axis_limits(state)
         data_bounds_from[] = nothing
         data_bounds_to[] = nothing
         range_from[] = nothing
@@ -549,6 +557,9 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
                     current_figure[] = fig.fig
                     current_axis[] = fig.axis
                     
+                    # Initialize axis limits from the new plot (set_defaults=true for new plot)
+                    update_axis_limits_from_axis(state, fig.axis; set_defaults=true)
+                    
                     # Initialize text fields with default values
                     xlabel_text[] = fig.fig_params.x_name
                     ylabel_text[] = fig.fig_params.y_name
@@ -614,3 +625,249 @@ function setup_range_ui_sync(session, state)
         """)
     end
 end
+
+"""
+    clear_axis_limits(state)
+
+Clear all axis limit observables (current and defaults) to nothing.
+Called when plot is cleared.
+"""
+function clear_axis_limits(state)
+    (; x_min, x_max, y_min, y_max,
+       x_min_default, x_max_default, y_min_default, y_max_default) = state.plotting.format
+    x_min[] = nothing
+    x_max[] = nothing
+    y_min[] = nothing
+    y_max[] = nothing
+    x_min_default[] = nothing
+    x_max_default[] = nothing
+    y_min_default[] = nothing
+    y_max_default[] = nothing
+end
+
+"""
+    extract_axis_limits(axis)
+
+Extract the current axis limits from a Makie Axis.
+Returns a NamedTuple with (x_min, x_max, y_min, y_max) as Float64 values.
+"""
+function extract_axis_limits(axis)
+    rect = axis.finallimits[]
+    x_min = Float64(rect.origin[1])
+    y_min = Float64(rect.origin[2])
+    x_max = Float64(rect.origin[1] + rect.widths[1])
+    y_max = Float64(rect.origin[2] + rect.widths[2])
+    return (; x_min, x_max, y_min, y_max)
+end
+
+"""
+    update_axis_limits_from_axis(state, axis; set_defaults=false)
+
+Update the axis limit observables from the current axis state.
+If set_defaults=true, also updates the default limit values (used for reset).
+"""
+function update_axis_limits_from_axis(state, axis; set_defaults=false)
+    isnothing(axis) && return
+    
+    (; x_min, x_max, y_min, y_max, 
+       x_min_default, x_max_default, y_min_default, y_max_default) = state.plotting.format
+    
+    limits = extract_axis_limits(axis)
+    
+    # Update current limits
+    x_min[] = limits.x_min
+    x_max[] = limits.x_max
+    y_min[] = limits.y_min
+    y_max[] = limits.y_max
+    
+    # Update defaults if requested (typically on plot creation)
+    if set_defaults
+        x_min_default[] = limits.x_min
+        x_max_default[] = limits.x_max
+        y_min_default[] = limits.y_min
+        y_max_default[] = limits.y_max
+    end
+end
+
+"""
+    setup_axis_limits_sync(session, state)
+
+Set up synchronization of axis limit input fields in the UI.
+Updates the input values when the limit observables change.
+Uses onany with all four limits to batch updates.
+"""
+function setup_axis_limits_sync(session, state)
+    (; x_min, x_max, y_min, y_max) = state.plotting.format
+    
+    onany(x_min, x_max, y_min, y_max) do xmin, xmax, ymin, ymax
+        # Convert nothing to null for JavaScript
+        xmin_js = isnothing(xmin) ? nothing : xmin
+        xmax_js = isnothing(xmax) ? nothing : xmax
+        ymin_js = isnothing(ymin) ? nothing : ymin
+        ymax_js = isnothing(ymax) ? nothing : ymax
+        
+        Bonito.evaljs(session, js"""
+            requestAnimationFrame(() => {
+                window.CasualPlots.setAxisLimitInputValues($xmin_js, $xmax_js, $ymin_js, $ymax_js);
+            });
+        """)
+    end
+end
+
+"""
+    setup_axis_finallimits_listener(state)
+
+Set up a listener on the axis.finallimits observable to update limit observables
+when the user zooms or pans. Uses Observables.throttle to limit update frequency.
+"""
+function setup_axis_finallimits_listener(state)
+    (; current_axis) = state.plotting.handles
+    (; x_min, x_max, y_min, y_max) = state.plotting.format
+    (; block_format_update) = state.misc
+    
+    # Keep track of the current listener to clean it up when axis changes
+    current_listener = Ref{Union{Nothing, Observables.ObserverFunction}}(nothing)
+    
+    on(current_axis) do axis
+        # Clean up previous listener
+        if !isnothing(current_listener[])
+            Observables.off(current_listener[])
+            current_listener[] = nothing
+        end
+        
+        isnothing(axis) && return
+        
+        # Create throttled observable for finallimits (100ms delay to handle rapid zoom/pan)
+        # Note: Observables.throttle returns a new observable that only updates at most once per interval
+        throttled_limits = Observables.throttle(0.1, axis.finallimits)
+        
+        # Listen to throttled finallimits changes
+        current_listener[] = on(throttled_limits) do rect
+            # Don't update during format changes (when we're setting limits programmatically)
+            block_format_update[] && return
+            
+            # Extract limits from Rect2
+            new_x_min = Float64(rect.origin[1])
+            new_y_min = Float64(rect.origin[2])
+            new_x_max = Float64(rect.origin[1] + rect.widths[1])
+            new_y_max = Float64(rect.origin[2] + rect.widths[2])
+            
+            # Update observables (this will trigger UI sync via setup_axis_limits_sync)
+            x_min[] = new_x_min
+            x_max[] = new_x_max
+            y_min[] = new_y_min
+            y_max[] = new_y_max
+        end
+    end
+end
+
+"""
+    setup_axis_limits_input_callbacks(state)
+
+Set up callbacks to apply user-entered axis limit values to the plot.
+Handles:
+- When user enters a value: apply it to the axis
+- When user clears a value (nothing): reset to default
+- When min == max: don't apply (user may be swapping)
+"""
+function setup_axis_limits_input_callbacks(state)
+    (; x_min, x_max, y_min, y_max,
+       x_min_default, x_max_default, y_min_default, y_max_default) = state.plotting.format
+    (; current_axis) = state.plotting.handles
+    (; block_format_update) = state.misc
+    
+    # Helper to apply limits to axis, respecting the min==max warning
+    function apply_limits_if_valid(axis, x_limits, y_limits)
+        isnothing(axis) && return
+        
+        x_min_val, x_max_val = x_limits
+        y_min_val, y_max_val = y_limits
+        
+        # Don't apply if x_min == x_max (user may be swapping)
+        if !isnothing(x_min_val) && !isnothing(x_max_val) && x_min_val == x_max_val
+            return
+        end
+        
+        # Don't apply if y_min == y_max (user may be swapping)
+        if !isnothing(y_min_val) && !isnothing(y_max_val) && y_min_val == y_max_val
+            return
+        end
+        
+        # Apply limits - Makie's xlims!/ylims! accept reversed ranges (for inverted axes)
+        try
+            if !isnothing(x_min_val) && !isnothing(x_max_val)
+                Makie.xlims!(axis, x_min_val, x_max_val)
+            end
+            if !isnothing(y_min_val) && !isnothing(y_max_val)
+                Makie.ylims!(axis, y_min_val, y_max_val)
+            end
+        catch e
+            @warn "Failed to apply axis limits" exception=e
+        end
+    end
+    
+    # Watch for changes in X limits
+    onany(x_min, x_max) do xmin, xmax
+        block_format_update[] && return
+        axis = current_axis[]
+        isnothing(axis) && return
+        
+        # Reset to default if cleared
+        actual_xmin = isnothing(xmin) ? x_min_default[] : xmin
+        actual_xmax = isnothing(xmax) ? x_max_default[] : xmax
+        
+        # Update observable with actual value if it was reset
+        if isnothing(xmin) && !isnothing(actual_xmin)
+            x_min[] = actual_xmin
+            return  # Will re-trigger this callback with actual value
+        end
+        if isnothing(xmax) && !isnothing(actual_xmax)
+            x_max[] = actual_xmax
+            return
+        end
+        
+        # Get current Y limits from observables
+        ymin = y_min[]
+        ymax = y_max[]
+        
+        block_format_update[] = true
+        try
+            apply_limits_if_valid(axis, (actual_xmin, actual_xmax), (ymin, ymax))
+        finally
+            block_format_update[] = false
+        end
+    end
+    
+    # Watch for changes in Y limits
+    onany(y_min, y_max) do ymin, ymax
+        block_format_update[] && return
+        axis = current_axis[]
+        isnothing(axis) && return
+        
+        # Reset to default if cleared
+        actual_ymin = isnothing(ymin) ? y_min_default[] : ymin
+        actual_ymax = isnothing(ymax) ? y_max_default[] : ymax
+        
+        # Update observable with actual value if it was reset
+        if isnothing(ymin) && !isnothing(actual_ymin)
+            y_min[] = actual_ymin
+            return
+        end
+        if isnothing(ymax) && !isnothing(actual_ymax)
+            y_max[] = actual_ymax
+            return
+        end
+        
+        # Get current X limits from observables
+        xmin = x_min[]
+        xmax = x_max[]
+        
+        block_format_update[] = true
+        try
+            apply_limits_if_valid(axis, (xmin, xmax), (actual_ymin, actual_ymax))
+        finally
+            block_format_update[] = false
+        end
+    end
+end
+

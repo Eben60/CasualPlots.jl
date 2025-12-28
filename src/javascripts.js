@@ -312,3 +312,77 @@ window.CasualPlots.handleIntEnterKey = (event, observable) => {
     }
 }
 
+/**
+ * Updates axis limit input field values and manages warning state.
+ * Called from Julia when axis limits change (e.g., after zoom/pan or plot creation).
+ * @param {number|null} xMin - X axis minimum value
+ * @param {number|null} xMax - X axis maximum value
+ * @param {number|null} yMin - Y axis minimum value
+ * @param {number|null} yMax - Y axis maximum value
+ */
+window.CasualPlots.setAxisLimitInputValues = (xMin, xMax, yMin, yMax) => {
+    const formatValue = (val) => {
+        if (val === null || val === undefined || val === "null") return '';
+        // Format to reasonable precision (avoid excessive decimals)
+        const num = parseFloat(val);
+        if (isNaN(num)) return '';
+        // Use toPrecision for very large/small numbers, otherwise toFixed
+        if (Math.abs(num) >= 1e6 || (Math.abs(num) < 1e-3 && num !== 0)) {
+            return num.toPrecision(6);
+        }
+        return num.toFixed(4).replace(/\.?0+$/, ''); // Remove trailing zeros
+    };
+    
+    const xMinInput = document.getElementById('axis-x-min-input');
+    const xMaxInput = document.getElementById('axis-x-max-input');
+    const yMinInput = document.getElementById('axis-y-min-input');
+    const yMaxInput = document.getElementById('axis-y-max-input');
+    
+    if (xMinInput) xMinInput.value = formatValue(xMin);
+    if (xMaxInput) xMaxInput.value = formatValue(xMax);
+    if (yMinInput) yMinInput.value = formatValue(yMin);
+    if (yMaxInput) yMaxInput.value = formatValue(yMax);
+    
+    // Update warning state for X axis
+    window.CasualPlots.updateAxisLimitWarning('x', xMin, xMax);
+    // Update warning state for Y axis
+    window.CasualPlots.updateAxisLimitWarning('y', yMin, yMax);
+}
+
+/**
+ * Updates the warning class on axis limit inputs when min == max.
+ * @param {string} axis - 'x' or 'y'
+ * @param {number|null} minVal - Minimum value
+ * @param {number|null} maxVal - Maximum value
+ */
+window.CasualPlots.updateAxisLimitWarning = (axis, minVal, maxVal) => {
+    const minInput = document.getElementById(`axis-${axis}-min-input`);
+    const maxInput = document.getElementById(`axis-${axis}-max-input`);
+    
+    if (!minInput || !maxInput) return;
+    
+    // Check if min == max (both non-null and equal)
+    const hasWarning = minVal !== null && maxVal !== null && 
+                       minVal !== undefined && maxVal !== undefined &&
+                       parseFloat(minVal) === parseFloat(maxVal);
+    
+    if (hasWarning) {
+        minInput.classList.add('warning');
+        maxInput.classList.add('warning');
+    } else {
+        minInput.classList.remove('warning');
+        maxInput.classList.remove('warning');
+    }
+}
+
+/**
+ * Checks if axis limits have warning state (min == max) and returns true if so.
+ * Used to prevent applying limits when user may be in process of swapping values.
+ * @param {string} axis - 'x' or 'y'
+ * @returns {boolean} - true if warning state is active
+ */
+window.CasualPlots.hasAxisLimitWarning = (axis) => {
+    const minInput = document.getElementById(`axis-${axis}-min-input`);
+    return minInput ? minInput.classList.contains('warning') : false;
+}
+

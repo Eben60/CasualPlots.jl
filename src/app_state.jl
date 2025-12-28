@@ -82,7 +82,14 @@ function initialize_app_state()
     x_max = Observable{Union{Nothing, Float64}}(nothing)
     y_min = Observable{Union{Nothing, Float64}}(nothing)
     y_max = Observable{Union{Nothing, Float64}}(nothing)
-    plot_format = (; selected_plottype, show_legend, x_min, x_max, y_min, y_max)
+    # Default axis limits - values from plot creation time, used for reset when user clears a value
+    x_min_default = Observable{Union{Nothing, Float64}}(nothing)
+    x_max_default = Observable{Union{Nothing, Float64}}(nothing)
+    y_min_default = Observable{Union{Nothing, Float64}}(nothing)
+    y_max_default = Observable{Union{Nothing, Float64}}(nothing)
+    plot_format = (; selected_plottype, show_legend, 
+                    x_min, x_max, y_min, y_max,
+                    x_min_default, x_max_default, y_min_default, y_max_default)
     
     xlabel_text = Observable("")
     ylabel_text = Observable("")

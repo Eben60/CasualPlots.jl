@@ -37,6 +37,9 @@ casualplots_app() = App() do session
     control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
     setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger) # DataFrame mode callbacks
     setup_range_ui_sync(session, state)  # Sync range input fields with data bounds
+    setup_axis_limits_sync(session, state)  # Sync axis limits input fields
+    setup_axis_finallimits_listener(state)  # Listen to zoom/pan changes
+    setup_axis_limits_input_callbacks(state)  # Apply user-entered axis limits
     
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)
