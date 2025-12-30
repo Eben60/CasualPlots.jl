@@ -176,3 +176,31 @@ function create_axis_limits_row(x_min, x_max, y_min, y_max)
     DOM.div(caption_row, input_row; class="axis-limits-section")
 end
 
+"""
+    create_replot_button(current_axis, replot_trigger)
+
+Create a "Replot" button for the Format tab that applies format changes without reloading data.
+The button is enabled only when a plot exists (current_axis is not nothing).
+
+# Arguments
+- `current_axis::Observable`: Observable tracking the current Makie axis
+- `replot_trigger::Observable{Int}`: Observable to trigger format-only replot
+
+# Returns
+Observable DOM.button for triggering format replot
+"""
+function create_replot_button(current_axis, replot_trigger)
+    replot_enabled = map(current_axis) do axis
+        !isnothing(axis)
+    end
+    
+    map(replot_enabled) do enabled
+        DOM.button(
+            "Replot",
+            onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(replot_trigger))" : js"() => {}",
+            disabled=!enabled,
+            class=enabled ? "btn btn-success mt-2" : "btn btn-disabled mt-2"
+        )
+    end
+end
+

@@ -131,30 +131,50 @@ function setup_source_callback(state, outputs)
 end
 
 """
-    setup_format_callback(selected_plottype, show_legend, current_plot_x, current_plot_y, plot_observable, xlabel_text, ylabel_text, title_text, current_axis)
+    setup_replot_callback(state, outputs)
 
-Handle format changes (e.g., plot type `selected_plottype`, `show_legend` toggle).
-Triggers a replot using the currently stored data (`current_plot_x`, `current_plot_y`) with the new format settings.
-Updates the `plot_observable` and text fields, but does *not* regenerate the data table.
+Handle the Replot button click from the Format tab.
+Triggers a replot using the currently stored data with the new format settings (plot type, legend, labels, title, axis limits).
+Updates the `plot_observable` but does *not* regenerate the data table or reload data.
+This is explicitly triggered by the user clicking the Replot button.
 """
-function setup_format_callback(state, outputs)
-    (; selected_plottype, show_legend) = state.plotting.format
+function setup_replot_callback(state, outputs)
+    (; selected_plottype, show_legend, x_min, x_max, y_min, y_max) = state.plotting.format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
-    (; range_from, range_to) = state.data_selection
+    (; source_type, selected_dataframe, selected_columns, range_from, range_to) = state.data_selection
+    (; replot_trigger) = state.misc
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
 
-    onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
-        if state.misc.block_format_update[]
-            return
-        end
-
-        x = current_plot_x[]
-        y = current_plot_y[]
-        
-        # Only replot if we have valid data
-        if !isnothing(x) && !isnothing(y)
+    on(replot_trigger) do _
+        # Check which mode we're in and handle accordingly
+        if source_type[] == "DataFrame"
+            # DataFrame mode - use the helper function with axis limits
+            cols = selected_columns[]
+            df_name = selected_dataframe[]
+            
+            # Need valid DataFrame and column selections to replot
+            if isnothing(df_name) || df_name == "" || length(cols) < 2
+                return
+            end
+            
+            # Use helper function with reset_legend_title=false and update_table=false for format changes
+            # Axis limits are now passed through to update_dataframe_plot
+            update_dataframe_plot(state, outputs, df_name, cols; 
+                                  reset_legend_title=false, update_table=false,
+                                  range_from=range_from[], range_to=range_to[],
+                                  apply_limits=true)  # New flag to apply axis limits
+        else
+            # X,Y Arrays mode
+            x = current_plot_x[]
+            y = current_plot_y[]
+            
+            # Only replot if we have valid data
+            if isnothing(x) || isnothing(y)
+                return
+            end
+            
             # Capture current label values BEFORE creating new plot
             saved_xlabel = xlabel_text[]
             saved_ylabel = ylabel_text[]
@@ -167,15 +187,20 @@ function setup_format_callback(state, outputs)
             # Block label callbacks during plot recreation
             state.misc.block_format_update[] = true
             try
-                plottype = plottype_str |> Symbol |> eval
-                # Pass saved labels and title through plot_format so they're baked into the plot during creation
+                plottype = selected_plottype[] |> Symbol |> eval
+                # Pass all format settings including axis limits through plot_format
+                # so they're baked into the plot during creation
                 fig = check_data_create_plot(x, y; plot_format = (; 
                     plottype=plottype, 
-                    show_legend=legend_bool, 
-                    legend_title=leg_title,
-                    xlabel=saved_xlabel,  # Pass custom xlabel
-                    ylabel=saved_ylabel,  # Pass custom ylabel
-                    title=saved_title     # Pass custom title
+                    show_legend=show_legend[], 
+                    legend_title=legend_title_text[],
+                    xlabel=saved_xlabel,
+                    ylabel=saved_ylabel,
+                    title=saved_title,
+                    x_min=x_min[],  # Pass axis limits
+                    x_max=x_max[],
+                    y_min=y_min[],
+                    y_max=y_max[]
                 ), range_from=from_val, range_to=to_val)
                 if !isnothing(fig)
                     current_figure[] = fig.fig
@@ -186,7 +211,7 @@ function setup_format_callback(state, outputs)
                     # Force complete render
                     show(IOBuffer(), MIME"text/html"(), fig.fig)
                     plot_observable[] = plot_observable[]
-                    
+                    # Axis limits are already applied during plot creation - no need for post-hoc application
                 end
             finally
                 state.misc.block_format_update[] = false
@@ -212,7 +237,54 @@ function setup_format_callback(state, outputs)
 end
 
 """
-    update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false, range_from=nothing, range_to=nothing)
+    apply_axis_limits_from_state(state)
+
+Apply axis limits from state observables to the current axis.
+Called by setup_replot_callback when the Replot button is clicked.
+
+Note: After applying limits via xlims!/ylims!, we must notify the tick observables
+to force WGLMakie to refresh the grid lines and tick labels. This is a workaround
+for a WGLMakie rendering issue where data points rescale correctly but axis
+decorations remain stuck at their previous positions.
+"""
+function apply_axis_limits_from_state(state)
+    (; x_min, x_max, y_min, y_max) = state.plotting.format
+    (; current_axis) = state.plotting.handles
+    
+    axis = current_axis[]
+    isnothing(axis) && return
+    
+    xmin_val = x_min[]
+    xmax_val = x_max[]
+    ymin_val = y_min[]
+    ymax_val = y_max[]
+    
+    # Don't apply if min == max (user may be swapping)
+    x_valid = !isnothing(xmin_val) && !isnothing(xmax_val) && xmin_val != xmax_val
+    y_valid = !isnothing(ymin_val) && !isnothing(ymax_val) && ymin_val != ymax_val
+    
+    try
+        if x_valid
+            Makie.xlims!(axis, xmin_val, xmax_val)
+        end
+        if y_valid
+            Makie.ylims!(axis, ymin_val, ymax_val)
+        end
+        
+        # Workaround for WGLMakie: notify tick observables to force grid/tick refresh
+        # Without this, data points rescale correctly but grid lines and tick labels
+        # remain stuck at their previous positions
+        if x_valid || y_valid
+            notify(axis.xticks)
+            notify(axis.yticks)
+        end
+    catch e
+        @warn "Failed to apply axis limits" exception=e
+    end
+end
+
+"""
+    update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false, range_from=nothing, range_to=nothing, apply_limits=false)
 
 Helper function to update DataFrame plot with selected columns and format settings.
 Handles the common plotting logic used by both plot trigger and format callbacks.
@@ -226,11 +298,13 @@ Handles the common plotting logic used by both plot trigger and format callbacks
 - `update_table`: If true, updates the table observable (only for new plot data)
 - `range_from`: Starting row index (1-based for DataFrames)
 - `range_to`: Ending row index
+- `apply_limits`: If true, applies current axis limits from state (for Replot button)
 """
 function update_dataframe_plot(state, outputs, df_name, cols; 
                                reset_legend_title=false, update_table=false,
                                range_from::Union{Nothing,Int}=nothing, 
-                               range_to::Union{Nothing,Int}=nothing)
+                               range_to::Union{Nothing,Int}=nothing,
+                               apply_limits::Bool=false)
     (; format, handles) = state.plotting
     (; show_modal, modal_type) = state.dialogs
     (; selected_plottype, show_legend) = format
@@ -322,15 +396,34 @@ function update_dataframe_plot(state, outputs, df_name, cols;
         xlabel_setting = reset_legend_title ? nothing : saved_xlabel
         ylabel_setting = reset_legend_title ? nothing : saved_ylabel
         title_setting = reset_legend_title ? nothing : saved_title
-        fig = create_plot(df_selected; xcol=1, x_name=xcol_name, y_name=y_names,
-                         plot_format=(; 
-                             plottype=plottype, 
-                             show_legend=legend_setting, 
-                             legend_title=legend_title_text[],
-                             xlabel=xlabel_setting,
-                             ylabel=ylabel_setting,
-                             title=title_setting
-                         ))
+        
+        # Build plot_format - include axis limits if apply_limits is true
+        plot_format = if apply_limits
+            (; x_min, x_max, y_min, y_max) = format
+            (; 
+                plottype=plottype, 
+                show_legend=legend_setting, 
+                legend_title=legend_title_text[],
+                xlabel=xlabel_setting,
+                ylabel=ylabel_setting,
+                title=title_setting,
+                x_min=x_min[],
+                x_max=x_max[],
+                y_min=y_min[],
+                y_max=y_max[]
+            )
+        else
+            (; 
+                plottype=plottype, 
+                show_legend=legend_setting, 
+                legend_title=legend_title_text[],
+                xlabel=xlabel_setting,
+                ylabel=ylabel_setting,
+                title=title_setting
+            )
+        end
+        
+        fig = create_plot(df_selected; xcol=1, x_name=xcol_name, y_name=y_names, plot_format)
         
         if !isnothing(fig)
             current_figure[] = fig.fig
@@ -575,31 +668,8 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         end
     end
     
-    # Listen to format changes (plot type, legend) and replot with current DataFrame selection
-    onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
-        if state.misc.block_format_update[]
-            return
-        end
-        
-        # Only replot if in DataFrame mode with valid selections
-        if source_type[] != "DataFrame"
-            return
-        end
-        
-        cols = selected_columns[]
-        df_name = selected_dataframe[]
-        
-        # Need valid DataFrame and column selections to replot
-        if isnothing(df_name) || df_name == "" || length(cols) < 2
-            return
-        end
-        
-        # Use helper function with reset_legend_title=false and update_table=false for format changes
-        # Pass current range values
-        update_dataframe_plot(state, outputs, df_name, cols; 
-                              reset_legend_title=false, update_table=false,
-                              range_from=range_from[], range_to=range_to[])
-    end
+    # Note: Format changes (plot type, legend, labels) are now handled by setup_replot_callback
+    # which is triggered by the Replot button in the Format tab
 end
 
 """
@@ -764,110 +834,42 @@ end
 """
     setup_axis_limits_input_callbacks(state)
 
-Set up callbacks to apply user-entered axis limit values to the plot.
-Handles:
-- When user enters a value: apply it to the axis
-- When user clears a value (nothing): reset to default
-- When min == max: don't apply (user may be swapping)
+Set up callbacks to handle user-entered axis limit observables.
+Handles only the reset-to-default logic when a value is cleared (set to nothing).
+The actual application of limits to the axis is done by setup_replot_callback when
+the Replot button is clicked.
 """
 function setup_axis_limits_input_callbacks(state)
     (; x_min, x_max, y_min, y_max,
        x_min_default, x_max_default, y_min_default, y_max_default) = state.plotting.format
-    (; current_axis) = state.plotting.handles
     (; block_format_update) = state.misc
     
-    # Helper to apply limits to axis, respecting the min==max warning
-    function apply_limits_if_valid(axis, x_limits, y_limits)
-        isnothing(axis) && return
-        
-        x_min_val, x_max_val = x_limits
-        y_min_val, y_max_val = y_limits
-        
-        # Don't apply if x_min == x_max (user may be swapping)
-        if !isnothing(x_min_val) && !isnothing(x_max_val) && x_min_val == x_max_val
-            return
-        end
-        
-        # Don't apply if y_min == y_max (user may be swapping)
-        if !isnothing(y_min_val) && !isnothing(y_max_val) && y_min_val == y_max_val
-            return
-        end
-        
-        # Apply limits - Makie's xlims!/ylims! accept reversed ranges (for inverted axes)
-        try
-            if !isnothing(x_min_val) && !isnothing(x_max_val)
-                Makie.xlims!(axis, x_min_val, x_max_val)
-            end
-            if !isnothing(y_min_val) && !isnothing(y_max_val)
-                Makie.ylims!(axis, y_min_val, y_max_val)
-            end
-        catch e
-            @warn "Failed to apply axis limits" exception=e
-        end
-    end
-    
-    # Watch for changes in X limits
+    # Watch for cleared X limits and reset to defaults
     onany(x_min, x_max) do xmin, xmax
         block_format_update[] && return
-        axis = current_axis[]
-        isnothing(axis) && return
         
         # Reset to default if cleared
-        actual_xmin = isnothing(xmin) ? x_min_default[] : xmin
-        actual_xmax = isnothing(xmax) ? x_max_default[] : xmax
-        
-        # Update observable with actual value if it was reset
-        if isnothing(xmin) && !isnothing(actual_xmin)
-            x_min[] = actual_xmin
-            return  # Will re-trigger this callback with actual value
+        if isnothing(xmin) && !isnothing(x_min_default[])
+            x_min[] = x_min_default[]
         end
-        if isnothing(xmax) && !isnothing(actual_xmax)
-            x_max[] = actual_xmax
-            return
+        if isnothing(xmax) && !isnothing(x_max_default[])
+            x_max[] = x_max_default[]
         end
-        
-        # Get current Y limits from observables
-        ymin = y_min[]
-        ymax = y_max[]
-        
-        block_format_update[] = true
-        try
-            apply_limits_if_valid(axis, (actual_xmin, actual_xmax), (ymin, ymax))
-        finally
-            block_format_update[] = false
-        end
+        # Note: Actual axis limit application is done via Replot button
     end
     
-    # Watch for changes in Y limits
+    # Watch for cleared Y limits and reset to defaults
     onany(y_min, y_max) do ymin, ymax
         block_format_update[] && return
-        axis = current_axis[]
-        isnothing(axis) && return
         
         # Reset to default if cleared
-        actual_ymin = isnothing(ymin) ? y_min_default[] : ymin
-        actual_ymax = isnothing(ymax) ? y_max_default[] : ymax
-        
-        # Update observable with actual value if it was reset
-        if isnothing(ymin) && !isnothing(actual_ymin)
-            y_min[] = actual_ymin
-            return
+        if isnothing(ymin) && !isnothing(y_min_default[])
+            y_min[] = y_min_default[]
         end
-        if isnothing(ymax) && !isnothing(actual_ymax)
-            y_max[] = actual_ymax
-            return
+        if isnothing(ymax) && !isnothing(y_max_default[])
+            y_max[] = y_max_default[]
         end
-        
-        # Get current X limits from observables
-        xmin = x_min[]
-        xmax = x_max[]
-        
-        block_format_update[] = true
-        try
-            apply_limits_if_valid(axis, (xmin, xmax), (actual_ymin, actual_ymax))
-        finally
-            block_format_update[] = false
-        end
+        # Note: Actual axis limit application is done via Replot button
     end
 end
 

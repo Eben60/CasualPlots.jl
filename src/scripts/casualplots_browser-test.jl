@@ -9,7 +9,7 @@ println("Press Ctrl+C to stop the server")
 # Run the server wait loop in the background so the REPL remains responsive
 # @async wait(server)
 
-@show isopen(server)
+# @show isopen(server)
 
 println("To stop the server, run: close(server)")
 

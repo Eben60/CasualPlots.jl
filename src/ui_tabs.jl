@@ -104,6 +104,7 @@ function create_tab_content(control_panel, state, outputs)
         control_panel.ylabel_input,
         control_panel.title_input,
         control_panel.axis_limits,
+        control_panel.replot_button,
     )
     save_tab_result = create_save_tab_content(state)
     

@@ -103,8 +103,9 @@ function initialize_app_state()
     
     # --- Misc ---
     block_format_update = Observable(false)
+    replot_trigger = Observable(0)  # Trigger for format-only replots (no data reload)
     
-    misc = (; trigger_update, last_update, block_format_update)
+    misc = (; trigger_update, last_update, block_format_update, replot_trigger)
 
     return (; file_opening, file_saving, dialogs, data_selection, plotting, misc)
 end

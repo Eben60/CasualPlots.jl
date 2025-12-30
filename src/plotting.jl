@@ -76,6 +76,12 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     custom_title = get(plot_format, :title, nothing)
     custom_xlabel = get(plot_format, :xlabel, nothing)
     custom_ylabel = get(plot_format, :ylabel, nothing)
+    
+    # Check if custom axis limits were provided in plot_format
+    x_min = get(plot_format, :x_min, nothing)
+    x_max = get(plot_format, :x_max, nothing)
+    y_min = get(plot_format, :y_min, nothing)
+    y_max = get(plot_format, :y_max, nothing)
 
     # Use custom labels if provided, otherwise use the data column names
     final_x_name = if !isnothing(custom_xlabel) && custom_xlabel != ""
@@ -102,7 +108,7 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     fg = draw(plt;
         figure=(; size=(800, 600)), 
         legend=(show=show_legend, ),
-        axis=(; title)
+        axis=(; title, limits=(x_min, x_max, y_min, y_max))
     )
 
     fig = fg.figure

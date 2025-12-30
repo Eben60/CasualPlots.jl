@@ -15,10 +15,10 @@ Returns a NamedTuple with:
 - `axis_limits`: Axis limits input row (X min, X max, Y min, Y max)
 """
 function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
-    (; trigger_update) = state.misc
+    (; trigger_update, replot_trigger) = state.misc
     (; format, handles) = state.plotting
     (; show_legend, x_min, x_max, y_min, y_max) = format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text) = handles
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_axis) = handles
     (; source_type, selected_dataframe, selected_columns, selected_x, selected_y, 
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     (; opened_file_df) = state.file_opening
@@ -69,7 +69,10 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     # Axis limits input row
     axis_limits = create_axis_limits_row(x_min, x_max, y_min, y_max)
     
+    # Replot button for Format tab (applies format changes without reloading data)
+    replot_button = create_replot_button(current_axis, replot_trigger)
+    
     return (; source_type_selector, source_content, plot_kind, legend_control,
-              xlabel_input, ylabel_input, title_input, axis_limits, plot_trigger)
+              xlabel_input, ylabel_input, title_input, axis_limits, replot_button, plot_trigger)
 end
 
