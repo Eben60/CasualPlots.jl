@@ -80,8 +80,7 @@ javascripts.js                  # Global JavaScript functions (namespaced window
 
 # Core Logic
 plotting.jl                     # Plot generation using AlgebraOfGraphics + force_plot_refresh
-setup_callbacks.jl              # Core reactive callbacks (source, format, DataFrame)
-label_update_callbacks.jl       # Label text field callbacks
+setup_callbacks.jl              # Core reactive callbacks (source, replot, format, DataFrame)
 dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
 
 # UI Components (ui_*.jl)
@@ -207,18 +206,23 @@ The Open tab provides configurable file reading options before/after loading:
     - Useful for adjusting options after seeing initial import results
 
 #### 2. Formatting & Updates
-Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
+Formatting changes (Plot Type, Legend, Labels, Axis Limits) are applied via the **Replot button** in the Format tab, rather than automatically. This gives users explicit control over when changes take effect.
 
-**A. Format Callback Logic:**
-- **Triggered by**: `selected_plottype`, `show_legend`, `legend_title_text`.
+**A. Replot Button Logic (`setup_replot_callback`):**
+- **Triggered by**: User clicking the "Replot" button in the Format tab.
+- **Applies all format settings**:
+    - Plot type (`selected_plottype`)
+    - Legend visibility and title
+    - Custom labels (xlabel, ylabel, title)
+    - Axis limits (x_min, x_max, y_min, y_max) - passed at plot creation time
 - **Implementations**:
-    - X,Y Mode: `setup_format_callback` (uses `check_data_create_plot`)
-    - DataFrame Mode: Format callback within `setup_dataframe_callbacks` (uses `update_dataframe_plot` helper)
+    - X,Y Mode: Uses `check_data_create_plot` with full `plot_format` including axis limits
+    - DataFrame Mode: Uses `update_dataframe_plot` helper with `apply_limits=true`
 - **Shared Behavior**:
     - Replots using **currently stored data** (no new data fetch).
-    - **Preserves user labels**: Applies text from `xlabel_text`, `ylabel_text`, etc., to the new plot, overriding defaults.
+    - **Preserves user labels**: Applies text from `xlabel_text`, `ylabel_text`, etc., to the new plot.
     - **Does NOT update table**: Table update is skipped as data hasn't changed.
-    - **Race Condition Prevention**: Returns early if `block_format_update[]` is true.
+    - **Race Condition Prevention**: Uses `block_format_update[]` flag during plot recreation.
 
 **B. Label Persistence Strategy:**
 To ensure user edits to labels aren't lost during formatting updates:

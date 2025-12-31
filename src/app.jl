@@ -30,9 +30,6 @@ casualplots_app() = App() do session
     setup_source_callback(state, outputs)
     setup_replot_callback(state, outputs)  # Replot button callback (format changes)
     
-    # Setup label update callbacks for editable text fields
-    setup_label_update_callbacks(state, outputs)
-    
     # Create UI components
     control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
     setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger) # DataFrame mode callbacks

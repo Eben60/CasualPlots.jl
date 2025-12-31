@@ -31,7 +31,6 @@ include("create_demo_data.jl")
 include("plotting.jl")
 include("ui_tabs.jl")
 include("setup_callbacks.jl")
-include("label_update_callbacks.jl")
 
 include("dropdowns_setup.jl")
 include("ui_source_tab.jl")

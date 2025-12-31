@@ -237,53 +237,6 @@ function setup_replot_callback(state, outputs)
 end
 
 """
-    apply_axis_limits_from_state(state)
-
-Apply axis limits from state observables to the current axis.
-Called by setup_replot_callback when the Replot button is clicked.
-
-Note: After applying limits via xlims!/ylims!, we must notify the tick observables
-to force WGLMakie to refresh the grid lines and tick labels. This is a workaround
-for a WGLMakie rendering issue where data points rescale correctly but axis
-decorations remain stuck at their previous positions.
-"""
-function apply_axis_limits_from_state(state)
-    (; x_min, x_max, y_min, y_max) = state.plotting.format
-    (; current_axis) = state.plotting.handles
-    
-    axis = current_axis[]
-    isnothing(axis) && return
-    
-    xmin_val = x_min[]
-    xmax_val = x_max[]
-    ymin_val = y_min[]
-    ymax_val = y_max[]
-    
-    # Don't apply if min == max (user may be swapping)
-    x_valid = !isnothing(xmin_val) && !isnothing(xmax_val) && xmin_val != xmax_val
-    y_valid = !isnothing(ymin_val) && !isnothing(ymax_val) && ymin_val != ymax_val
-    
-    try
-        if x_valid
-            Makie.xlims!(axis, xmin_val, xmax_val)
-        end
-        if y_valid
-            Makie.ylims!(axis, ymin_val, ymax_val)
-        end
-        
-        # Workaround for WGLMakie: notify tick observables to force grid/tick refresh
-        # Without this, data points rescale correctly but grid lines and tick labels
-        # remain stuck at their previous positions
-        if x_valid || y_valid
-            notify(axis.xticks)
-            notify(axis.yticks)
-        end
-    catch e
-        @warn "Failed to apply axis limits" exception=e
-    end
-end
-
-"""
     update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false, range_from=nothing, range_to=nothing, apply_limits=false)
 
 Helper function to update DataFrame plot with selected columns and format settings.
