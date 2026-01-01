@@ -86,7 +86,13 @@ function initialize_app_state()
     # --- Misc ---
     block_format_update = Observable(false)
     
-    misc = (; trigger_update, last_update, block_format_update)
+    # Track which format options have been explicitly changed by user
+    # Keys: :title, :xlabel, :ylabel, :show_legend, :legend_title
+    # Values: true if user has changed this option, false otherwise
+    # Reset when new data is selected. Used to preserve user customizations during plot rebuilds.
+    format_changed = DefaultDict{Symbol, Bool}(false)
+    
+    misc = (; trigger_update, last_update, block_format_update, format_changed)
 
     return (; file_opening, file_saving, dialogs, data_selection, plotting, misc)
 end

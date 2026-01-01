@@ -63,8 +63,9 @@ function setup_source_callback(state, outputs)
             state.misc.block_format_update[] = true
             
             try
-                # Reset legend title for new plot
+                # Reset legend title and format changed flags for new plot
                 legend_title_text[] = ""
+                empty!(state.misc.format_changed)
 
                 plottype = selected_plottype[] |> Symbol |> eval
                 fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=nothing, legend_title=legend_title_text[]))
@@ -92,7 +93,8 @@ function setup_source_callback(state, outputs)
             current_plot_y[] = nothing
             plot_observable[] = DOM.div("Plot Pane")
             table_observable[] = DOM.div("Table Pane")
-            # Clear text fields and references
+            # Clear text fields, references, and format changed flags
+            empty!(state.misc.format_changed)
             xlabel_text[] = ""
             ylabel_text[] = ""
             title_text[] = ""
@@ -190,6 +192,9 @@ function setup_format_callback(state, outputs)
         fig = current_figure[]
         ax = current_axis[]
         
+        # Mark as changed by user
+        state.misc.format_changed[:show_legend] = true
+        
         # Only update if we have a valid plot
         if !isnothing(fig) && !isnothing(ax)
             update_plot_format!(fig, ax; show_legend=legend_bool)
@@ -204,6 +209,9 @@ function setup_format_callback(state, outputs)
         
         fig = current_figure[]
         ax = current_axis[]
+        
+        # Mark as changed by user
+        state.misc.format_changed[:legend_title] = true
         
         # Only update if we have a valid plot
         if !isnothing(fig) && !isnothing(ax)
@@ -404,6 +412,8 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Clear plot and table
         plot_observable[] = DOM.div("Plot Pane")
         table_observable[] = DOM.div("Table Pane")
+        # Clear format changed flags and text fields
+        empty!(state.misc.format_changed)
         xlabel_text[] = ""
         ylabel_text[] = ""
         title_text[] = ""
@@ -475,6 +485,9 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         fig = current_figure[]
         ax = current_axis[]
         
+        # Mark as changed by user
+        state.misc.format_changed[:show_legend] = true
+        
         # Only update if we have a valid plot
         if !isnothing(fig) && !isnothing(ax)
             update_plot_format!(fig, ax; show_legend=legend_bool)
@@ -494,6 +507,9 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         
         fig = current_figure[]
         ax = current_axis[]
+        
+        # Mark as changed by user
+        state.misc.format_changed[:legend_title] = true
         
         # Only update if we have a valid plot
         if !isnothing(fig) && !isnothing(ax)

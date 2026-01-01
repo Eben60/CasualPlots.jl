@@ -16,6 +16,7 @@ julia> Ele.serve_app(app) # Open GUI in Electron window
 module CasualPlots
 
 using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
+using DataStructures: DefaultDict
 # using Bonito.DOM
 
 include("electron.jl")
