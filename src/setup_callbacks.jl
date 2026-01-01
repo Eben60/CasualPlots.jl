@@ -150,8 +150,8 @@ function setup_format_callback(state, outputs)
                     
                     # Now publish the figure
                     plot_observable[] = fig.fig
-                    # Force complete render
-                    show(IOBuffer(), MIME"text/html"(), fig.fig)
+                    # Force complete render without breaking pan/zoom
+                    Makie.update_state_before_display!(fig.fig)
                     plot_observable[] = plot_observable[]
                     
                 end
@@ -296,8 +296,8 @@ function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title
                 # Format change: labels and title were already set via plot_format
                 # Now publish the figure
                 plot_observable[] = fig.fig
-                # Force complete render
-                show(IOBuffer(), MIME"text/html"(), fig.fig)
+                # Force complete render without breaking pan/zoom
+                Makie.update_state_before_display!(fig.fig)
                 plot_observable[] = plot_observable[]
             end
         end
