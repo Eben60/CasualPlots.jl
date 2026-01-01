@@ -3,56 +3,43 @@ Setup callbacks to update plot labels when text fields are edited.
 
 This function creates reactive callbacks that update the Makie axis properties
 (xlabel, ylabel, title) when the user edits the text fields and presses Enter.
+
+Uses update_plot_format!() for incremental updates without rebuilding the plot.
 """
 function setup_label_update_callbacks(state, outputs)
     (; xlabel_text, ylabel_text, title_text, current_axis, current_figure) = state.plotting.handles
-    plot_observable = outputs.plot
+    (; block_format_update) = state.misc
 
-    # Update X-axis label when text field changes
-    on(xlabel_text) do new_label
+    # Create callbacks for each label property
+    setup_label_callback(xlabel_text, :xlabel, current_axis, current_figure, block_format_update)
+    setup_label_callback(ylabel_text, :ylabel, current_axis, current_figure, block_format_update)
+    setup_label_callback(title_text, :title, current_axis, current_figure, block_format_update)
+end
+
+"""
+    setup_label_callback(text_observable, prop_name, current_axis, current_figure, block_format_update)
+
+Set up a single label update callback that updates axis property when text changes.
+
+# Arguments
+- `text_observable`: The Observable containing the text value
+- `prop_name`: Symbol for the axis property (:xlabel, :ylabel, or :title)
+- `current_axis`: Observable holding the current Makie Axis
+- `current_figure`: Observable holding the current Makie Figure
+- `block_format_update`: Observable flag to block updates during format changes
+"""
+function setup_label_callback(text_observable, prop_name::Symbol, 
+                               current_axis, current_figure, block_format_update)
+    on(text_observable) do new_value
         # Skip if format update is in progress to prevent interference
-        if state.misc.block_format_update[]
-            return
-        end
+        block_format_update[] && return
+        
         ax = current_axis[]
         fig = current_figure[]
-        if !isnothing(ax) && !isnothing(fig) && new_label != ""
-            if ax.xlabel[] != new_label
-                ax.xlabel = new_label
-                force_plot_refresh(plot_observable, fig)
-            end
-        end
-    end
-    
-    # Update Y-axis label when text field changes  
-    on(ylabel_text) do new_label
-        # Skip if format update is in progress to prevent interference
-        if state.misc.block_format_update[]
-            return
-        end
-        ax = current_axis[]
-        fig = current_figure[]
-        if !isnothing(ax) && !isnothing(fig) && new_label != ""
-            if ax.ylabel[] != new_label
-                ax.ylabel = new_label
-                force_plot_refresh(plot_observable, fig)
-            end
-        end
-    end
-    
-    # Update title when text field changes
-    on(title_text) do new_title
-        # Skip if format update is in progress to prevent interference
-        if state.misc.block_format_update[]
-            return
-        end
-        ax = current_axis[]
-        fig = current_figure[]
-        if !isnothing(ax) && !isnothing(fig) && new_title != ""
-            if ax.title[] != new_title
-                ax.title = new_title
-                force_plot_refresh(plot_observable, fig)
-            end
+        
+        # Only update if we have valid plot and non-empty value
+        if !isnothing(ax) && !isnothing(fig) && new_value != ""
+            update_plot_format!(fig, ax; (prop_name => new_value,)...)
         end
     end
 end

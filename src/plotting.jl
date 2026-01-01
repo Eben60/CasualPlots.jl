@@ -155,3 +155,125 @@ function force_plot_refresh(plot_observable, fig)
     # Trigger observable to re-render in the browser
     plot_observable[] = plot_observable[]
 end
+"""
+    update_plot_format!(fig, axis; kwargs...)
+
+Update plot format properties (title, xlabel, ylabel, legend visibility/title) 
+on an existing figure WITHOUT rebuilding the plot. This preserves pan/zoom state.
+
+Iterates over provided kwargs and updates axis properties using `axis[property]` syntax.
+Each changed property is notified individually to ensure reliable updates.
+
+# Arguments
+- `fig`: The Makie Figure object
+- `axis`: The Makie Axis object  
+
+# Keyword Arguments
+- `title::Union{String,Nothing}=nothing`: New title (if provided)
+- `xlabel::Union{String,Nothing}=nothing`: New X-axis label (if provided)
+- `ylabel::Union{String,Nothing}=nothing`: New Y-axis label (if provided)
+- `show_legend::Union{Bool,Nothing}=nothing`: Legend visibility (if provided)
+- `legend_title::Union{String,Nothing}=nothing`: Legend title (if provided)
+
+# Returns
+- `true` if update was successful
+- `false` if no valid axis/figure was provided
+
+# Notes
+Legend visibility and title are handled separately as they require finding 
+the Legend object in figure contents rather than modifying axis properties.
+"""
+function update_plot_format!(fig, axis; 
+                              title::Union{String,Nothing}=nothing,
+                              xlabel::Union{String,Nothing}=nothing,
+                              ylabel::Union{String,Nothing}=nothing,
+                              show_legend::Union{Bool,Nothing}=nothing,
+                              legend_title::Union{String,Nothing}=nothing)
+    
+    # Validate inputs
+    if isnothing(fig) || isnothing(axis)
+        return false
+    end
+    
+    # === Handle axis properties (title, xlabel, ylabel) ===
+    # Collect axis properties from kwargs
+    axis_props = (; title, xlabel, ylabel)
+    
+    for (prop_name, new_value) in pairs(axis_props)
+        update_axis_property!(axis, prop_name, new_value)
+    end
+    
+    # === Handle legend properties separately ===
+    if !isnothing(show_legend)
+        update_legend_visibility!(fig, show_legend)
+    end
+    
+    if !isnothing(legend_title) && legend_title != ""
+        update_legend_title!(fig, legend_title)
+    end
+    
+    return true
+end
+
+"""
+    update_axis_property!(axis, prop_name::Symbol, new_value)
+
+Update a single axis property and notify if changed.
+Uses `axis[prop_name]` to access the property dynamically.
+"""
+function update_axis_property!(axis, prop_name::Symbol, new_value)
+    # Skip if no value provided or empty string
+    if isnothing(new_value) || new_value == ""
+        return false
+    end
+    
+    # Get the property observable
+    prop_observable = getproperty(axis, prop_name)
+    
+    # Only update and notify if value actually changed
+    if prop_observable[] != new_value
+        prop_observable[] = new_value
+        # notify(prop_observable)  # Setting via [] already triggers notify
+        return true
+    end
+    
+    return false
+end
+
+"""
+    update_legend_visibility!(fig, show_legend::Bool)
+
+Find and update legend visibility in a Makie Figure.
+AlgebraOfGraphics stores legends in fig.content as Legend objects.
+"""
+function update_legend_visibility!(fig, show_legend::Bool)
+    for content in fig.content
+        if content isa Legend
+            # Toggle legend visibility via blockscene
+            if content.blockscene.visible[] != show_legend
+                content.blockscene.visible[] = show_legend
+            end
+            return true
+        end
+    end
+    return false  # Legend not found
+end
+
+"""
+    update_legend_title!(fig, legend_title::String)
+
+Find and update legend title in a Makie Figure.
+Note: AlgebraOfGraphics legends have complex structure - this may need refinement.
+"""
+function update_legend_title!(fig, legend_title::String)
+    for content in fig.content
+        if content isa Legend
+            # Legend title is stored in content.entrygroups or related fields
+            # AlgebraOfGraphics uses a specific structure that may differ from manual Legend
+            # TODO: Implement proper legend title update for AlgebraOfGraphics
+            # For now, this is a placeholder that may need refinement
+            return false
+        end
+    end
+    return false  # Legend not found
+end

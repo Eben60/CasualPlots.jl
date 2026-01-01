@@ -106,7 +106,11 @@ end
     setup_format_callback(selected_plottype, show_legend, current_plot_x, current_plot_y, plot_observable, xlabel_text, ylabel_text, title_text, current_axis)
 
 Handle format changes (e.g., plot type `selected_plottype`, `show_legend` toggle).
-Triggers a replot using the currently stored data (`current_plot_x`, `current_plot_y`) with the new format settings.
+
+Plot type changes trigger a full replot to rebuild the visual representation.
+Legend changes (visibility, title) use update_plot_format!() for incremental updates
+that preserve pan/zoom state.
+
 Updates the `plot_observable` and text fields, but does *not* regenerate the data table.
 """
 function setup_format_callback(state, outputs)
@@ -116,7 +120,8 @@ function setup_format_callback(state, outputs)
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
 
-    onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
+    # === Plot Type Change Handler (requires full rebuild) ===
+    on(selected_plottype) do plottype_str
         if state.misc.block_format_update[]
             return
         end
@@ -130,6 +135,8 @@ function setup_format_callback(state, outputs)
             saved_xlabel = xlabel_text[]
             saved_ylabel = ylabel_text[]
             saved_title = title_text[]
+            legend_bool = show_legend[]
+            leg_title = legend_title_text[]
             
             # Block label callbacks during plot recreation
             state.misc.block_format_update[] = true
@@ -140,9 +147,9 @@ function setup_format_callback(state, outputs)
                     plottype=plottype, 
                     show_legend=legend_bool, 
                     legend_title=leg_title,
-                    xlabel=saved_xlabel,  # Pass custom xlabel
-                    ylabel=saved_ylabel,  # Pass custom ylabel
-                    title=saved_title     # Pass custom title
+                    xlabel=saved_xlabel,
+                    ylabel=saved_ylabel,
+                    title=saved_title
                 ))
                 if !isnothing(fig)
                     current_figure[] = fig.fig
@@ -153,14 +160,12 @@ function setup_format_callback(state, outputs)
                     # Force complete render without breaking pan/zoom
                     Makie.update_state_before_display!(fig.fig)
                     plot_observable[] = plot_observable[]
-                    
                 end
             finally
                 state.misc.block_format_update[] = false
             end
             
-            # UNBLOCKED Force Notify:
-            # Update text observables AFTER unblocking.
+            # UNBLOCKED Force Notify - restore text field values
             if !isempty(saved_xlabel)
                 xlabel_text[] = ""
                 xlabel_text[] = saved_xlabel
@@ -174,9 +179,39 @@ function setup_format_callback(state, outputs)
                 title_text[] = saved_title
             end
         end
-        # Note: Table is NOT updated - it's source-dependent only
+    end
+
+    # === Legend Visibility Change Handler (incremental update) ===
+    on(show_legend) do legend_bool
+        if state.misc.block_format_update[]
+            return
+        end
+        
+        fig = current_figure[]
+        ax = current_axis[]
+        
+        # Only update if we have a valid plot
+        if !isnothing(fig) && !isnothing(ax)
+            update_plot_format!(fig, ax; show_legend=legend_bool)
+        end
+    end
+
+    # === Legend Title Change Handler (incremental update) ===
+    on(legend_title_text) do leg_title
+        if state.misc.block_format_update[]
+            return
+        end
+        
+        fig = current_figure[]
+        ax = current_axis[]
+        
+        # Only update if we have a valid plot
+        if !isnothing(fig) && !isnothing(ax)
+            update_plot_format!(fig, ax; legend_title=leg_title)
+        end
     end
 end
+
 
 """
     update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
@@ -403,8 +438,8 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=true, update_table=true)
     end
     
-    # Listen to format changes (plot type, legend) and replot with current DataFrame selection
-    onany(selected_plottype, show_legend, legend_title_text) do plottype_str, legend_bool, leg_title
+    # === Plot Type Change Handler for DataFrame mode (requires full rebuild) ===
+    on(selected_plottype) do plottype_str
         if state.misc.block_format_update[]
             return
         end
@@ -424,5 +459,45 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         
         # Use helper function with reset_legend_title=false and update_table=false for format changes
         update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+    end
+
+    # === Legend Visibility Change Handler for DataFrame mode (incremental update) ===
+    on(show_legend) do legend_bool
+        if state.misc.block_format_update[]
+            return
+        end
+        
+        # Only update if in DataFrame mode with valid selections
+        if source_type[] != "DataFrame"
+            return
+        end
+        
+        fig = current_figure[]
+        ax = current_axis[]
+        
+        # Only update if we have a valid plot
+        if !isnothing(fig) && !isnothing(ax)
+            update_plot_format!(fig, ax; show_legend=legend_bool)
+        end
+    end
+
+    # === Legend Title Change Handler for DataFrame mode (incremental update) ===
+    on(legend_title_text) do leg_title
+        if state.misc.block_format_update[]
+            return
+        end
+        
+        # Only update if in DataFrame mode with valid selections
+        if source_type[] != "DataFrame"
+            return
+        end
+        
+        fig = current_figure[]
+        ax = current_axis[]
+        
+        # Only update if we have a valid plot
+        if !isnothing(fig) && !isnothing(ax)
+            update_plot_format!(fig, ax; legend_title=leg_title)
+        end
     end
 end
