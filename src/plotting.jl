@@ -263,16 +263,34 @@ end
     update_legend_title!(fig, legend_title::String)
 
 Find and update legend title in a Makie Figure.
-Note: AlgebraOfGraphics legends have complex structure - this may need refinement.
+AlgebraOfGraphics stores legend title in `leg.entrygroups[]` as a Vector of 
+`(title::String, entries::Vector{LegendEntry})` tuples.
 """
 function update_legend_title!(fig, legend_title::String)
     for content in fig.content
         if content isa Legend
-            # Legend title is stored in content.entrygroups or related fields
-            # AlgebraOfGraphics uses a specific structure that may differ from manual Legend
-            # TODO: Implement proper legend title update for AlgebraOfGraphics
-            # For now, this is a placeholder that may need refinement
-            return false
+            # entrygroups is an Observable{Vector{Tuple{Any, Vector{LegendEntry}}}}
+            # Each tuple is (title, entries) - we need to update the title
+            current_groups = content.entrygroups[]
+            
+            if !isempty(current_groups)
+                # Create new groups with updated title (first group only - typical for our plots)
+                # Preserve other groups if they exist
+                new_groups = similar(current_groups)
+                for (i, (old_title, entries)) in enumerate(current_groups)
+                    if i == 1
+                        # Update the first group's title
+                        new_groups[i] = (legend_title, entries)
+                    else
+                        # Keep other groups unchanged
+                        new_groups[i] = (old_title, entries)
+                    end
+                end
+                
+                # Assign to observable to trigger update
+                content.entrygroups[] = new_groups
+                return true
+            end
         end
     end
     return false  # Legend not found
