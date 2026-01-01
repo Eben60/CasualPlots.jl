@@ -142,18 +142,68 @@ function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractStri
     end
 
 end
+"""
+    update_plot_format!(fig, axis; kwargs...)
+
+Update plot format properties (title, xlabel, ylabel) on an existing figure 
+WITHOUT rebuilding the plot. This preserves pan/zoom state.
+
+Note: Legend visibility and title are now handled by full replot.
+
+# Arguments
+- `fig`: The Makie Figure object
+- `axis`: The Makie Axis object  
+
+# Keyword Arguments
+- `title::Union{String,Nothing}=nothing`: New title (if provided)
+- `xlabel::Union{String,Nothing}=nothing`: New X-axis label (if provided)
+- `ylabel::Union{String,Nothing}=nothing`: New Y-axis label (if provided)
+
+# Returns
+- `true` if update was successful
+- `false` if no valid axis/figure was provided
+"""
+function update_plot_format!(fig, axis; 
+                              title::Union{String,Nothing}=nothing,
+                              xlabel::Union{String,Nothing}=nothing,
+                              ylabel::Union{String,Nothing}=nothing,
+                              kwargs...)  # Accept but ignore other kwargs like legend_title
+    
+    # Validate inputs
+    if isnothing(fig) || isnothing(axis)
+        return false
+    end
+    
+    # === Handle axis properties (title, xlabel, ylabel) ===
+    axis_props = (; title, xlabel, ylabel)
+    
+    for (prop_name, new_value) in pairs(axis_props)
+        update_axis_property!(axis, prop_name, new_value)
+    end
+    
+    return true
+end
 
 """
-    force_plot_refresh(plot_observable, fig)
+    update_axis_property!(axis, prop_name::Symbol, new_value)
 
-Force a complete render of the plot to ensure updates (like label changes) are reflected in the UI.
-This is necessary because ... because this was the only way I could get plot reliably updated after e.g. title change.
+Update a single axis property and notify if changed.
+Uses `axis[prop_name]` to access the property dynamically.
 """
-function force_plot_refresh(plot_observable, fig)
-    # Trigger refresh before
-    plot_observable[] = plot_observable[]
-    # Force Makie render
-    show(IOBuffer(), MIME"text/html"(), fig)
-    # Trigger refresh after
-    plot_observable[] = plot_observable[]
+function update_axis_property!(axis, prop_name::Symbol, new_value)
+    # Skip if no value provided or empty string
+    if isnothing(new_value) || new_value == ""
+        return false
+    end
+    
+    # Get the property observable
+    prop_observable = getproperty(axis, prop_name)
+    
+    # Only update and notify if value actually changed
+    if prop_observable[] != new_value
+        prop_observable[] = new_value
+        return true
+    end
+    
+    return false
 end

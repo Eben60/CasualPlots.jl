@@ -79,8 +79,8 @@ css_styles.css                  # Global CSS styles for all UI components
 javascripts.js                  # Global JavaScript functions (namespaced window.CasualPlots)
 
 # Core Logic
-plotting.jl                     # Plot generation using AlgebraOfGraphics + force_plot_refresh
-setup_callbacks.jl              # Core reactive callbacks (source, format, DataFrame)
+plotting.jl                     # Plot generation using AlgebraOfGraphics
+setup_callbacks.jl              # Core reactive callbacks (do_replot, source, format, DataFrame)
 label_update_callbacks.jl       # Label text field callbacks
 dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
 
@@ -171,7 +171,11 @@ state = (;
     misc = (;
         trigger_update::Observable{Bool},
         last_update::Ref{Float64},
-        block_format_update::Observable{Bool}  # Race condition prevention
+        block_format_update::Observable{Bool},  # Race condition prevention
+        format_is_default::DefaultDict{Symbol, Bool},  # Track user-customized format options
+        last_plotted_x::Observable{Union{Nothing, String}},  # Data source tracking (Array)
+        last_plotted_y::Observable{Union{Nothing, String}},  # Data source tracking (Array)
+        last_plotted_dataframe::Observable{Union{Nothing, String}}  # Data source tracking (DataFrame)
     )
 )
 ```
@@ -255,18 +259,31 @@ Formatting changes (Plot Type, Legend, Labels) are handled differently to preser
 **A. Format Callback Logic:**
 - **Triggered by**: `selected_plottype`, `show_legend`, `legend_title_text`.
 - **Implementations**:
-    - X,Y Mode: `setup_format_callback` (uses `check_data_create_plot`)
-    - DataFrame Mode: Format callback within `setup_dataframe_callbacks` (uses `update_dataframe_plot` helper)
+    - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
+    - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` → `do_replot`)
 - **Shared Behavior**:
-    - Replots using **currently stored data** (no new data fetch).
-    - **Preserves user labels**: Applies text from `xlabel_text`, `ylabel_text`, etc., to the new plot, overriding defaults.
+    - **All format changes trigger full replot** using the unified `do_replot` function.
+    - **Preserves user labels**: `format_is_default` dict tracks which options are customized. After replot, `apply_custom_formatting!` re-applies non-default values.
     - **Does NOT update table**: Table update is skipped as data hasn't changed.
     - **Race Condition Prevention**: Returns early if `block_format_update[]` is true.
+    - **Legend title optimization**: Skip replot if legend is not visible (title is saved for when legend becomes visible).
 
-**B. Label Persistence Strategy:**
-To ensure user edits to labels aren't lost during formatting updates:
-1.  **Source Update**: Generates plot with *default* labels from data, then updates the text input fields.
-2.  **Format Update**: Reads values *from* the text input fields and applies them to the new plot, ensuring manual edits persist.
+**B. Format Persistence Strategy (`format_is_default`):**
+A `DefaultDict{Symbol, Bool}` tracks which format options are still at their default values:
+- `:title`, `:xlabel`, `:ylabel` - label text fields
+- `:show_legend`, `:legend_title` - legend settings  
+- `:plottype` - plot type (persists across data source changes)
+
+**Data Source Tracking:**
+- `last_plotted_x`, `last_plotted_y` - track last X and Y variable names (Array mode)
+- `last_plotted_dataframe` - tracks last DataFrame name (DataFrame mode)
+- Format resets only when **data source changes** (different X or Y variable, or different DataFrame), not when re-plotting same source with different columns.
+
+**Flow:**
+1.  **New Data Source**: `is_new_data=true` → reset all non-persistent flags to `true`, initialize text fields from plot defaults.
+2.  **Same Source, Different Columns**: `is_new_data=false` → preserve all format customizations.
+3.  **User Edit**: Mark corresponding flag as `false` (e.g., user changes title → `format_is_default[:title] = false`).
+4.  **Replot**: After creating new plot, `apply_custom_formatting!` iterates over non-default options and re-applies them.
 
 #### 3. Legend Behavior
 - **Default Visibility**: `show_legend` defaults to `true` only if `n_cols > 1`.
@@ -280,10 +297,16 @@ To ensure user edits to labels aren't lost during formatting updates:
 All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`Axis` calls in plotting logic).
 
 **Key Functions:**
+- `do_replot(state, outputs; data, plot_format, is_new_data)`: **Unified entry point** for all plotting
+  - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames
+  - `plot_format`: `(; plottype, show_legend, legend_title)`
+  - `is_new_data`: If true, initializes text fields from plot defaults
 - `check_data_create_plot(x_name, y_name; plot_format)`: Fetch from Main, delegate to create_plot
 - `create_plot(x_data::AbstractVector, y_data, ...)`: Arrays → DataFrame → AoG pipeline
 - `create_plot(df::AbstractDataFrame; xcol=1, ...)`: DataFrame → long format → AoG
 - `create_plot_df_long(df, ...)`: Core AoG plotting logic
+- `update_plot_format!(fig, axis; title, xlabel, ylabel)`: Update axis labels without replot
+- `apply_custom_formatting!(fig, ax, state)`: Re-apply non-default format options after replot
 
 **AlgebraOfGraphics Pattern:**
 ```julia
@@ -301,8 +324,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Known Issues 
    
-1. **Label Persistence** : Plot title/labels by user not always successful, often multiple "Enters" combined with text changes necessary.
-   - Tried Solution: Logics implemented in `force_plot_refresh` improves situation, but not 100%
+- currently none
 
 ### Road-map
 
@@ -310,14 +332,12 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Planned Enhancements (as of v0.0.6)
+#### Planned Enhancements (as of v0.3.1)
 
-- ~~Importing data from external files~~ ✓ (CSV/XLSX with configurable options + reload)
-- Optional regression‑fit overlays  
-- Automatic Julia code generation from GUI actions  
 - Additional formatting options (e.g., axis limits, themes)  
 - Support for multiple independent data sources
-
+- Automatic Julia code generation from GUI actions
+- Optional regression‑fit overlays  
 
 ### Development Workflows
 

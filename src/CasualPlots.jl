@@ -16,7 +16,19 @@ julia> Ele.serve_app(app) # Open GUI in Electron window
 module CasualPlots
 
 using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
-# using Bonito.DOM
+using DataStructures: DefaultDict
+
+const REQUIRES_FULL_REPLOT = (;
+    plottype = true, 
+    show_legend = true,
+    legend_title = true,
+    title = false,
+    xlabel = false,
+    ylabel = false,
+)
+
+const PERSISTENT_FORMAT_OPTION = (:plottype, )
+const DEFAULT_PLOT_TYPE = :Scatter
 
 include("electron.jl")
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)

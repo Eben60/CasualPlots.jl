@@ -25,19 +25,23 @@ sequenceDiagram
     Obs->>SourceCB: Triggered (selected_x, selected_y changed)
     activate SourceCB
     
+    SourceCB->>Obs: Check last_plotted_x[], last_plotted_y[]
+    Note over SourceCB: is_new_source = (x != last_x || y != last_y)
+    
     SourceCB->>Obs: block_format_update[] = true
     Note over SourceCB: Prevent format callback race
     
     SourceCB->>SourceCB: Fetch data from Main module
-    SourceCB->>Plot: create_plot(x_data, y_data)
+    SourceCB->>Plot: do_replot(data, format, is_new_data=is_new_source)
     Plot-->>SourceCB: fig_result (with defaults)
     
-    SourceCB->>Obs: current_plot_x[] = x_data
-    SourceCB->>Obs: current_plot_y[] = y_data
-    SourceCB->>Obs: xlabel_text[] = default_x_label
-    SourceCB->>Obs: ylabel_text[] = default_y_label
-    SourceCB->>Obs: title_text[] = default_title
+    alt is_new_source == true
+        SourceCB->>Obs: Reset format_is_default flags
+        SourceCB->>Obs: Initialize text fields from plot defaults
+    end
     
+    SourceCB->>Obs: last_plotted_x[] = x
+    SourceCB->>Obs: last_plotted_y[] = y
     SourceCB->>Table: Update table with data
     SourceCB->>Obs: plot[] = new figure
     
@@ -57,11 +61,17 @@ sequenceDiagram
         FormatCB->>FormatCB: Return early (blocked)
     else block_format_update == false
         FormatCB->>Obs: Read current_plot_x[], current_plot_y[]
-        FormatCB->>Obs: Read xlabel_text[], ylabel_text[], title_text[]
-        Note over FormatCB: Use stored data + user labels
+        Note over FormatCB: Validate data exists
         
-        FormatCB->>Plot: create_plot with format settings
-        Plot-->>FormatCB: new fig (preserves labels)
+        FormatCB->>Obs: format_is_default[:plottype] = false
+        Note over FormatCB: Mark as user-customized
+        
+        FormatCB->>Plot: do_replot(data, plot_format)
+        Note over Plot: Create new plot with format settings
+        Plot-->>FormatCB: fig_result
+        
+        FormatCB->>FormatCB: apply_custom_formatting!(fig, ax, state)
+        Note over FormatCB: Re-apply non-default labels/legend
         
         FormatCB->>Obs: plot[] = new figure
         Note over FormatCB: Table NOT updated (source unchanged)

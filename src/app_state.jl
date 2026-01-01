@@ -86,9 +86,60 @@ function initialize_app_state()
     # --- Misc ---
     block_format_update = Observable(false)
     
-    misc = (; trigger_update, last_update, block_format_update)
+    # Track which format options have been explicitly changed by user
+    # Keys: :title, :xlabel, :ylabel, :show_legend, :legend_title
+    # Values: true if user has changed this option, false otherwise
+    # Reset when new data source is selected. Used to preserve user customizations during plot rebuilds.
+    format_is_default = DefaultDict{Symbol, Bool}(true)
+    
+    # Track last plotted data source to detect when a NEW source is selected
+    # (vs just re-plotting same source with different columns)
+    last_plotted_x = Observable{Union{Nothing, String}}(nothing)  # For Array mode (X variable)
+    last_plotted_y = Observable{Union{Nothing, String}}(nothing)  # For Array mode (Y variable)
+    last_plotted_dataframe = Observable{Union{Nothing, String}}(nothing)  # For DataFrame mode
+    
+    misc = (; trigger_update, last_update, block_format_update, format_is_default, last_plotted_x, last_plotted_y, last_plotted_dataframe)
 
     return (; file_opening, file_saving, dialogs, data_selection, plotting, misc)
+end
+
+"""
+    reset_format_defaults!(format_is_default::DefaultDict{Symbol, Bool})
+
+Reset format_is_default dict to all-default state, EXCEPT for options
+listed in PERSISTENT_FORMAT_OPTION which should persist across data source changes.
+"""
+reset_format_defaults!(format_is_default) = filter!(p -> p.first in PERSISTENT_FORMAT_OPTION, format_is_default)
+
+"""
+    apply_custom_formatting!(fig, ax, state)
+
+Apply user-customized format options to the plot after creation.
+Only applies options where `format_is_default[key] == false`, meaning the user
+has explicitly changed them from their default values.
+
+This allows user customizations to persist across plot rebuilds.
+"""
+function apply_custom_formatting!(fig, ax, state)
+    isnothing(fig) && return
+    isnothing(ax) && return
+    
+    format_is_default = state.misc.format_is_default
+    handles = state.plotting.handles
+    
+    # Map from format_is_default keys to the corresponding observable and update_plot_format! keyword
+    format_map = (;
+        title = handles.title_text,
+        xlabel = handles.xlabel_text,
+        ylabel = handles.ylabel_text,
+        legend_title = handles.legend_title_text,
+    )
+    
+    for (key, obs) in pairs(format_map)
+        if !format_is_default[key]
+            update_plot_format!(fig, ax; (key => obs[],)...)
+        end
+    end
 end
 
 """
