@@ -131,12 +131,46 @@ function setup_source_callback(state, outputs)
 end
 
 """
+    update_axis_format!(axis, state)
+
+Update an existing axis's format attributes directly (title, labels, limits).
+This preserves WGLMakie interactivity (zoom/pan) since we're modifying the
+existing axis rather than creating a new one.
+
+Returns true if update was successful, false if axis is nothing.
+"""
+function update_axis_format!(axis, state)
+    isnothing(axis) && return false
+    
+    (; xlabel_text, ylabel_text, title_text) = state.plotting.handles
+    (; x_min, x_max, y_min, y_max) = state.plotting.format
+    
+    # Update title and labels
+    axis.title.val = title_text[]
+    axis.xlabel.val = xlabel_text[]
+    axis.ylabel.val = ylabel_text[]
+    
+    # Update limits - use 4-tuple format (xmin, xmax, ymin, ymax)
+    # Each can be nothing for auto
+    # axis.limits.val = (x_min[], x_max[], y_min[], y_max[])
+    
+    # Notify ticks to ensure grid/tick labels refresh
+    notify(axis.title)
+    # notify(axis.yticks)
+    
+    return true
+end
+
+"""
     setup_replot_callback(state, outputs)
 
-Handle the Replot button click from the Format tab.
-Triggers a replot using the currently stored data with the new format settings (plot type, legend, labels, title, axis limits).
-Updates the `plot_observable` but does *not* regenerate the data table or reload data.
-This is explicitly triggered by the user clicking the Replot button.
+Setup callback for the Replot button in the Format tab.
+
+This callback updates the existing plot's format (title, labels, limits) WITHOUT
+recreating the Figure/Axis. This is critical for preserving WGLMakie interactivity
+(zoom, pan, grid updates).
+
+Note: Plot type changes still require full recreation (not yet implemented here).
 """
 function setup_replot_callback(state, outputs)
     (; selected_plottype, show_legend, x_min, x_max, y_min, y_max) = state.plotting.format
@@ -148,6 +182,26 @@ function setup_replot_callback(state, outputs)
     plot_observable = outputs.plot
 
     on(replot_trigger) do _
+        axis = current_axis[]
+        
+        # If we have an existing axis, update it directly (preserves interactivity!)
+        if !isnothing(axis)
+            @info "Replot: Updating existing axis attributes directly"
+            update_axis_format!(axis, state)
+            
+            # # Force a render refresh without recreating the figure
+            # fig = current_figure[]
+            # if !isnothing(fig)
+            #     show(IOBuffer(), MIME"text/html"(), fig)
+            #     plot_observable[] = plot_observable[]
+            # end
+            return
+        end
+        
+        # Fallback: No existing axis - need to create plot
+        # This shouldn't normally happen since Replot is only enabled after a plot exists
+        @warn "Replot: No existing axis - falling back to full plot recreation"
+        
         # Check which mode we're in and handle accordingly
         if source_type[] == "DataFrame"
             # DataFrame mode - use the helper function with axis limits
@@ -164,7 +218,7 @@ function setup_replot_callback(state, outputs)
             update_dataframe_plot(state, outputs, df_name, cols; 
                                   reset_legend_title=false, update_table=false,
                                   range_from=range_from[], range_to=range_to[],
-                                  apply_limits=true)  # New flag to apply axis limits
+                                  apply_limits=true)
         else
             # X,Y Arrays mode
             x = current_plot_x[]
@@ -189,7 +243,6 @@ function setup_replot_callback(state, outputs)
             try
                 plottype = selected_plottype[] |> Symbol |> eval
                 # Pass all format settings including axis limits through plot_format
-                # so they're baked into the plot during creation
                 fig = check_data_create_plot(x, y; plot_format = (; 
                     plottype=plottype, 
                     show_legend=show_legend[], 
@@ -197,7 +250,7 @@ function setup_replot_callback(state, outputs)
                     xlabel=saved_xlabel,
                     ylabel=saved_ylabel,
                     title=saved_title,
-                    x_min=x_min[],  # Pass axis limits
+                    x_min=x_min[],
                     x_max=x_max[],
                     y_min=y_min[],
                     y_max=y_max[]
@@ -211,14 +264,12 @@ function setup_replot_callback(state, outputs)
                     # Force complete render
                     show(IOBuffer(), MIME"text/html"(), fig.fig)
                     plot_observable[] = plot_observable[]
-                    # Axis limits are already applied during plot creation - no need for post-hoc application
                 end
             finally
                 state.misc.block_format_update[] = false
             end
             
-            # UNBLOCKED Force Notify:
-            # Update text observables AFTER unblocking.
+            # Update text observables AFTER unblocking
             if !isempty(saved_xlabel)
                 xlabel_text[] = ""
                 xlabel_text[] = saved_xlabel
