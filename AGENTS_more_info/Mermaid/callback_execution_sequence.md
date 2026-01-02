@@ -57,11 +57,17 @@ sequenceDiagram
         FormatCB->>FormatCB: Return early (blocked)
     else block_format_update == false
         FormatCB->>Obs: Read current_plot_x[], current_plot_y[]
-        FormatCB->>Obs: Read xlabel_text[], ylabel_text[], title_text[]
-        Note over FormatCB: Use stored data + user labels
+        Note over FormatCB: Validate data exists
         
-        FormatCB->>Plot: create_plot with format settings
-        Plot-->>FormatCB: new fig (preserves labels)
+        FormatCB->>Obs: format_is_default[:plottype] = false
+        Note over FormatCB: Mark as user-customized
+        
+        FormatCB->>Plot: do_replot(data, plot_format)
+        Note over Plot: Create new plot with format settings
+        Plot-->>FormatCB: fig_result
+        
+        FormatCB->>FormatCB: apply_custom_formatting!(fig, ax, state)
+        Note over FormatCB: Re-apply non-default labels/legend
         
         FormatCB->>Obs: plot[] = new figure
         Note over FormatCB: Table NOT updated (source unchanged)

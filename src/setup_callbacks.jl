@@ -1,4 +1,70 @@
 """
+    do_replot(state, outputs; data, plot_format, is_new_data=false)
+
+Unified function for plotting and replotting, regardless of data source or update reason.
+
+# Arguments
+- `state`: Application state NamedTuple
+- `outputs`: Output observables NamedTuple
+- `data`: NamedTuple with either:
+  - `(; x_name, y_name)` for array mode (fetches from Main)
+  - `(; df, x_name, y_name)` for DataFrame mode (uses provided DataFrame)
+- `plot_format`: NamedTuple with format options `(; plottype, show_legend, legend_title)`
+- `is_new_data`: If true, initializes text fields from plot defaults and resets format_is_default
+
+# Returns
+- The FigureResult if successful, nothing otherwise
+"""
+function do_replot(state, outputs; data, plot_format, is_new_data=false)
+    (; current_figure, current_axis, xlabel_text, ylabel_text, title_text, legend_title_text) = state.plotting.handles
+    (; show_legend) = state.plotting.format
+    plot_observable = outputs.plot
+    
+    state.misc.block_format_update[] = true
+    try
+        # Create the plot based on data type
+        local fig
+        if haskey(data, :df)
+            # DataFrame mode
+            fig = create_plot(data.df; xcol=1, x_name=data.x_name, y_name=data.y_name,
+                             plot_format=plot_format)
+        else
+            # Array mode - fetch from Main
+            fig = check_data_create_plot(data.x_name, data.y_name; plot_format=plot_format)
+        end
+        
+        if isnothing(fig)
+            return nothing
+        end
+        
+        current_figure[] = fig.fig
+        current_axis[] = fig.axis
+        
+        if is_new_data
+            # New data: initialize text fields with defaults from the plot
+            xlabel_text[] = fig.fig_params.x_name
+            ylabel_text[] = fig.fig_params.y_name
+            title_text[] = fig.fig_params.title
+            show_legend[] = fig.fig_params.updated_show_legend
+            # Reset legend title for new data
+            legend_title_text[] = ""
+            # Reset format flags (preserves persistent ones like plottype)
+            reset_format_defaults!(state.misc.format_is_default)
+        end
+        
+        # Publish the figure
+        plot_observable[] = fig.fig
+        
+        # Apply custom formatting for non-default options
+        apply_custom_formatting!(fig.fig, fig.axis, state)
+        
+        return fig
+    finally
+        state.misc.block_format_update[] = false
+    end
+end
+
+"""
     setup_x_callback(dims_dict_obs, selected_x, selected_y, dropdown_y_node, plot_observable, table_observable)
 
 Set up the listener for changes to the X-variable selection.
@@ -26,26 +92,21 @@ function setup_x_callback(state, dropdown_y_node, outputs)
 end
 
 """
-    setup_source_callback(selected_x, selected_y, selected_plottype, show_legend, current_plot_x, current_plot_y, plot_observable, table_observable, xlabel_text, ylabel_text, title_text, current_figure, current_axis)
+    setup_source_callback(state, outputs)
 
 Handle data source changes (X or Y selection updates).
 - If valid X and Y are selected:
     - Updates `current_plot_x` and `current_plot_y`.
-    - Generates a new plot using `check_data_create_plot`.
-    - Updates `plot_observable` with the new figure.
+    - Generates a new plot using `do_replot` with `is_new_data=true`.
     - Updates `table_observable` with the new data table.
-    - Initializes label text fields (`xlabel_text`, `ylabel_text`, `title_text`) from the plot parameters.
-    - Stores the figure and axis references.
 - If selection is invalid/incomplete:
     - Clears the plot and table views.
     - Resets internal state and text fields.
 """
 function setup_source_callback(state, outputs)
-    
     (; selected_x, selected_y) = state.data_selection
-    (; format, handles) = state.plotting
-    (; selected_plottype, show_legend) = format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
+    (; selected_plottype, show_legend) = state.plotting.format
+    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
@@ -59,31 +120,12 @@ function setup_source_callback(state, outputs)
             current_plot_x[] = x
             current_plot_y[] = y
             
-            # Block format callback to prevent double plotting and ensure atomic update
-            state.misc.block_format_update[] = true
-            
-            try
-                # Reset legend title and format changed flags for new plot
-                legend_title_text[] = ""
-                reset_format_defaults!(state.misc.format_is_default)
-
-                plottype = selected_plottype[] |> Symbol |> eval
-                fig = check_data_create_plot(x, y; plot_format = (;plottype=plottype, show_legend=nothing, legend_title=legend_title_text[]))
-                
-                if !isnothing(fig)
-                    plot_observable[] = fig.fig
-                    current_figure[] = fig.fig  # Store figure reference
-                    current_axis[] = fig.axis    # Store axis reference
-                    
-                    # Initialize text fields with default values
-                    xlabel_text[] = fig.fig_params.x_name
-                    ylabel_text[] = fig.fig_params.y_name
-                    title_text[] = fig.fig_params.title
-                    show_legend[] = fig.fig_params.updated_show_legend
-                end
-            finally
-                state.misc.block_format_update[] = false
-            end
+            plottype = selected_plottype[] |> Symbol |> eval
+            do_replot(state, outputs;
+                data = (; x_name = x, y_name = y),
+                plot_format = (; plottype = plottype, show_legend = nothing, legend_title = ""),
+                is_new_data = true,
+            )
             
             # Create/update table (source-related only)
             table_observable[] = create_data_table(x, y)
@@ -108,49 +150,21 @@ end
     setup_format_change_callbacks(state, outputs)
 
 Handle format changes for X,Y Array mode: plottype, show_legend, legend_title_text.
-All changes trigger a full replot, then apply custom formatting for non-default options.
+All changes trigger a full replot using the unified do_replot function.
 """
 function setup_format_change_callbacks(state, outputs)
     (; selected_plottype, show_legend) = state.plotting.format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
+    (; legend_title_text) = state.plotting.handles
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
-    plot_observable = outputs.plot
-    
-    # Helper function to replot with current format settings
-    function do_replot()
-        x = current_plot_x[]
-        y = current_plot_y[]
-        
-        # Only replot if we have valid data
-        isnothing(x) && return
-        isnothing(y) && return
-        
-        state.misc.block_format_update[] = true
-        try
-            plottype = selected_plottype[] |> Symbol |> eval
-            fig = check_data_create_plot(x, y; plot_format = (;
-                plottype = plottype,
-                show_legend = show_legend[],
-                legend_title = legend_title_text[],
-            ))
-            
-            if !isnothing(fig)
-                current_figure[] = fig.fig
-                current_axis[] = fig.axis
-                plot_observable[] = fig.fig
-                
-                # Apply custom formatting for non-default options
-                apply_custom_formatting!(fig.fig, fig.axis, state)
-            end
-        finally
-            state.misc.block_format_update[] = false
-        end
-    end
     
     # === Plot Type Change Handler ===
     on(selected_plottype) do plottype_str
         state.misc.block_format_update[] && return
+        
+        x = current_plot_x[]
+        y = current_plot_y[]
+        (isnothing(x) || isnothing(y)) && return
         
         # Mark as non-default if different from DEFAULT_PLOT_TYPE
         plottype_sym = Symbol(plottype_str)
@@ -158,22 +172,44 @@ function setup_format_change_callbacks(state, outputs)
             state.misc.format_is_default[:plottype] = false
         end
         
-        do_replot()
+        do_replot(state, outputs;
+            data = (; x_name = x, y_name = y),
+            plot_format = (; 
+                plottype = plottype_sym |> eval,
+                show_legend = show_legend[],
+                legend_title = legend_title_text[],
+            ),
+        )
     end
     
     # === Legend Visibility Change Handler ===
     on(show_legend) do legend_bool
         state.misc.block_format_update[] && return
         
-        # Mark as non-default (actual default depends on data, so any user change marks it)
+        x = current_plot_x[]
+        y = current_plot_y[]
+        (isnothing(x) || isnothing(y)) && return
+        
+        # Mark as non-default
         state.misc.format_is_default[:show_legend] = false
         
-        do_replot()
+        do_replot(state, outputs;
+            data = (; x_name = x, y_name = y),
+            plot_format = (; 
+                plottype = selected_plottype[] |> Symbol |> eval,
+                show_legend = legend_bool,
+                legend_title = legend_title_text[],
+            ),
+        )
     end
     
     # === Legend Title Change Handler ===
     on(legend_title_text) do leg_title
         state.misc.block_format_update[] && return
+        
+        x = current_plot_x[]
+        y = current_plot_y[]
+        (isnothing(x) || isnothing(y)) && return
         
         # Mark as non-default if not empty
         if !isempty(leg_title)
@@ -183,31 +219,37 @@ function setup_format_change_callbacks(state, outputs)
         # Skip replot if legend is not shown - title is saved for when legend becomes visible
         show_legend[] || return
         
-        do_replot()
+        do_replot(state, outputs;
+            data = (; x_name = x, y_name = y),
+            plot_format = (; 
+                plottype = selected_plottype[] |> Symbol |> eval,
+                show_legend = show_legend[],
+                legend_title = leg_title,
+            ),
+        )
     end
 end
 
 
 
 """
-    update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+    update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
 
 Helper function to update DataFrame plot with selected columns and format settings.
-Handles the common plotting logic used by both plot trigger and format callbacks.
+Handles data preparation (fetching, validation, normalization) then delegates to do_replot.
 
 # Arguments
 - `state`: Application state NamedTuple
 - `outputs`: Output observables NamedTuple
 - `df_name`: Name of the DataFrame
 - `cols`: Selected column names
-- `reset_legend_title`: If true, resets legend title and format flags (for new plots)
+- `is_new_data`: If true, initializes text fields from plot defaults (for new plots)
 - `update_table`: If true, updates the table observable (only for new plot data)
 """
-    function update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
-    (; format, handles) = state.plotting
+function update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
     (; show_modal, modal_type) = state.dialogs
-    (; selected_plottype, show_legend) = format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
+    (; selected_plottype, show_legend) = state.plotting.format
+    (; legend_title_text) = state.plotting.handles
     plot_observable = outputs.plot
     table_observable = outputs.table
     
@@ -262,45 +304,18 @@ Handles the common plotting logic used by both plot trigger and format callbacks
         # Use display name as y_name when multiple Y columns
         y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
         
-        # Reset legend title and format flags if requested (for new plots)
-        if reset_legend_title
-            legend_title_text[] = ""
-            reset_format_defaults!(state.misc.format_is_default)
-        end
-        
-        # Block label callbacks during plot recreation
-        state.misc.block_format_update[] = true
-        
         plottype = selected_plottype[] |> Symbol |> eval
         
-        # Create plot with current format settings
-        fig = create_plot(df_selected; xcol=1, x_name=xcol_name, y_name=y_names,
-                         plot_format=(; 
-                             plottype=plottype, 
-                             show_legend=show_legend[], 
-                             legend_title=legend_title_text[],
-                         ))
-        
-        if !isnothing(fig)
-            current_figure[] = fig.fig
-            current_axis[] = fig.axis
-            
-            if reset_legend_title
-                # New plot: initialize text fields with defaults from the plot
-                xlabel_text[] = fig.fig_params.x_name
-                ylabel_text[] = fig.fig_params.y_name
-                title_text[] = fig.fig_params.title
-                show_legend[] = fig.fig_params.updated_show_legend
-            end
-            
-            # Publish the figure
-            plot_observable[] = fig.fig
-            
-            # Apply custom formatting for non-default options
-            apply_custom_formatting!(fig.fig, fig.axis, state)
-        end
-        
-        state.misc.block_format_update[] = false
+        # Use unified replot function
+        do_replot(state, outputs;
+            data = (; df = df_selected, x_name = xcol_name, y_name = y_names),
+            plot_format = (;
+                plottype = plottype,
+                show_legend = is_new_data ? nothing : show_legend[],
+                legend_title = is_new_data ? "" : legend_title_text[],
+            ),
+            is_new_data = is_new_data,
+        )
         
         # Update table if requested (only for new plot data)
         if update_table
@@ -381,7 +396,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         end
         
         # Use helper function with reset_legend_title=true and update_table=true for new plots
-        update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=true, update_table=true)
+        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=true, update_table=true)
     end
     
     # === Plot Type Change Handler for DataFrame mode ===
@@ -399,7 +414,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             state.misc.format_is_default[:plottype] = false
         end
         
-        update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
     end
 
     # === Legend Visibility Change Handler for DataFrame mode ===
@@ -414,7 +429,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Mark as non-default
         state.misc.format_is_default[:show_legend] = false
         
-        update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
     end
 
     # === Legend Title Change Handler for DataFrame mode ===
@@ -434,7 +449,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Skip replot if legend is not shown - title is saved for when legend becomes visible
         show_legend[] || return
         
-        update_dataframe_plot(state, outputs, df_name, cols; reset_legend_title=false, update_table=false)
+        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
     end
 end
 

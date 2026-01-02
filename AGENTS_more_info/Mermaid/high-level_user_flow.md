@@ -60,15 +60,17 @@ flowchart TD
     DisplayPlot --> FormatControls[Format Controls Available]
     DisplayDFPlot --> FormatControls
     FormatControls --> UserEdit{User Edits Format?}
-    UserEdit -->|Plot Type| ReplotType[Replot with New Type]
-    UserEdit -->|Legend Toggle| ReplotLegend[Replot with Legend On/Off]
-    UserEdit -->|Labels| UpdateLabels[Update Axis/Title Labels]
-    UserEdit -->|Legend Title| ReplotLegendTitle[Replot with New Legend Title]
+    UserEdit -->|Plot Type| MarkNonDefault[Mark format_is_default = false]
+    UserEdit -->|Legend Toggle| MarkNonDefault
+    UserEdit -->|Legend Title| MarkNonDefault
+    UserEdit -->|Labels| UpdateLabels[Update Axis Labels Directly]
     
-    ReplotType --> RefreshPlot[Refresh Plot Display]
-    ReplotLegend --> RefreshPlot
-    UpdateLabels --> RefreshPlot
-    ReplotLegendTitle --> RefreshPlot
+    MarkNonDefault --> DoReplot[do_replot with new format]
+    DoReplot --> ApplyCustom[apply_custom_formatting!]
+    Note right of ApplyCustom: Re-apply non-default labels
+    
+    UpdateLabels --> RefreshPlot[Refresh Plot Display]
+    ApplyCustom --> RefreshPlot
     
     RefreshPlot --> FormatControls
     

@@ -51,11 +51,14 @@ stateDiagram-v2
     note right of Plotting
         block_format_update = true
         normalize_numeric_columns!
+        is_new_data resets format_is_default
     end note
     
     note right of Replotting
         Uses stored current_plot_x,
         current_plot_y (no refetch)
+        apply_custom_formatting!
+        re-applies non-default labels
     end note
     
     note right of PlotDisplayed
