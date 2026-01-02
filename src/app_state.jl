@@ -90,11 +90,50 @@ function initialize_app_state()
     # Keys: :title, :xlabel, :ylabel, :show_legend, :legend_title
     # Values: true if user has changed this option, false otherwise
     # Reset when new data is selected. Used to preserve user customizations during plot rebuilds.
-    format_changed = DefaultDict{Symbol, Bool}(false)
+    format_is_default = DefaultDict{Symbol, Bool}(true)
     
-    misc = (; trigger_update, last_update, block_format_update, format_changed)
+    misc = (; trigger_update, last_update, block_format_update, format_is_default)
 
     return (; file_opening, file_saving, dialogs, data_selection, plotting, misc)
+end
+
+"""
+    reset_format_defaults!(format_is_default::DefaultDict{Symbol, Bool})
+
+Reset format_is_default dict to all-default state, EXCEPT for options
+listed in PERSISTENT_FORMAT_OPTION which should persist across data source changes.
+"""
+reset_format_defaults!(format_is_default) = filter!(p -> p.first in PERSISTENT_FORMAT_OPTION, format_is_default)
+
+"""
+    apply_custom_formatting!(fig, ax, state)
+
+Apply user-customized format options to the plot after creation.
+Only applies options where `format_is_default[key] == false`, meaning the user
+has explicitly changed them from their default values.
+
+This allows user customizations to persist across plot rebuilds.
+"""
+function apply_custom_formatting!(fig, ax, state)
+    isnothing(fig) && return
+    isnothing(ax) && return
+    
+    format_is_default = state.misc.format_is_default
+    handles = state.plotting.handles
+    
+    # Map from format_is_default keys to the corresponding observable and update_plot_format! keyword
+    format_map = (;
+        title = handles.title_text,
+        xlabel = handles.xlabel_text,
+        ylabel = handles.ylabel_text,
+        legend_title = handles.legend_title_text,
+    )
+    
+    for (key, obs) in pairs(format_map)
+        if !format_is_default[key]
+            update_plot_format!(fig, ax; (key => obs[],)...)
+        end
+    end
 end
 
 """

@@ -28,7 +28,7 @@ casualplots_app() = App() do session
     # Setup reactive callbacks
     setup_x_callback(state, y_node, outputs)
     setup_source_callback(state, outputs)
-    setup_format_callback(state, outputs)
+    setup_format_change_callbacks(state, outputs)
     
     # Setup label update callbacks for editable text fields
     setup_label_update_callbacks(state, outputs)

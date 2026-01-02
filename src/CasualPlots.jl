@@ -17,7 +17,18 @@ module CasualPlots
 
 using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
 using DataStructures: DefaultDict
-# using Bonito.DOM
+
+const REQUIRES_FULL_REPLOT = (;
+    plottype = true, 
+    show_legend = true,
+    legend_title = true,
+    title = false,
+    xlabel = false,
+    ylabel = false,
+)
+
+const PERSISTENT_FORMAT_OPTION = (:plottype, )
+const DEFAULT_PLOT_TYPE = :Scatter
 
 include("electron.jl")
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)

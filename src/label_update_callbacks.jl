@@ -5,23 +5,23 @@ This function creates reactive callbacks that update the Makie axis properties
 (xlabel, ylabel, title) when the user edits the text fields and presses Enter.
 
 Uses update_plot_format!() for incremental updates without rebuilding the plot.
-Also marks the format option as changed in state.misc.format_changed.
+Also marks the format option as changed in state.misc.format_is_default.
 """
 function setup_label_update_callbacks(state, outputs)
     (; xlabel_text, ylabel_text, title_text, current_axis, current_figure) = state.plotting.handles
-    (; block_format_update, format_changed) = state.misc
+    (; block_format_update, format_is_default) = state.misc
 
     # Create callbacks for each label property
-    setup_label_callback(xlabel_text, :xlabel, current_axis, current_figure, block_format_update, format_changed)
-    setup_label_callback(ylabel_text, :ylabel, current_axis, current_figure, block_format_update, format_changed)
-    setup_label_callback(title_text, :title, current_axis, current_figure, block_format_update, format_changed)
+    setup_label_callback(xlabel_text, :xlabel, current_axis, current_figure, block_format_update, format_is_default)
+    setup_label_callback(ylabel_text, :ylabel, current_axis, current_figure, block_format_update, format_is_default)
+    setup_label_callback(title_text, :title, current_axis, current_figure, block_format_update, format_is_default)
 end
 
 """
-    setup_label_callback(text_observable, prop_name, current_axis, current_figure, block_format_update, format_changed)
+    setup_label_callback(text_observable, prop_name, current_axis, current_figure, block_format_update, format_is_default)
 
 Set up a single label update callback that updates axis property when text changes.
-Also marks the property as changed in format_changed dict.
+Also marks the property as changed in format_is_default dict.
 
 # Arguments
 - `text_observable`: The Observable containing the text value
@@ -29,10 +29,10 @@ Also marks the property as changed in format_changed dict.
 - `current_axis`: Observable holding the current Makie Axis
 - `current_figure`: Observable holding the current Makie Figure
 - `block_format_update`: Observable flag to block updates during format changes
-- `format_changed`: DefaultDict tracking which format options have been changed
+- `format_is_default`: DefaultDict tracking which format options have been changed
 """
 function setup_label_callback(text_observable, prop_name::Symbol, 
-                               current_axis, current_figure, block_format_update, format_changed)
+                               current_axis, current_figure, block_format_update, format_is_default)
     on(text_observable) do new_value
         # Skip if format update is in progress to prevent interference
         block_format_update[] && return
@@ -41,7 +41,7 @@ function setup_label_callback(text_observable, prop_name::Symbol,
         fig = current_figure[]
         
         # Mark this property as changed by user
-        format_changed[prop_name] = true
+        format_is_default[prop_name] = false
         
         # Only update if we have valid plot and non-empty value
         if !isnothing(ax) && !isnothing(fig) && new_value != ""
