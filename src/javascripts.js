@@ -48,6 +48,15 @@ window.CasualPlots.handleEnterKey = (event, observable) => {
 }
 
 /**
+ * Handles blur (leaving field) on text inputs to notify an observable.
+ * @param {Event} event - The DOM event
+ * @param {Observable} observable - The observable to notify
+ */
+window.CasualPlots.handleTextInputBlur = (event, observable) => {
+    observable.notify(event.target.value);
+}
+
+/**
  * Handles changes on dataframe column checkboxes.
  * Adds/removes the value from the selected columns list.
  * @param {Event} event - The DOM event

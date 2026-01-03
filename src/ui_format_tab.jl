@@ -61,6 +61,7 @@ function create_legend_control(show_legend, legend_title_text)
         value=legend_title_text,
         placeholder="Legend Title",
         onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(legend_title_text))",
+        onblur=js"event => window.CasualPlots.handleTextInputBlur(event, $(legend_title_text))",
         style=legend_visibility,
         class="input-small w-100px ml-2"
     )
@@ -91,6 +92,7 @@ function create_label_input(label_text, label_name, label_observable)
             type="text", 
             value=label_observable,
             onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(label_observable))",
+            onblur=js"event => window.CasualPlots.handleTextInputBlur(event, $(label_observable))",
             class="input-small flex-1"
         );
         class="flex-row align-center gap-1 mb-1"
