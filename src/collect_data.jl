@@ -146,3 +146,32 @@ function get_dataframe_columns(df_name::AbstractString)
     end
     return String[]
 end
+
+"""
+    get_dataframe_bounds(df_name::AbstractString, opened_file_df=nothing)
+
+Get the row index bounds (1, nrow) for a DataFrame.
+DataFrames are always 1-indexed, so returns (1, nrow(df)).
+
+# Arguments
+- `df_name::AbstractString`: Name of the DataFrame variable in Main, or "__opened_file__"
+- `opened_file_df`: Optional DataFrame from opened file (when df_name == "__opened_file__")
+
+# Returns
+Tuple of (1, num_rows) or (nothing, nothing) on error.
+"""
+function get_dataframe_bounds(df_name::AbstractString, opened_file_df=nothing)
+    try
+        if df_name == "__opened_file__" && !isnothing(opened_file_df)
+            return (1, nrow(opened_file_df))
+        else
+            df = getfield(Main, Symbol(df_name))
+            if isdefined(Main, :DataFrame) && isa(df, getfield(Main, :DataFrame))
+                return (1, nrow(df))
+            end
+        end
+    catch e
+        @warn "Could not get bounds for DataFrame `$(df_name)`" exception=e
+    end
+    return (nothing, nothing)
+end

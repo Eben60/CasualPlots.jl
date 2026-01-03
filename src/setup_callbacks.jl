@@ -336,7 +336,7 @@ end
 
 
 """
-    update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+    update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false, range_from=nothing, range_to=nothing)
 
 Helper function to update DataFrame plot with selected columns and format settings.
 Handles data preparation (fetching, validation, normalization) then delegates to do_replot.
@@ -348,8 +348,13 @@ Handles data preparation (fetching, validation, normalization) then delegates to
 - `cols`: Selected column names
 - `is_new_data`: If true, initializes text fields from plot defaults (for new plots)
 - `update_table`: If true, updates the table observable (only for new plot data)
+- `range_from`: Starting row index (1-based, uses 1 if nothing)
+- `range_to`: Ending row index (uses nrow if nothing)
 """
-function update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+function update_dataframe_plot(state, outputs, df_name, cols; 
+                               is_new_data=false, update_table=false,
+                               range_from::Union{Nothing,Int}=nothing, 
+                               range_to::Union{Nothing,Int}=nothing)
     (; show_modal, modal_type) = state.dialogs
     (; selected_plottype, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
@@ -388,6 +393,19 @@ function update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false,
         # Use select to get selected columns
         df_selected = select(df, valid_cols)
         
+        # Apply range slicing if provided
+        n_rows = nrow(df_selected)
+        from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
+        to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
+        
+        # Ensure from <= to
+        if from_idx > to_idx
+            from_idx, to_idx = to_idx, from_idx
+        end
+        
+        # Slice the DataFrame
+        df_selected = df_selected[from_idx:to_idx, :]
+        
         # Normalize numeric columns for plotting and track any columns with data issues
         df_selected, dirty_cols = normalize_numeric_columns!(df_selected, valid_cols)
         
@@ -422,7 +440,18 @@ function update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false,
         
         # Update table if requested (only for new plot data)
         if update_table
-            table_observable[] = create_table_with_info(Bonito.Table(df_selected), display_name)
+            # Build table info with range info
+            if from_idx == 1 && to_idx == n_rows
+                info_text = display_name
+            else
+                info_text = "$display_name [$(from_idx):$(to_idx)]"
+            end
+            
+            # Add Index column to df_selected for display
+            df_with_index = copy(df_selected)
+            insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
+            
+            table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text)
         end
         
         return true  # Success
@@ -433,6 +462,7 @@ function update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false,
     end
 end
 
+
 """
     setup_dataframe_callbacks(state, outputs, plot_trigger)
 
@@ -440,14 +470,16 @@ Set up callbacks for DataFrame source mode.
 
 Handles:
 - Source type changes (clears selections when switching modes)
-- DataFrame selection (clears column selections)
+- DataFrame selection (clears column selections, sets data bounds)
 - Plot button click (triggers plot update when columns are selected)
 """
 function setup_dataframe_callbacks(state, outputs, plot_trigger)
-    (; source_type, selected_dataframe, selected_columns, selected_x, selected_y) = state.data_selection
+    (; source_type, selected_dataframe, selected_columns, selected_x, selected_y,
+       range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     (; format, handles) = state.plotting
     (; selected_plottype, show_legend) = format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = handles
+    (; opened_file_df) = state.file_opening
     plot_observable = outputs.plot
     table_observable = outputs.table
     
@@ -466,7 +498,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             state.misc.last_plotted_dataframe[] = nothing
         end
         
-        # Clear plot and table
+        # Clear plot, table, and range bounds
         plot_observable[] = DOM.div("Plot Pane")
         table_observable[] = DOM.div("Table Pane")
         # Clear format changed flags and text fields
@@ -476,13 +508,32 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         title_text[] = ""
         current_figure[] = nothing
         current_axis[] = nothing
+        # Clear range bounds
+        data_bounds_from[] = nothing
+        data_bounds_to[] = nothing
+        range_from[] = nothing
+        range_to[] = nothing
     end
     
-    # When DataFrame selection changes, clear column selections
+    # When DataFrame selection changes, clear column selections and set bounds
     on(selected_dataframe) do df_name
         selected_columns[] = String[]
         plot_observable[] = DOM.div("Plot Pane")
         table_observable[] = DOM.div("Table Pane")
+        
+        # Set data bounds for the DataFrame
+        if !isnothing(df_name) && df_name != ""
+            (first_idx, last_idx) = get_dataframe_bounds(df_name, opened_file_df[])
+            data_bounds_from[] = first_idx
+            data_bounds_to[] = last_idx
+            range_from[] = first_idx
+            range_to[] = last_idx
+        else
+            data_bounds_from[] = nothing
+            data_bounds_to[] = nothing
+            range_from[] = nothing
+            range_to[] = nothing
+        end
     end
     
     # When Plot button is clicked, create plot if valid selection
@@ -501,10 +552,22 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             return
         end
         
+        # Get range values (use bounds as defaults)
+        from_val = range_from[]
+        to_val = range_to[]
+        if isnothing(from_val)
+            from_val = data_bounds_from[]
+        end
+        if isnothing(to_val)
+            to_val = data_bounds_to[]
+        end
+        
         # Detect if this is a NEW data source (DataFrame changed)
         is_new_source = (df_name != state.misc.last_plotted_dataframe[])
         
-        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=is_new_source, update_table=true)
+        update_dataframe_plot(state, outputs, df_name, cols; 
+                              is_new_data=is_new_source, update_table=true,
+                              range_from=from_val, range_to=to_val)
         
         # Update last plotted source
         state.misc.last_plotted_dataframe[] = df_name
