@@ -63,9 +63,17 @@ function initialize_app_state()
     selected_x = Observable{Union{Nothing, String}}(nothing)
     selected_y = Observable{Union{Nothing, String}}(nothing)
     
+    # Range selection for data subsetting
+    range_from = Observable{Union{Nothing, Int}}(nothing)
+    range_to = Observable{Union{Nothing, Int}}(nothing)
+    # Data bounds - track the actual first/last indices of current data source
+    data_bounds_from = Observable{Union{Nothing, Int}}(nothing)
+    data_bounds_to = Observable{Union{Nothing, Int}}(nothing)
+    
     data_selection = (; 
         source_type, dims_dict_obs, dataframes_dict_obs,
-        selected_dataframe, selected_columns, selected_x, selected_y
+        selected_dataframe, selected_columns, selected_x, selected_y,
+        range_from, range_to, data_bounds_from, data_bounds_to,
     )
     
     # --- Plotting ---

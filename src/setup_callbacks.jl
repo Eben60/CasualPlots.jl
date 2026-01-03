@@ -7,7 +7,7 @@ Unified function for plotting and replotting, regardless of data source or updat
 - `state`: Application state NamedTuple
 - `outputs`: Output observables NamedTuple
 - `data`: NamedTuple with either:
-  - `(; x_name, y_name)` for array mode (fetches from Main)
+  - `(; x_name, y_name, range_from=nothing, range_to=nothing)` for array mode (fetches from Main)
   - `(; df, x_name, y_name)` for DataFrame mode (uses provided DataFrame)
 - `plot_format`: NamedTuple with format options `(; plottype, show_legend, legend_title)`
 - `is_new_data`: If true, initializes text fields from plot defaults and resets format_is_default
@@ -29,8 +29,13 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false)
             fig = create_plot(data.df; xcol=1, x_name=data.x_name, y_name=data.y_name,
                              plot_format=plot_format)
         else
-            # Array mode - fetch from Main
-            fig = check_data_create_plot(data.x_name, data.y_name; plot_format=plot_format)
+            # Array mode - fetch from Main, with optional range
+            range_from = get(data, :range_from, nothing)
+            range_to = get(data, :range_to, nothing)
+            fig = check_data_create_plot(data.x_name, data.y_name; 
+                                        plot_format=plot_format, 
+                                        range_from=range_from, 
+                                        range_to=range_to)
         end
         
         if isnothing(fig)
@@ -64,6 +69,7 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false)
     end
 end
 
+
 """
     setup_x_callback(dims_dict_obs, selected_x, selected_y, dropdown_y_node, plot_observable, table_observable)
 
@@ -72,9 +78,11 @@ When `selected_x` updates:
 1. Clears the current `selected_y`.
 2. Resets the plot and table views.
 3. Updates the Y-variable dropdown (`dropdown_y_node`) to show only variables congruent with the new X selection (based on `dims_dict_obs`).
+4. Sets data bounds from the X array's firstindex/lastindex.
 """
 function setup_x_callback(state, dropdown_y_node, outputs)
-    (; dims_dict_obs, selected_x, selected_y) = state.data_selection
+    (; dims_dict_obs, selected_x, selected_y, data_bounds_from, data_bounds_to,
+       range_from, range_to) = state.data_selection
     on(selected_x) do x
         # println("selected x: $x")
         selected_y[] = nothing
@@ -88,6 +96,29 @@ function setup_x_callback(state, dropdown_y_node, outputs)
             # println("trying to set Y menu to $new_y_opts_strings")
             dropdown_y_node[] = create_dropdown(new_y_opts_strings, selected_y; placeholder="Select Y")
         end
+        
+        # Set data bounds from X array
+        if !isnothing(x) && x != ""
+            try
+                x_data = getfield(Main, Symbol(x))
+                first_idx = firstindex(x_data)
+                last_idx = lastindex(x_data)
+                data_bounds_from[] = first_idx
+                data_bounds_to[] = last_idx
+                range_from[] = first_idx
+                range_to[] = last_idx
+            catch
+                data_bounds_from[] = nothing
+                data_bounds_to[] = nothing
+                range_from[] = nothing
+                range_to[] = nothing
+            end
+        else
+            data_bounds_from[] = nothing
+            data_bounds_to[] = nothing
+            range_from[] = nothing
+            range_to[] = nothing
+        end
     end
 end
 
@@ -95,19 +126,16 @@ end
     setup_source_callback(state, outputs)
 
 Handle data source changes (X or Y selection updates).
-- If valid X and Y are selected:
-    - Updates `current_plot_x` and `current_plot_y`.
-    - Generates a new plot using `do_replot`.
-    - Sets `is_new_data=true` only when Y variable changes (new data source).
-    - Updates `table_observable` with the new data table.
-- If selection is invalid/incomplete:
-    - Clears the plot and table views.
-    - Resets internal state and text fields.
+This callback NO LONGER auto-plots on Y selection - plotting is now triggered
+by the (Re-)Plot button via plot_trigger.
+
+It only:
+- Updates `current_plot_x` and `current_plot_y` for tracking
+- Clears plot/table and state when selection is invalid
 """
 function setup_source_callback(state, outputs)
     (; selected_x, selected_y) = state.data_selection
-    (; selected_plottype, show_legend) = state.plotting.format
-    (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
+    (; xlabel_text, ylabel_text, title_text, current_figure, current_axis) = state.plotting.handles
     (; last_plotted_x, last_plotted_y) = state.misc
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
@@ -121,23 +149,7 @@ function setup_source_callback(state, outputs)
             # Store current data for format callbacks
             current_plot_x[] = x
             current_plot_y[] = y
-            
-            # Detect if this is a NEW data source (X or Y changed)
-            is_new_source = (x != last_plotted_x[] || y != last_plotted_y[])
-            
-            plottype = selected_plottype[] |> Symbol |> eval
-            do_replot(state, outputs;
-                data = (; x_name = x, y_name = y),
-                plot_format = (; plottype = plottype, show_legend = nothing, legend_title = ""),
-                is_new_data = is_new_source,
-            )
-            
-            # Update last plotted source
-            last_plotted_x[] = x
-            last_plotted_y[] = y
-            
-            # Create/update table (source-related only)
-            table_observable[] = create_data_table(x, y)
+            # Note: actual plotting is now triggered by plot_trigger (via (Re-)Plot button)
         else
             # Clear everything
             current_plot_x[] = nothing
@@ -159,6 +171,62 @@ function setup_source_callback(state, outputs)
 end
 
 """
+    setup_array_plot_trigger_callback(state, outputs, plot_trigger)
+
+Handle (Re-)Plot button click for X,Y Array mode.
+This is triggered when the user clicks the (Re-)Plot button with valid X,Y selection.
+"""
+function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
+    (; selected_x, selected_y, source_type, range_from, range_to,
+       data_bounds_from, data_bounds_to) = state.data_selection
+    (; selected_plottype, show_legend) = state.plotting.format
+    (; legend_title_text) = state.plotting.handles
+    (; last_plotted_x, last_plotted_y) = state.misc
+    table_observable = outputs.table
+    
+    on(plot_trigger) do _
+        # Skip if not in Array mode
+        source_type[] != "X, Y Arrays" && return
+        
+        x = selected_x[]
+        y = selected_y[]
+        is_valid = !isnothing(y) && y != "" && !isnothing(x) && x != ""
+        !is_valid && return
+        
+        # Get range values (use bounds as defaults)
+        from_val = range_from[]
+        to_val = range_to[]
+        if isnothing(from_val)
+            from_val = data_bounds_from[]
+        end
+        if isnothing(to_val)
+            to_val = data_bounds_to[]
+        end
+        
+        # Detect if this is a NEW data source (X or Y changed)
+        is_new_source = (x != last_plotted_x[] || y != last_plotted_y[])
+        
+        plottype = selected_plottype[] |> Symbol |> eval
+        do_replot(state, outputs;
+            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
+            plot_format = (; 
+                plottype = plottype, 
+                show_legend = is_new_source ? nothing : show_legend[],
+                legend_title = is_new_source ? "" : legend_title_text[],
+            ),
+            is_new_data = is_new_source,
+        )
+        
+        # Update last plotted source
+        last_plotted_x[] = x
+        last_plotted_y[] = y
+        
+        # Create/update table with range
+        table_observable[] = create_data_table(x, y; range_from=from_val, range_to=to_val)
+    end
+end
+
+"""
     setup_format_change_callbacks(state, outputs)
 
 Handle format changes for X,Y Array mode: plottype, show_legend, legend_title_text.
@@ -167,12 +235,27 @@ All changes trigger a full replot using the unified do_replot function.
 function setup_format_change_callbacks(state, outputs)
     (; selected_plottype, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
+    (; range_from, range_to, data_bounds_from, data_bounds_to, source_type) = state.data_selection
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
+    
+    # Helper to get current range values
+    function get_range_values()
+        from_val = range_from[]
+        to_val = range_to[]
+        if isnothing(from_val)
+            from_val = data_bounds_from[]
+        end
+        if isnothing(to_val)
+            to_val = data_bounds_to[]
+        end
+        return (from_val, to_val)
+    end
     
     # === Plot Type Change Handler ===
     on(selected_plottype) do plottype_str
         state.misc.block_format_update[] && return
+        source_type[] != "X, Y Arrays" && return
         
         x = current_plot_x[]
         y = current_plot_y[]
@@ -184,8 +267,10 @@ function setup_format_change_callbacks(state, outputs)
             state.misc.format_is_default[:plottype] = false
         end
         
+        from_val, to_val = get_range_values()
+        
         do_replot(state, outputs;
-            data = (; x_name = x, y_name = y),
+            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
             plot_format = (; 
                 plottype = plottype_sym |> eval,
                 show_legend = show_legend[],
@@ -197,6 +282,7 @@ function setup_format_change_callbacks(state, outputs)
     # === Legend Visibility Change Handler ===
     on(show_legend) do legend_bool
         state.misc.block_format_update[] && return
+        source_type[] != "X, Y Arrays" && return
         
         x = current_plot_x[]
         y = current_plot_y[]
@@ -205,8 +291,10 @@ function setup_format_change_callbacks(state, outputs)
         # Mark as non-default
         state.misc.format_is_default[:show_legend] = false
         
+        from_val, to_val = get_range_values()
+        
         do_replot(state, outputs;
-            data = (; x_name = x, y_name = y),
+            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
             plot_format = (; 
                 plottype = selected_plottype[] |> Symbol |> eval,
                 show_legend = legend_bool,
@@ -218,6 +306,7 @@ function setup_format_change_callbacks(state, outputs)
     # === Legend Title Change Handler ===
     on(legend_title_text) do leg_title
         state.misc.block_format_update[] && return
+        source_type[] != "X, Y Arrays" && return
         
         x = current_plot_x[]
         y = current_plot_y[]
@@ -231,8 +320,10 @@ function setup_format_change_callbacks(state, outputs)
         # Skip replot if legend is not shown - title is saved for when legend becomes visible
         show_legend[] || return
         
+        from_val, to_val = get_range_values()
+        
         do_replot(state, outputs;
-            data = (; x_name = x, y_name = y),
+            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
             plot_format = (; 
                 plottype = selected_plottype[] |> Symbol |> eval,
                 show_legend = show_legend[],
@@ -470,6 +561,30 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         show_legend[] || return
         
         update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+    end
+end
+
+"""
+    setup_range_ui_sync(session, state)
+
+Set up a callback to sync range input field values with data bounds.
+When data_bounds_from or data_bounds_to changes, updates the HTML input fields
+with the new values. Uses requestAnimationFrame to ensure DOM is ready.
+"""
+function setup_range_ui_sync(session, state)
+    (; data_bounds_from, data_bounds_to) = state.data_selection
+    
+    onany(data_bounds_from, data_bounds_to) do from_val, to_val
+        # Update the input fields via JavaScript with a slight delay to ensure DOM is ready
+        # Pass actual values (or nothing/null) - Bonito handles the conversion
+        from_js = isnothing(from_val) ? nothing : from_val
+        to_js = isnothing(to_val) ? nothing : to_val
+        # Use requestAnimationFrame to ensure DOM updates are complete
+        Bonito.evaljs(session, js"""
+            requestAnimationFrame(() => {
+                window.CasualPlots.setRangeInputValues($from_js, $to_js);
+            });
+        """)
     end
 end
 

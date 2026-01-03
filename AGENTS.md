@@ -152,7 +152,11 @@ state = (;
         selected_dataframe::Observable{Union{String, Nothing}},
         selected_columns::Observable{Vector{String}},
         selected_x::Observable{Union{String, Nothing}},
-        selected_y::Observable{Union{String, Nothing}}
+        selected_y::Observable{Union{String, Nothing}},
+        range_from::Observable{Union{Nothing, Int}},     # User-selected range start
+        range_to::Observable{Union{Nothing, Int}},       # User-selected range end
+        data_bounds_from::Observable{Union{Nothing, Int}},  # Data's first index (auto-set)
+        data_bounds_to::Observable{Union{Nothing, Int}}     # Data's last index (auto-set)
     ),
     plotting = (;
         format = (;
@@ -210,15 +214,19 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - User selects X variable.
     - Triggers population of congruent Y-variable options.
     - Clears current Y selection.
+    - Sets `data_bounds_from`/`data_bounds_to` from the X array's first/last indices.
+    - Initializes `range_from`/`range_to` to match bounds.
 2.  **Step 2: Y Selection** (`setup_source_callback`)
     - User selects Y variable.
-    - **Immediately triggers plotting**:
-        - Fetches data from `Main`.
-        - Generates plot with **default labels**.
-        - Updates `current_plot_x`, `current_plot_y`.
-        - Updates table view.
-        - Blocks format callback to prevent race conditions (`state.block_format_update[] = true`).
+    - Updates `current_plot_x`, `current_plot_y` for tracking.
+    - **Does NOT auto-plot** - waits for user to click "(Re-)Plot" button.
     - *On invalid selection*: Clears plot, table, and state.
+3.  **Step 3: (Re-)Plot** (`setup_array_plot_trigger_callback`)
+    - User clicks "(Re-)Plot" button.
+    - Validates range values (uses bounds as defaults if empty).
+    - Calls `do_replot` with range parameters.
+    - Updates table view with range-filtered data.
+    - Applies non-default formatting options via `apply_custom_formatting!`.
 
 **B. DataFrame Source Selection (Main or Opened File):**
 1.  **Step 1: DataFrame Selection**

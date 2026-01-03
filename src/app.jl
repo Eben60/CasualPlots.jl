@@ -35,7 +35,13 @@ casualplots_app() = App() do session
     
     # Create UI components
     control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
-    setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger) # DataFrame mode callbacks
+    
+    # Setup plot trigger callbacks for both modes
+    setup_array_plot_trigger_callback(state, outputs, control_panel.plot_trigger)  # Array mode callbacks
+    setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger)  # DataFrame mode callbacks
+    
+    # Setup range input field synchronization
+    setup_range_ui_sync(session, state)
     
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)

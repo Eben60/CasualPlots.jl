@@ -116,7 +116,7 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     return (; fig, axis, fig_params = (; title, x_name, y_name, updated_show_legend=show_legend))
 end
 
-function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractString or Symbol
+function check_data_create_plot(x_name, y_name; plot_format, range_from=nothing, range_to=nothing) # x, y AbstractString or Symbol
     try
         x_data = getfield(Main, Symbol(x_name))
         y_data = getfield(Main, Symbol(y_name))
@@ -126,6 +126,29 @@ function check_data_create_plot(x_name, y_name; plot_format) # x, y AbstractStri
         end
 
         if y_data isa AbstractMatrix && x_data isa AbstractVector
+            # Apply range slicing if specified
+            if !isnothing(range_from) || !isnothing(range_to)
+                x_first = firstindex(x_data)
+                x_last = lastindex(x_data)
+                from_idx = isnothing(range_from) ? x_first : range_from
+                to_idx = isnothing(range_to) ? x_last : range_to
+                
+                # Clamp to valid range
+                from_idx = clamp(from_idx, x_first, x_last)
+                to_idx = clamp(to_idx, x_first, x_last)
+                
+                # Slice X data
+                x_data = x_data[from_idx:to_idx]
+                
+                # Convert X indices to linear positions for Y
+                y_first = firstindex(y_data, 1)
+                pos_from = from_idx - x_first + y_first
+                pos_to = to_idx - x_first + y_first
+                
+                # Slice Y data
+                y_data = y_data[pos_from:pos_to, :]
+            end
+            
             return create_plot(x_data, y_data, x_name, y_name; plot_format)
         else
             println("Error: Unsupported data types for plotting. x must be a vector, and y can be a vector or a matrix.")
