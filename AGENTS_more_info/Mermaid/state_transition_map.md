@@ -49,9 +49,11 @@ stateDiagram-v2
     Error --> AwaitingCols: User Fixes Selection
     
     note right of Plotting
+        is_new_source = (x != last_x || y != last_y)
+        or (df != last_dataframe)
         block_format_update = true
         normalize_numeric_columns!
-        is_new_data resets format_is_default
+        if is_new_source: reset format_is_default
     end note
     
     note right of Replotting

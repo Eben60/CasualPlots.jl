@@ -36,7 +36,11 @@ flowchart TD
     SelectX --> SelectY[Select Y Variable from Dropdown]
     SelectY --> ValidateArrays{Both X & Y Valid?}
     ValidateArrays -->|No| WaitArrays[Wait for Selection]
-    ValidateArrays -->|Yes| FetchData[Fetch Data from Main Module]
+    ValidateArrays -->|Yes| CheckNewSource{New Source?}
+    CheckNewSource -->|"x != last_x or y != last_y"| ResetFormat[Reset format_is_default]
+    CheckNewSource -->|Same Source| KeepFormat[Preserve Format Settings]
+    ResetFormat --> FetchData[Fetch Data from Main Module]
+    KeepFormat --> FetchData
     FetchData --> CreatePlot[Generate Plot with Default Labels]
     CreatePlot --> DisplayPlot[Display Plot + Table]
     
@@ -49,7 +53,11 @@ flowchart TD
     SelectCols --> TriggerPlot[Trigger plot_trigger Observable]
     TriggerPlot --> ValidateCols{Columns Valid?}
     ValidateCols -->|No| Error[Show Error]
-    ValidateCols -->|Yes| NormalizeNumeric[Normalize Numeric Columns]
+    ValidateCols -->|Yes| CheckNewDF{New DataFrame?}
+    CheckNewDF -->|"df != last_dataframe"| ResetDFFormat[Reset format_is_default]
+    CheckNewDF -->|Same DataFrame| KeepDFFormat[Preserve Format Settings]
+    ResetDFFormat --> NormalizeNumeric[Normalize Numeric Columns]
+    KeepDFFormat --> NormalizeNumeric
     NormalizeNumeric --> WarnDirty{Data Issues?}
     WarnDirty -->|Yes| ShowDirtyWarning[Show Warning Popup]
     WarnDirty -->|No| CreateDFPlot

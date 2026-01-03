@@ -97,7 +97,8 @@ end
 Handle data source changes (X or Y selection updates).
 - If valid X and Y are selected:
     - Updates `current_plot_x` and `current_plot_y`.
-    - Generates a new plot using `do_replot` with `is_new_data=true`.
+    - Generates a new plot using `do_replot`.
+    - Sets `is_new_data=true` only when Y variable changes (new data source).
     - Updates `table_observable` with the new data table.
 - If selection is invalid/incomplete:
     - Clears the plot and table views.
@@ -107,6 +108,7 @@ function setup_source_callback(state, outputs)
     (; selected_x, selected_y) = state.data_selection
     (; selected_plottype, show_legend) = state.plotting.format
     (; xlabel_text, ylabel_text, title_text, legend_title_text, current_figure, current_axis) = state.plotting.handles
+    (; last_plotted_x, last_plotted_y) = state.misc
     current_plot_x = outputs.current_x
     current_plot_y = outputs.current_y
     plot_observable = outputs.plot
@@ -120,12 +122,19 @@ function setup_source_callback(state, outputs)
             current_plot_x[] = x
             current_plot_y[] = y
             
+            # Detect if this is a NEW data source (X or Y changed)
+            is_new_source = (x != last_plotted_x[] || y != last_plotted_y[])
+            
             plottype = selected_plottype[] |> Symbol |> eval
             do_replot(state, outputs;
                 data = (; x_name = x, y_name = y),
                 plot_format = (; plottype = plottype, show_legend = nothing, legend_title = ""),
-                is_new_data = true,
+                is_new_data = is_new_source,
             )
+            
+            # Update last plotted source
+            last_plotted_x[] = x
+            last_plotted_y[] = y
             
             # Create/update table (source-related only)
             table_observable[] = create_data_table(x, y)
@@ -142,6 +151,9 @@ function setup_source_callback(state, outputs)
             title_text[] = ""
             current_figure[] = nothing
             current_axis[] = nothing
+            # Clear last plotted source
+            last_plotted_x[] = nothing
+            last_plotted_y[] = nothing
         end
     end
 end
@@ -354,10 +366,13 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         if st == "DataFrame"
             selected_x[] = nothing
             selected_y[] = nothing
+            state.misc.last_plotted_x[] = nothing
+            state.misc.last_plotted_y[] = nothing
         # Clear DataFrame mode selections when switching to arrays
         else
             selected_dataframe[] = nothing
             selected_columns[] = String[]
+            state.misc.last_plotted_dataframe[] = nothing
         end
         
         # Clear plot and table
@@ -395,8 +410,13 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             return
         end
         
-        # Use helper function with reset_legend_title=true and update_table=true for new plots
-        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=true, update_table=true)
+        # Detect if this is a NEW data source (DataFrame changed)
+        is_new_source = (df_name != state.misc.last_plotted_dataframe[])
+        
+        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=is_new_source, update_table=true)
+        
+        # Update last plotted source
+        state.misc.last_plotted_dataframe[] = df_name
     end
     
     # === Plot Type Change Handler for DataFrame mode ===

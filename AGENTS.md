@@ -172,7 +172,10 @@ state = (;
         trigger_update::Observable{Bool},
         last_update::Ref{Float64},
         block_format_update::Observable{Bool},  # Race condition prevention
-        format_is_default::DefaultDict{Symbol, Bool}  # Track user-customized format options
+        format_is_default::DefaultDict{Symbol, Bool},  # Track user-customized format options
+        last_plotted_x::Observable{Union{Nothing, String}},  # Data source tracking (Array)
+        last_plotted_y::Observable{Union{Nothing, String}},  # Data source tracking (Array)
+        last_plotted_dataframe::Observable{Union{Nothing, String}}  # Data source tracking (DataFrame)
     )
 )
 ```
@@ -271,10 +274,16 @@ A `DefaultDict{Symbol, Bool}` tracks which format options are still at their def
 - `:show_legend`, `:legend_title` - legend settings  
 - `:plottype` - plot type (persists across data source changes)
 
+**Data Source Tracking:**
+- `last_plotted_x`, `last_plotted_y` - track last X and Y variable names (Array mode)
+- `last_plotted_dataframe` - tracks last DataFrame name (DataFrame mode)
+- Format resets only when **data source changes** (different X or Y variable, or different DataFrame), not when re-plotting same source with different columns.
+
 **Flow:**
-1.  **New Data**: `is_new_data=true` → reset all non-persistent flags to `true`, initialize text fields from plot defaults.
-2.  **User Edit**: Mark corresponding flag as `false` (e.g., user changes title → `format_is_default[:title] = false`).
-3.  **Replot**: After creating new plot, `apply_custom_formatting!` iterates over non-default options and re-applies them.
+1.  **New Data Source**: `is_new_data=true` → reset all non-persistent flags to `true`, initialize text fields from plot defaults.
+2.  **Same Source, Different Columns**: `is_new_data=false` → preserve all format customizations.
+3.  **User Edit**: Mark corresponding flag as `false` (e.g., user changes title → `format_is_default[:title] = false`).
+4.  **Replot**: After creating new plot, `apply_custom_formatting!` iterates over non-default options and re-applies them.
 
 #### 3. Legend Behavior
 - **Default Visibility**: `show_legend` defaults to `true` only if `n_cols > 1`.
@@ -315,7 +324,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Known Issues 
    
-1. **Label Persistence**: Plot title/labels sometimes require multiple attempts to update. The `format_is_default` tracking and `apply_custom_formatting!` help, but WGLMakie reactivity can still be inconsistent.
+- currently none
 
 ### Road-map
 
@@ -323,14 +332,12 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Planned Enhancements (as of v0.0.6)
+#### Planned Enhancements (as of v0.3.1)
 
-- ~~Importing data from external files~~ ✓ (CSV/XLSX with configurable options + reload)
-- Optional regression‑fit overlays  
-- Automatic Julia code generation from GUI actions  
 - Additional formatting options (e.g., axis limits, themes)  
 - Support for multiple independent data sources
-
+- Automatic Julia code generation from GUI actions
+- Optional regression‑fit overlays  
 
 ### Development Workflows
 

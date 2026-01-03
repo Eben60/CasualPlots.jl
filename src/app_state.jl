@@ -89,10 +89,16 @@ function initialize_app_state()
     # Track which format options have been explicitly changed by user
     # Keys: :title, :xlabel, :ylabel, :show_legend, :legend_title
     # Values: true if user has changed this option, false otherwise
-    # Reset when new data is selected. Used to preserve user customizations during plot rebuilds.
+    # Reset when new data source is selected. Used to preserve user customizations during plot rebuilds.
     format_is_default = DefaultDict{Symbol, Bool}(true)
     
-    misc = (; trigger_update, last_update, block_format_update, format_is_default)
+    # Track last plotted data source to detect when a NEW source is selected
+    # (vs just re-plotting same source with different columns)
+    last_plotted_x = Observable{Union{Nothing, String}}(nothing)  # For Array mode (X variable)
+    last_plotted_y = Observable{Union{Nothing, String}}(nothing)  # For Array mode (Y variable)
+    last_plotted_dataframe = Observable{Union{Nothing, String}}(nothing)  # For DataFrame mode
+    
+    misc = (; trigger_update, last_update, block_format_update, format_is_default, last_plotted_x, last_plotted_y, last_plotted_dataframe)
 
     return (; file_opening, file_saving, dialogs, data_selection, plotting, misc)
 end

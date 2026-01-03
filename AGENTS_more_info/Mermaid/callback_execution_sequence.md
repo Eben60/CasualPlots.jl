@@ -25,19 +25,23 @@ sequenceDiagram
     Obs->>SourceCB: Triggered (selected_x, selected_y changed)
     activate SourceCB
     
+    SourceCB->>Obs: Check last_plotted_x[], last_plotted_y[]
+    Note over SourceCB: is_new_source = (x != last_x || y != last_y)
+    
     SourceCB->>Obs: block_format_update[] = true
     Note over SourceCB: Prevent format callback race
     
     SourceCB->>SourceCB: Fetch data from Main module
-    SourceCB->>Plot: create_plot(x_data, y_data)
+    SourceCB->>Plot: do_replot(data, format, is_new_data=is_new_source)
     Plot-->>SourceCB: fig_result (with defaults)
     
-    SourceCB->>Obs: current_plot_x[] = x_data
-    SourceCB->>Obs: current_plot_y[] = y_data
-    SourceCB->>Obs: xlabel_text[] = default_x_label
-    SourceCB->>Obs: ylabel_text[] = default_y_label
-    SourceCB->>Obs: title_text[] = default_title
+    alt is_new_source == true
+        SourceCB->>Obs: Reset format_is_default flags
+        SourceCB->>Obs: Initialize text fields from plot defaults
+    end
     
+    SourceCB->>Obs: last_plotted_x[] = x
+    SourceCB->>Obs: last_plotted_y[] = y
     SourceCB->>Table: Update table with data
     SourceCB->>Obs: plot[] = new figure
     
