@@ -63,15 +63,41 @@ function initialize_app_state()
     selected_x = Observable{Union{Nothing, String}}(nothing)
     selected_y = Observable{Union{Nothing, String}}(nothing)
     
+    # Range selection for data subsetting
+    range_from = Observable{Union{Nothing, Int}}(nothing)
+    range_to = Observable{Union{Nothing, Int}}(nothing)
+    # Data bounds - track the actual first/last indices of current data source
+    data_bounds_from = Observable{Union{Nothing, Int}}(nothing)
+    data_bounds_to = Observable{Union{Nothing, Int}}(nothing)
+    
     data_selection = (; 
         source_type, dims_dict_obs, dataframes_dict_obs,
-        selected_dataframe, selected_columns, selected_x, selected_y
+        selected_dataframe, selected_columns, selected_x, selected_y,
+        range_from, range_to, data_bounds_from, data_bounds_to,
     )
     
     # --- Plotting ---
     selected_plottype = Observable("Scatter")
     show_legend = Observable(true)
-    plot_format = (; selected_plottype, show_legend)
+    
+    # Axis limits - Union{Nothing, Float64} allows empty (auto) or specific values
+    x_min = Observable{Union{Nothing, Float64}}(nothing)
+    x_max = Observable{Union{Nothing, Float64}}(nothing)
+    y_min = Observable{Union{Nothing, Float64}}(nothing)
+    y_max = Observable{Union{Nothing, Float64}}(nothing)
+    # Default axis limits - values from plot creation time, used for reset and placeholder display
+    x_min_default = Observable{Union{Nothing, Float64}}(nothing)
+    x_max_default = Observable{Union{Nothing, Float64}}(nothing)
+    y_min_default = Observable{Union{Nothing, Float64}}(nothing)
+    y_max_default = Observable{Union{Nothing, Float64}}(nothing)
+    # Axis reversal
+    xreversed = Observable{Bool}(false)
+    yreversed = Observable{Bool}(false)
+    
+    plot_format = (; selected_plottype, show_legend,
+                    x_min, x_max, y_min, y_max,
+                    x_min_default, x_max_default, y_min_default, y_max_default,
+                    xreversed, yreversed)
     
     xlabel_text = Observable("")
     ylabel_text = Observable("")
@@ -107,9 +133,40 @@ end
     reset_format_defaults!(format_is_default::DefaultDict{Symbol, Bool})
 
 Reset format_is_default dict to all-default state, EXCEPT for options
-listed in PERSISTENT_FORMAT_OPTION which should persist across data source changes.
+that should never be reset (listed in `RESET_FORMAT_OPTION["never"]`).
 """
-reset_format_defaults!(format_is_default) = filter!(p -> p.first in PERSISTENT_FORMAT_OPTION, format_is_default)
+reset_format_defaults!(format_is_default) = filter!(p -> p.first in RESET_FORMAT_OPTION["never"], format_is_default)
+
+"""
+    reset_semipersistent_format_options!(state)
+
+Reset semipersistent format options (axis limits and reversal) to their default values.
+Called when:
+- A new data source is selected
+- (Re-)Plot button is clicked
+
+This resets the axis limits to `nothing` (auto) and reversal to `false`,
+and marks them as default in format_is_default.
+"""
+function reset_semipersistent_format_options!(state)
+    format = state.plotting.format
+    format_is_default = state.misc.format_is_default
+    
+    # Reset axis limits to nothing (auto)
+    format.x_min[] = nothing
+    format.x_max[] = nothing
+    format.y_min[] = nothing
+    format.y_max[] = nothing
+    
+    # Reset reversal to false
+    format.xreversed[] = false
+    format.yreversed[] = false
+    
+    # Mark as default in format_is_default dict
+    for key in RESET_FORMAT_OPTION["range"]
+        format_is_default[key] = true
+    end
+end
 
 """
     apply_custom_formatting!(fig, ax, state)

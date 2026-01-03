@@ -71,11 +71,14 @@ flowchart TD
     UserEdit -->|Plot Type| MarkNonDefault[Mark format_is_default = false]
     UserEdit -->|Legend Toggle| MarkNonDefault
     UserEdit -->|Legend Title| MarkNonDefault
+    UserEdit -->|Axis Limits| AxisLimitEdit[Update Axis Limits]
     UserEdit -->|Labels| UpdateLabels[Update Axis Labels Directly]
     
-    MarkNonDefault --> DoReplot[do_replot with new format]
+    AxisLimitEdit --> DoReplot[do_replot with new format]
+    MarkNonDefault --> DoReplot
     DoReplot --> ApplyCustom[apply_custom_formatting!]
     Note right of ApplyCustom: Re-apply non-default labels
+    Note right of DoReplot: get_current_axis_limits preserves limits
     
     UpdateLabels --> RefreshPlot[Refresh Plot Display]
     ApplyCustom --> RefreshPlot
