@@ -76,6 +76,16 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     custom_title = get(plot_format, :title, nothing)
     custom_xlabel = get(plot_format, :xlabel, nothing)
     custom_ylabel = get(plot_format, :ylabel, nothing)
+    
+    # Get axis reversal options (default to false)
+    xreversed = get(plot_format, :xreversed, false)
+    yreversed = get(plot_format, :yreversed, false)
+    
+    # Get axis limits (nothing means auto)
+    x_min = get(plot_format, :x_min, nothing)
+    x_max = get(plot_format, :x_max, nothing)
+    y_min = get(plot_format, :y_min, nothing)
+    y_max = get(plot_format, :y_max, nothing)
 
     # Use custom labels if provided, otherwise use the data column names
     final_x_name = if !isnothing(custom_xlabel) && custom_xlabel != ""
@@ -99,10 +109,11 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
         "$(var_to_string(plottype)) Plot of $final_y_name vs $final_x_name"
     end
     
+    # Build axis kwargs with limits and reversal
     fg = draw(plt;
         figure=(; size=(800, 600)), 
         legend=(show=show_legend, ),
-        axis=(; title)
+        axis=(; title, limits=(x_min, x_max, y_min, y_max), xreversed, yreversed),
     )
 
     fig = fg.figure

@@ -342,3 +342,53 @@
     font-size: 12px;
     box-sizing: border-box;
 }
+
+/* Axis Limits Section (Format Tab) */
+.axis-limits-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
+}
+
+.axis-limits-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.axis-limits-label {
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 50px;
+}
+
+.axis-limits-label-small {
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 25px;
+}
+
+.axis-limits-input {
+    width: 70px;
+    padding: 4px 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 11px;
+    text-align: right;
+}
+
+/* Placeholder shows default value in grey */
+.axis-limits-input::placeholder {
+    color: #999;
+    font-style: italic;
+}
+
+.axis-limits-checkbox {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}

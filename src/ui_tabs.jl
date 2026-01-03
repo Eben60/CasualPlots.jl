@@ -103,6 +103,7 @@ function create_tab_content(control_panel, state, outputs)
         control_panel.xlabel_input,
         control_panel.ylabel_input,
         control_panel.title_input,
+        control_panel.axis_limits_section,
     )
     save_tab_result = create_save_tab_content(state)
     

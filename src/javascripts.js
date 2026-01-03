@@ -265,3 +265,203 @@ window.CasualPlots.handleIntEnterKey = (event, observable) => {
         window.CasualPlots.updateIntObservable(event, observable);
     }
 }
+
+// ============================================================
+// Axis Limits Functions
+// ============================================================
+
+// Global state for axis limit defaults (used for placeholder display and default detection)
+window.CasualPlots._axisLimitDefaults = {
+    x_min: null, x_max: null, y_min: null, y_max: null
+};
+
+/**
+ * Updates an axis limit observable with validation.
+ * Validates that min < max before allowing the update.
+ * @param {Event} event - The DOM event
+ * @param {Observable} observable - The observable to update (the one being edited)
+ * @param {Observable} pairedObservable - The paired observable (min if editing max, vice versa)
+ * @param {string} limitType - 'min' or 'max' indicating which limit is being edited
+ */
+window.CasualPlots.updateAxisLimitObservable = (event, observable, pairedObservable, limitType) => {
+    const input = event.target;
+    const value = input.value.trim();
+    
+    if (value === '') {
+        // Empty: set to null (auto/default)
+        observable.notify(null);
+        return;
+    }
+    
+    const floatValue = parseFloat(value);
+    if (isNaN(floatValue)) {
+        // Invalid: revert to previous value
+        const prevValue = observable.value;
+        input.value = prevValue !== null ? prevValue : '';
+        return;
+    }
+    
+    // Get paired value for validation
+    const pairedValue = pairedObservable.value;
+    
+    // Validate min < max
+    if (pairedValue !== null) {
+        if (limitType === 'min' && floatValue >= pairedValue) {
+            // min must be < max - revert
+            console.warn('Axis limit validation failed: min must be less than max');
+            const prevValue = observable.value;
+            input.value = prevValue !== null ? prevValue : '';
+            return;
+        }
+        if (limitType === 'max' && floatValue <= pairedValue) {
+            // max must be > min - revert
+            console.warn('Axis limit validation failed: max must be greater than min');
+            const prevValue = observable.value;
+            input.value = prevValue !== null ? prevValue : '';
+            return;
+        }
+    }
+    
+    // Valid: update the observable
+    observable.notify(floatValue);
+}
+
+/**
+ * Handles Enter key press for axis limit input fields.
+ * @param {Event} event - The DOM keydown event
+ * @param {Observable} observable - The observable to update
+ * @param {Observable} pairedObservable - The paired observable for validation
+ * @param {string} limitType - 'min' or 'max'
+ */
+window.CasualPlots.handleAxisLimitEnterKey = (event, observable, pairedObservable, limitType) => {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        window.CasualPlots.updateAxisLimitObservable(event, observable, pairedObservable, limitType);
+        event.target.blur(); // Unfocus after Enter
+    }
+}
+
+/**
+ * Sets the placeholder values for axis limit inputs and stores defaults.
+ * Called from Julia when defaults change (e.g., after new plot creation).
+ * @param {number|null} xMin - X axis minimum default
+ * @param {number|null} xMax - X axis maximum default
+ * @param {number|null} yMin - Y axis minimum default
+ * @param {number|null} yMax - Y axis maximum default
+ */
+window.CasualPlots.setAxisLimitPlaceholders = (xMin, xMax, yMin, yMax) => {
+    const formatValue = (val) => {
+        if (val === null || val === undefined || val === "null") return '';
+        const num = parseFloat(val);
+        if (isNaN(num)) return '';
+        // Use toPrecision for very large/small numbers, otherwise toFixed
+        if (Math.abs(num) >= 1e6 || (Math.abs(num) < 1e-3 && num !== 0)) {
+            return num.toPrecision(4);
+        }
+        return num.toFixed(3).replace(/\.?0+$/, ''); // Remove trailing zeros
+    };
+    
+    // Store defaults for later comparison
+    window.CasualPlots._axisLimitDefaults = {
+        x_min: xMin, x_max: xMax, y_min: yMin, y_max: yMax
+    };
+    
+    const xMinInput = document.getElementById('axis-x-min-input');
+    const xMaxInput = document.getElementById('axis-x-max-input');
+    const yMinInput = document.getElementById('axis-y-min-input');
+    const yMaxInput = document.getElementById('axis-y-max-input');
+    
+    if (xMinInput) xMinInput.placeholder = formatValue(xMin);
+    if (xMaxInput) xMaxInput.placeholder = formatValue(xMax);
+    if (yMinInput) yMinInput.placeholder = formatValue(yMin);
+    if (yMaxInput) yMaxInput.placeholder = formatValue(yMax);
+}
+
+/**
+ * Sets the actual values in axis limit input fields (not placeholders).
+ * Used when syncing from pan/zoom changes.
+ * @param {number|null} xMin - X axis minimum value
+ * @param {number|null} xMax - X axis maximum value
+ * @param {number|null} yMin - Y axis minimum value
+ * @param {number|null} yMax - Y axis maximum value
+ */
+window.CasualPlots.setAxisLimitInputValues = (xMin, xMax, yMin, yMax) => {
+    const formatValue = (val) => {
+        if (val === null || val === undefined || val === "null") return '';
+        const num = parseFloat(val);
+        if (isNaN(num)) return '';
+        if (Math.abs(num) >= 1e6 || (Math.abs(num) < 1e-3 && num !== 0)) {
+            return num.toPrecision(4);
+        }
+        return num.toFixed(3).replace(/\.?0+$/, '');
+    };
+    
+    const xMinInput = document.getElementById('axis-x-min-input');
+    const xMaxInput = document.getElementById('axis-x-max-input');
+    const yMinInput = document.getElementById('axis-y-min-input');
+    const yMaxInput = document.getElementById('axis-y-max-input');
+    
+    if (xMinInput) xMinInput.value = formatValue(xMin);
+    if (xMaxInput) xMaxInput.value = formatValue(xMax);
+    if (yMinInput) yMinInput.value = formatValue(yMin);
+    if (yMaxInput) yMaxInput.value = formatValue(yMax);
+}
+
+/**
+ * Checks if an axis limit value is approximately at its default.
+ * Uses relative tolerance: |current - default| / rangeSpan < 5e-4
+ * @param {number|null} currentValue - Current limit value
+ * @param {number|null} defaultValue - Default limit value
+ * @param {number} rangeSpan - The current range span (max - min)
+ * @returns {boolean} true if the value is considered at default
+ */
+window.CasualPlots.isAxisLimitAtDefault = (currentValue, defaultValue, rangeSpan) => {
+    if (currentValue === null || defaultValue === null) {
+        return currentValue === defaultValue;
+    }
+    if (rangeSpan === 0 || isNaN(rangeSpan)) return false;
+    
+    const relativeError = Math.abs(currentValue - defaultValue) / Math.abs(rangeSpan);
+    return relativeError < 5e-4;
+}
+
+/**
+ * Updates reversal checkbox state from Julia.
+ * @param {string} axis - 'x' or 'y'
+ * @param {boolean} isReversed - Whether the axis is reversed
+ */
+window.CasualPlots.updateReversalCheckbox = (axis, isReversed) => {
+    const checkbox = document.getElementById(`axis-${axis}-reversed-checkbox`);
+    if (checkbox) {
+        checkbox.checked = isReversed;
+    }
+}
+
+/**
+ * Clears all axis limit input fields and placeholders.
+ * Called when clearing the plot.
+ */
+window.CasualPlots.clearAxisLimitInputs = () => {
+    const inputs = [
+        'axis-x-min-input', 'axis-x-max-input',
+        'axis-y-min-input', 'axis-y-max-input'
+    ];
+    inputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.value = '';
+            input.placeholder = '';
+        }
+    });
+    
+    // Reset stored defaults
+    window.CasualPlots._axisLimitDefaults = {
+        x_min: null, x_max: null, y_min: null, y_max: null
+    };
+    
+    // Uncheck reversal checkboxes
+    const xRevCheckbox = document.getElementById('axis-x-reversed-checkbox');
+    const yRevCheckbox = document.getElementById('axis-y-reversed-checkbox');
+    if (xRevCheckbox) xRevCheckbox.checked = false;
+    if (yRevCheckbox) yRevCheckbox.checked = false;
+}

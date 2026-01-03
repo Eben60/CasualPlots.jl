@@ -27,7 +27,8 @@ const REQUIRES_FULL_REPLOT = (;
     ylabel = false,
 )
 
-const PERSISTENT_FORMAT_OPTION = (:plottype, )
+const PERSISTENT_FORMAT_OPTIONS = (:plottype, )
+const SEMIPERSISTENT_FORMAT_OPTIONS = (:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed)
 const DEFAULT_PLOT_TYPE = :Scatter
 
 include("electron.jl")

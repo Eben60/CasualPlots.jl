@@ -74,7 +74,10 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     ylabel_input = create_label_input("Y-Axis:", "ylabel", ylabel_text)
     title_input = create_label_input("Title:", "title", title_text)
     
+    # Axis limits section
+    axis_limits_section = create_axis_limits_section(format)
+    
     return (; source_type_selector, source_content, plot_kind, legend_control,
-              xlabel_input, ylabel_input, title_input, plot_trigger)
+              xlabel_input, ylabel_input, title_input, axis_limits_section, plot_trigger)
 end
 

@@ -55,6 +55,10 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false)
             legend_title_text[] = ""
             # Reset format flags (preserves persistent ones like plottype)
             reset_format_defaults!(state.misc.format_is_default)
+            # Reset semipersistent options (axis limits, reversal)
+            reset_semipersistent_format_options!(state)
+            # Extract and store axis limits defaults from the newly created plot
+            update_axis_limits_from_axis(state, fig.axis; set_defaults=true)
         end
         
         # Publish the figure
@@ -166,6 +170,8 @@ function setup_source_callback(state, outputs)
             # Clear last plotted source
             last_plotted_x[] = nothing
             last_plotted_y[] = nothing
+            # Clear axis limits
+            clear_axis_limits(state)
         end
     end
 end
@@ -513,6 +519,8 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         data_bounds_to[] = nothing
         range_from[] = nothing
         range_to[] = nothing
+        # Clear axis limits
+        clear_axis_limits(state)
     end
     
     # When DataFrame selection changes, clear column selections and set bounds
@@ -648,6 +656,318 @@ function setup_range_ui_sync(session, state)
                 window.CasualPlots.setRangeInputValues($from_js, $to_js);
             });
         """)
+    end
+end
+
+# ============================================================
+# Axis Limits Callbacks
+# ============================================================
+
+"""
+    extract_axis_limits(axis) -> NamedTuple
+
+Extract current axis limits from a Makie axis.
+Returns (; x_min, x_max, y_min, y_max) with Float64 values.
+"""
+function extract_axis_limits(axis)
+    isnothing(axis) && return (; x_min=nothing, x_max=nothing, y_min=nothing, y_max=nothing)
+    
+    # Get the finallimits from the axis
+    limits = axis.finallimits[]
+    
+    x_min = Float64(limits.origin[1])
+    x_max = Float64(limits.origin[1] + limits.widths[1])
+    y_min = Float64(limits.origin[2])
+    y_max = Float64(limits.origin[2] + limits.widths[2])
+    
+    return (; x_min, x_max, y_min, y_max)
+end
+
+"""
+    is_limit_at_default(current, default, range_span) -> Bool
+
+Check if a limit value is approximately at its default using relative tolerance.
+Formula: |current - default| / |range_span| < 5e-4
+"""
+function is_limit_at_default(current, default, range_span)
+    (isnothing(current) || isnothing(default)) && return isnothing(current) == isnothing(default)
+    (range_span == 0 || isnan(range_span)) && return false
+    
+    relative_error = abs(current - default) / abs(range_span)
+    return relative_error < 5e-4
+end
+
+"""
+    update_axis_limits_from_axis(state, axis; set_defaults=false)
+
+Extract limits from Makie axis and update state observables.
+If set_defaults=true, also updates the default limit observables.
+"""
+function update_axis_limits_from_axis(state, axis; set_defaults=false)
+    isnothing(axis) && return
+    
+    limits = extract_axis_limits(axis)
+    format = state.plotting.format
+    format_is_default = state.misc.format_is_default
+    
+    if set_defaults
+        # Store as defaults AND update current (for new plot)
+        format.x_min_default[] = limits.x_min
+        format.x_max_default[] = limits.x_max
+        format.y_min_default[] = limits.y_min
+        format.y_max_default[] = limits.y_max
+        
+        # Current values stay at nothing (auto) for new plot
+        format.x_min[] = nothing
+        format.x_max[] = nothing
+        format.y_min[] = nothing
+        format.y_max[] = nothing
+        
+        # Mark as default
+        for key in (:x_min, :x_max, :y_min, :y_max)
+            format_is_default[key] = true
+        end
+    else
+        # Pan/zoom update - check if returning to defaults
+        x_range = limits.x_max - limits.x_min
+        y_range = limits.y_max - limits.y_min
+        
+        # Check each limit for default state
+        if is_limit_at_default(limits.x_min, format.x_min_default[], x_range)
+            format.x_min[] = nothing
+            format_is_default[:x_min] = true
+        else
+            format.x_min[] = limits.x_min
+            format_is_default[:x_min] = false
+        end
+        
+        if is_limit_at_default(limits.x_max, format.x_max_default[], x_range)
+            format.x_max[] = nothing
+            format_is_default[:x_max] = true
+        else
+            format.x_max[] = limits.x_max
+            format_is_default[:x_max] = false
+        end
+        
+        if is_limit_at_default(limits.y_min, format.y_min_default[], y_range)
+            format.y_min[] = nothing
+            format_is_default[:y_min] = true
+        else
+            format.y_min[] = limits.y_min
+            format_is_default[:y_min] = false
+        end
+        
+        if is_limit_at_default(limits.y_max, format.y_max_default[], y_range)
+            format.y_max[] = nothing
+            format_is_default[:y_max] = true
+        else
+            format.y_max[] = limits.y_max
+            format_is_default[:y_max] = false
+        end
+    end
+end
+
+"""
+    clear_axis_limits(state)
+
+Clear all axis limit values and defaults, and reset reversal checkboxes.
+Called when plot is cleared.
+"""
+function clear_axis_limits(state)
+    format = state.plotting.format
+    format_is_default = state.misc.format_is_default
+    
+    # Clear current values
+    format.x_min[] = nothing
+    format.x_max[] = nothing
+    format.y_min[] = nothing
+    format.y_max[] = nothing
+    
+    # Clear defaults
+    format.x_min_default[] = nothing
+    format.x_max_default[] = nothing
+    format.y_min_default[] = nothing
+    format.y_max_default[] = nothing
+    
+    # Reset reversal
+    format.xreversed[] = false
+    format.yreversed[] = false
+    
+    # Mark all as default
+    for key in SEMIPERSISTENT_FORMAT_OPTIONS
+        format_is_default[key] = true
+    end
+end
+
+"""
+    setup_axis_limits_callbacks(state, outputs)
+
+Set up callbacks for axis limit and reversal changes.
+Changes are applied immediately without needing a Replot button.
+"""
+function setup_axis_limits_callbacks(state, outputs)
+    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, show_legend) = state.plotting.format
+    (; current_axis, current_figure, legend_title_text) = state.plotting.handles
+    (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
+       range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
+    format_is_default = state.misc.format_is_default
+    
+    # Helper to get current plot format
+    function get_current_plot_format()
+        return (;
+            plottype = selected_plottype[] |> Symbol |> eval,
+            show_legend = show_legend[],
+            legend_title = legend_title_text[],
+            x_min = x_min[],
+            x_max = x_max[],
+            y_min = y_min[],
+            y_max = y_max[],
+            xreversed = xreversed[],
+            yreversed = yreversed[],
+        )
+    end
+    
+    # Helper to trigger replot
+    function trigger_axis_replot()
+        state.misc.block_format_update[] && return
+        
+        if source_type[] == "X, Y Arrays"
+            x = outputs.current_x[]
+            y = outputs.current_y[]
+            (isnothing(x) || isnothing(y)) && return
+            
+            from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
+            to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
+            
+            do_replot(state, outputs;
+                data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
+                plot_format = get_current_plot_format(),
+            )
+        elseif source_type[] == "DataFrame"
+            df_name = selected_dataframe[]
+            cols = selected_columns[]
+            (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
+            
+            update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+        end
+    end
+    
+    # === Axis Limit Change Handlers ===
+    for (limit_obs, limit_key) in [(x_min, :x_min), (x_max, :x_max), (y_min, :y_min), (y_max, :y_max)]
+        on(limit_obs) do val
+            state.misc.block_format_update[] && return
+            isnothing(current_axis[]) && return
+            
+            # Mark as non-default if value is set
+            if !isnothing(val)
+                format_is_default[limit_key] = false
+            end
+            
+            trigger_axis_replot()
+        end
+    end
+    
+    # === Axis Reversal Change Handlers ===
+    on(xreversed) do val
+        state.misc.block_format_update[] && return
+        isnothing(current_axis[]) && return
+        
+        # Mark as non-default if reversed
+        format_is_default[:xreversed] = !val
+        
+        trigger_axis_replot()
+    end
+    
+    on(yreversed) do val
+        state.misc.block_format_update[] && return
+        isnothing(current_axis[]) && return
+        
+        # Mark as non-default if reversed
+        format_is_default[:yreversed] = !val
+        
+        trigger_axis_replot()
+    end
+end
+
+"""
+    setup_axis_limits_ui_sync(session, state)
+
+Set up callback to sync axis limit placeholders and values to the UI.
+When defaults change, updates placeholder text.
+When current_axis is set (new plot), syncs defaults as placeholders.
+"""
+function setup_axis_limits_ui_sync(session, state)
+    (; x_min_default, x_max_default, y_min_default, y_max_default) = state.plotting.format
+    (; current_axis) = state.plotting.handles
+    
+    # Sync placeholders when defaults change (new plot created)
+    onany(x_min_default, x_max_default, y_min_default, y_max_default) do xmin, xmax, ymin, ymax
+        Bonito.evaljs(session, js"""
+            requestAnimationFrame(() => {
+                window.CasualPlots.setAxisLimitPlaceholders($xmin, $xmax, $ymin, $ymax);
+            });
+        """)
+    end
+    
+    # Clear inputs when axis is cleared
+    on(current_axis) do axis
+        if isnothing(axis)
+            Bonito.evaljs(session, js"""
+                requestAnimationFrame(() => {
+                    window.CasualPlots.clearAxisLimitInputs();
+                });
+            """)
+        end
+    end
+end
+
+"""
+    setup_axis_pan_zoom_sync(session, state)
+
+Set up callback to sync axis limits from Makie when user pans/zooms.
+Listens to axis.finallimits changes and updates observables.
+"""
+function setup_axis_pan_zoom_sync(session, state)
+    current_axis_ref = Ref{Union{Nothing, Any}}(nothing)
+    finallimits_listener = Ref{Union{Nothing, Any}}(nothing)
+    
+    on(state.plotting.handles.current_axis) do axis
+        # Clean up previous listener
+        if !isnothing(finallimits_listener[]) && !isnothing(current_axis_ref[])
+            try
+                Observables.off(current_axis_ref[].finallimits, finallimits_listener[])
+            catch
+                # Ignore errors during cleanup
+            end
+        end
+        
+        current_axis_ref[] = axis
+        
+        if !isnothing(axis)
+            # Set up listener on finallimits
+            finallimits_listener[] = on(axis.finallimits) do limits
+                # Skip if block_format_update is set (we're in a replot)
+                state.misc.block_format_update[] && return
+                
+                # Update state from axis (this handles default detection)
+                update_axis_limits_from_axis(state, axis; set_defaults=false)
+                
+                # Sync to UI - for current values (empty string if at default/nothing)
+                format = state.plotting.format
+                xmin_val = format.x_min[]
+                xmax_val = format.x_max[]
+                ymin_val = format.y_min[]
+                ymax_val = format.y_max[]
+                
+                Bonito.evaljs(session, js"""
+                    requestAnimationFrame(() => {
+                        window.CasualPlots.setAxisLimitInputValues($xmin_val, $xmax_val, $ymin_val, $ymax_val);
+                    });
+                """)
+            end
+        else
+            finallimits_listener[] = nothing
+        end
     end
 end
 

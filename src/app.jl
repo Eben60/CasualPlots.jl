@@ -43,6 +43,11 @@ casualplots_app() = App() do session
     # Setup range input field synchronization
     setup_range_ui_sync(session, state)
     
+    # Setup axis limits callbacks and synchronization
+    setup_axis_limits_callbacks(state, outputs)
+    setup_axis_limits_ui_sync(session, state)
+    setup_axis_pan_zoom_sync(session, state)
+    
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)
     
