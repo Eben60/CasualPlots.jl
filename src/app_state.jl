@@ -78,6 +78,8 @@ function initialize_app_state()
     
     # --- Plotting ---
     selected_plottype = Observable("Scatter")
+    selected_theme = Observable(DEFAULT_THEME)
+    selected_group_by = Observable(DEFAULT_GROUP_BY)
     show_legend = Observable(true)
     
     # Axis limits - Union{Nothing, Float64} allows empty (auto) or specific values
@@ -94,7 +96,7 @@ function initialize_app_state()
     xreversed = Observable{Bool}(false)
     yreversed = Observable{Bool}(false)
     
-    plot_format = (; selected_plottype, show_legend,
+    plot_format = (; selected_plottype, selected_theme, selected_group_by, show_legend,
                     x_min, x_max, y_min, y_max,
                     x_min_default, x_max_default, y_min_default, y_max_default,
                     xreversed, yreversed)

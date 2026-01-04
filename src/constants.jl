@@ -1,6 +1,6 @@
 # Constants for CasualPlots module
 
-const REQUIRES_FULL_REPLOT = (;
+const REQUIRES_FULL_REPLOT = (; # TODO update and actually use it
     plottype = true, 
     show_legend = true,
     legend_title = true,
@@ -10,6 +10,22 @@ const REQUIRES_FULL_REPLOT = (;
 )
 
 const DEFAULT_PLOT_TYPE = :Scatter
+
+const SUPPORTED_THEMES = [
+    "Makie default",
+    "AoG default",
+    "theme_black",
+    "theme_dark",
+    "theme_ggplot2",
+    "theme_latexfonts",
+    "theme_light",
+    "theme_minimal",
+]
+
+const DEFAULT_THEME = "Makie default"
+
+const GROUP_BY_OPTIONS = ["Color", "Geometry"]
+const DEFAULT_GROUP_BY = "Color"
 
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
 
@@ -40,7 +56,7 @@ Maps reset trigger names to the set of format options that should be reset.
 """
 const RESET_FORMAT_OPTION = let
     rfo = Dict(
-        ["never"] => m2s(:plottype),
+        ["never"] => m2s([:plottype, :theme]),
         ["source", "range"] => m2s(AXES_LIMITS_OPTIONS),
         ["source"] => m2s(PLOT_LABELS_OPTIONS, PLOT_LEGEND_OPTIONS),
     )

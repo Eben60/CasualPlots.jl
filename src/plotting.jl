@@ -100,7 +100,23 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
         y_name
     end
 
-    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name; color=group_col => legend_title) * visual(plottype)
+    # Determine group differentiation style (Color vs Geometry)
+    group_by = get(plot_format, :group_by, "Color")
+    
+    # Build the appropriate group mapping based on group_by setting
+    group_mapping = if group_by == "Geometry" && plottype != BarPlot
+        # Use linestyle for Lines, marker for Scatter
+        if plottype == Lines
+            (; linestyle = group_col => legend_title)
+        else  # Scatter
+            (; marker = group_col => legend_title)
+        end
+    else
+        # Default to color (also fallback for BarPlot with Geometry)
+        (; color = group_col => legend_title)
+    end
+    
+    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * visual(plottype)
     
     # Use custom title if provided, otherwise generate default
     title = if !isnothing(custom_title) && custom_title != ""

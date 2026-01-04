@@ -23,7 +23,7 @@ stateDiagram-v2
     
     WarningModal --> PlotDisplayed: User Dismisses
     
-    PlotDisplayed --> Replotting: Format Changed\n(plottype, legend,\nlabels)
+    PlotDisplayed --> Replotting: Format Changed\n(plottype, theme,\ngroup_by, legend,\nlabels)
     
     Replotting --> PlotDisplayed: Format Applied\n(labels preserved)
     

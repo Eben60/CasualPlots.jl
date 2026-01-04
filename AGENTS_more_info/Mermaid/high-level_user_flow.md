@@ -69,12 +69,16 @@ flowchart TD
     DisplayDFPlot --> FormatControls
     FormatControls --> UserEdit{User Edits Format?}
     UserEdit -->|Plot Type| MarkNonDefault[Mark format_is_default = false]
+    UserEdit -->|Theme| ApplyTheme[apply_theme! + Mark non-default]
+    UserEdit -->|Group By| GroupByChange[Update group mapping]
     UserEdit -->|Legend Toggle| MarkNonDefault
     UserEdit -->|Legend Title| MarkNonDefault
     UserEdit -->|Axis Limits| AxisLimitEdit[Update Axis Limits]
     UserEdit -->|Labels| UpdateLabels[Update Axis Labels Directly]
     
-    AxisLimitEdit --> DoReplot[do_replot with new format]
+    ApplyTheme --> DoReplot[do_replot with new format]
+    GroupByChange --> DoReplot
+    AxisLimitEdit --> DoReplot
     MarkNonDefault --> DoReplot
     DoReplot --> ApplyCustom[apply_custom_formatting!]
     Note right of ApplyCustom: Re-apply non-default labels

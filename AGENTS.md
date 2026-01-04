@@ -192,10 +192,12 @@ The Open tab provides configurable file reading options before/after loading:
 Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
 
 **A. Format Callback Logic:**
-- **Triggered by**: `selected_plottype`, `show_legend`, `legend_title_text`, axis limit observables.
+- **Triggered by**: `selected_plottype`, `selected_theme`, `selected_group_by`, `show_legend`, `legend_title_text`, axis limit observables.
 - **Implementations**:
     - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
     - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` → `do_replot`)
+    - Theme: `setup_theme_callback` (applies theme globally, triggers replot)
+    - Group By: `setup_group_by_callback` (triggers replot with new group mapping)
     - Axis Limits: `setup_axis_limits_callbacks` (triggers immediate replot with current limits)
 - **Shared Behavior**:
     - **All format changes trigger full replot** using the unified `do_replot` function.
@@ -210,7 +212,7 @@ A `DefaultDict{Symbol, Bool}` tracks which format options are still at their def
 
 **Reset behavior is defined in `constants.jl` via `RESET_FORMAT_OPTION` Dict:**
 - `"never"` → Options that persist across all changes:
-    - `:plottype`
+    - `:plottype`, `:theme`
 - `"source"` → Options reset when data source changes:
     - `:title`, `:xlabel`, `:ylabel`, `:show_legend`, `:legend_title`
     - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
@@ -242,7 +244,7 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 **Key Functions:**
 - `do_replot(state, outputs; data, plot_format, is_new_data)`: **Unified entry point** for all plotting
   - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames
-  - `plot_format`: `(; plottype, show_legend, legend_title)`
+  - `plot_format`: `(; plottype, show_legend, legend_title, group_by)` + axis limits
   - `is_new_data`: If true, initializes text fields from plot defaults
 - `check_data_create_plot(x_name, y_name; plot_format)`: Fetch from Main, delegate to create_plot
 - `create_plot(x_data::AbstractVector, y_data, ...)`: Arrays → DataFrame → AoG pipeline
@@ -253,7 +255,13 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 
 **AlgebraOfGraphics Pattern:**
 ```julia
-plt = data(df) * mapping(x_col => x_name, y_col => y_name; color=group_col => legend_title) * visual(plottype)
+# Group differentiation based on group_by setting:
+group_mapping = if group_by == "Geometry" && plottype != BarPlot
+    plottype == Lines ? (; linestyle = group_col => legend_title) : (; marker = group_col => legend_title)
+else
+    (; color = group_col => legend_title)
+end
+plt = data(df) * mapping(x_col => x_name, y_col => y_name; group_mapping...) * visual(plottype)
 fg = draw(plt; figure=(; size=(800, 600)), legend=(show=show_legend,), axis=(; title))
 fig = fg.figure
 axis = fg.grid[1, 1].axis  # Extract Axis from FigureGrid
@@ -275,10 +283,11 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Planned Enhancements (as of v0.4.0)
+#### Planned Enhancements (as of v0.5.0)
 
 - ~~Axis limits~~ ✓ Implemented (configurable min/max, reversal, pan/zoom sync)
-- Additional formatting options (e.g., themes)
+- ~~Themes~~ ✓ Implemented (Makie default, AoG, theme_black/dark/ggplot2/light/minimal)
+- ~~Group differentiation~~ ✓ Implemented (Color or Geometry; Geometry disabled for BarPlot)
 - Support for multiple independent data sources
 - Automatic Julia code generation from GUI actions
 - Optional regression‑fit overlays  

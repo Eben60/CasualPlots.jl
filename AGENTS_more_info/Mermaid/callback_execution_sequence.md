@@ -81,6 +81,34 @@ sequenceDiagram
     end
     deactivate FormatCB
     
+    %% Theme Change
+    Note over User,Table: User Changes Theme
+    User->>UI: Select theme "theme_dark"
+    UI->>Obs: selected_theme[] = "theme_dark"
+    
+    Obs->>FormatCB: Triggered (selected_theme changed)
+    activate FormatCB
+    FormatCB->>FormatCB: apply_theme!("theme_dark")
+    Note over FormatCB: set_theme!(theme_dark())
+    FormatCB->>Obs: format_is_default[:theme] = false
+    FormatCB->>Plot: do_replot with current data + group_by
+    Plot-->>FormatCB: fig_result (with new theme)
+    FormatCB->>Obs: plot[] = new figure
+    deactivate FormatCB
+    
+    %% Group By Change
+    Note over User,Table: User Changes Group Differentiation
+    User->>UI: Select "Geometry" in group_by dropdown
+    UI->>Obs: selected_group_by[] = "Geometry"
+    
+    Obs->>FormatCB: Triggered (selected_group_by changed)
+    activate FormatCB
+    Note over FormatCB: Lines: linestyle mapping<br/>Scatter: marker mapping<br/>BarPlot: falls back to color
+    FormatCB->>Plot: do_replot with group_by="Geometry"
+    Plot-->>FormatCB: fig_result (groups by line style/marker)
+    FormatCB->>Obs: plot[] = new figure
+    deactivate FormatCB
+    
     %% DataFrame Mode
     Note over User,Table: DataFrame Mode: User Selects Columns
     User->>UI: Select DataFrame "df1"

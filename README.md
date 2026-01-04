@@ -98,8 +98,9 @@ Variables (`Vector`, `Matrix`, `DataFrame`) in `Main` are automatically detected
 In the **Source** tab:
 
 -  For **X, Y Arrays** source, first, select an **X** variable. Only 1D arrays (vectors) of numeric or `Unitful` values are shown.
-    - The **Y** dropdown then shows variables whose first dimension matches X's length. As soon as **Y** is selected, the plot is created automatically.
-- For **File/DataFrame**, select one from the dropdown, then pick your columns. The first selected column becomes the X-values. Click **(Re-)Plot** to visualize.
+    - The **Y** dropdown then shows variables whose first dimension matches X's length. Click **(Re-)Plot** to create plot.
+- For **File/DataFrame**, select one from the dropdown, then pick your columns. The first selected column becomes the X-values. Click **(Re-)Plot**.
+- You can select data range.
 
 The selected data is also displayed in the table view.
 
@@ -121,11 +122,11 @@ In the **Open** tab:
 
 ### Plot Formatting Options
 
-Currently, only a few basic options are available. Substantial expansion of these capabilities is planned for the future.
+WIP, see **Format** tab.
 
 ### Accessing Created Plot
 
-The plot (the `Makie.Figure` object, to be exact) is exported as `cp_figure`, whereas its `Axis` object exported as `cp_figure_ax`. Both objects will be accessible in REPL as soon as the plot is displayed. You a free to modify them in any way possible in `Makie`:
+The plot (the `Makie.Figure` object, to be exact) is exported as `cp_figure`, whereas its `Axis` object exported as `cp_figure_ax`. Both objects will be accessible in REPL as soon as the plot is displayed. You are free to modify them in any way possible in `Makie`:
 
 ```
 # the change will be immediately reflected in the currently displayed plot
@@ -138,10 +139,11 @@ In short, it is WIP, however, the main goals are already implemented and the pac
 
 - [✅] A GUI with panes for user interactions, plot display, and source data display.
 - [✅] Data sources: variables defined in the Main module (vectors, matrices, dataframes).
+    - [✅] Range selection, DataFrame columns selection.
 - [✅] Data sources: CSV and XLSX files.
     - [✅] Support for CSV/XLSX file reading options (kwargs).
 - [✅] Plotting: Lines and Scatter plots.
-    - [🚧] More plot formatting options.
+    - [🚧] More plot formatting options being added.
 - [✅] Saving plot to a file.
 - [✅] Exporting the Figure object.
 - [✅] Precompile to reduce TTFP.

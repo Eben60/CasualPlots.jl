@@ -21,6 +21,8 @@ casualplots_app() = App() do session
     y_node = create_y_dropdown()
     dataframe_node = create_dataframe_dropdown(state)
     plottype_node = create_plottype_dropdown(supported_plot_types, state.plotting.format.selected_plottype)
+    theme_node = create_theme_dropdown(state.plotting.format.selected_theme)
+    group_by_node = create_group_by_dropdown(state.plotting.format.selected_group_by, state.plotting.format.selected_plottype)
     
     # Initialize output observables
     outputs = initialize_output_observables()
@@ -29,12 +31,14 @@ casualplots_app() = App() do session
     setup_x_callback(state, y_node, outputs)
     setup_source_callback(state, outputs)
     setup_format_change_callbacks(state, outputs)
+    setup_theme_callback(state, outputs)
+    setup_group_by_callback(state, outputs)
     
     # Setup label update callbacks for editable text fields
     setup_label_update_callbacks(state, outputs)
     
     # Create UI components
-    control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, state)
+    control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, theme_node, group_by_node, state)
     
     # Setup plot trigger callbacks for both modes
     setup_array_plot_trigger_callback(state, outputs, control_panel.plot_trigger)  # Array mode callbacks

@@ -41,6 +41,8 @@ state = (;
     plotting = (;
         format = (;
             selected_plottype::Observable{String},
+            selected_theme::Observable{String},       # Makie theme (Makie default, AoG, theme_*)
+            selected_group_by::Observable{String},    # Group differentiation: "Color" or "Geometry"
             show_legend::Observable{Bool},
             # Axis limits (nothing = auto)
             x_min::Observable{Union{Nothing, Float64}},
