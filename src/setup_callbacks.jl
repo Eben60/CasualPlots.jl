@@ -15,13 +15,18 @@ Unified function for plotting and replotting, regardless of data source or updat
 # Returns
 - The FigureResult if successful, nothing otherwise
 """
-function do_replot(state, outputs; data, plot_format, is_new_data=false)
+function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_semipersistent=false)
     (; current_figure, current_axis, xlabel_text, ylabel_text, title_text, legend_title_text) = state.plotting.handles
     (; show_legend) = state.plotting.format
     plot_observable = outputs.plot
     
     state.misc.block_format_update[] = true
     try
+        # Reset semipersistent options if requested (e.g. via Replot button) or if new data
+        if is_new_data || reset_semipersistent
+            reset_semipersistent_format_options!(state)
+        end
+
         # Create the plot based on data type
         local fig
         if haskey(data, :df)
@@ -55,10 +60,12 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false)
             legend_title_text[] = ""
             # Reset format flags (preserves persistent ones like plottype)
             reset_format_defaults!(state.misc.format_is_default)
-            # Reset semipersistent options (axis limits, reversal)
-            reset_semipersistent_format_options!(state)
-            # Extract and store axis limits defaults from the newly created plot
-            update_axis_limits_from_axis(state, fig.axis; set_defaults=true)
+        end
+        
+        # Update defaults for semipersistent options if they were reset
+        if is_new_data || reset_semipersistent
+             # Extract and store axis limits defaults from the newly created plot
+             update_axis_limits_from_axis(state, fig.axis; set_defaults=true)
         end
         
         # Publish the figure
@@ -221,6 +228,7 @@ function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
                 legend_title = is_new_source ? "" : legend_title_text[],
             ),
             is_new_data = is_new_source,
+            reset_semipersistent = true, # Requirement 16: Reset on (Re-)Plot
         )
         
         # Update last plotted source
@@ -360,7 +368,8 @@ Handles data preparation (fetching, validation, normalization) then delegates to
 function update_dataframe_plot(state, outputs, df_name, cols; 
                                is_new_data=false, update_table=false,
                                range_from::Union{Nothing,Int}=nothing, 
-                               range_to::Union{Nothing,Int}=nothing)
+                               range_to::Union{Nothing,Int}=nothing,
+                               reset_semipersistent::Bool=false)
     (; show_modal, modal_type) = state.dialogs
     (; selected_plottype, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
@@ -442,6 +451,7 @@ function update_dataframe_plot(state, outputs, df_name, cols;
                 legend_title = is_new_data ? "" : legend_title_text[],
             ),
             is_new_data = is_new_data,
+            reset_semipersistent = reset_semipersistent,
         )
         
         # Update table if requested (only for new plot data)
@@ -575,7 +585,8 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         
         update_dataframe_plot(state, outputs, df_name, cols; 
                               is_new_data=is_new_source, update_table=true,
-                              range_from=from_val, range_to=to_val)
+                              range_from=from_val, range_to=to_val,
+                              reset_semipersistent=true) # Requirement 16: Reset on (Re-)Plot
         
         # Update last plotted source
         state.misc.last_plotted_dataframe[] = df_name
@@ -919,6 +930,17 @@ function setup_axis_limits_ui_sync(session, state)
             """)
         end
     end
+    
+    # Sync input field values when current limits change programmatically
+    # (e.g., when reset to nothing via reset_semipersistent_format_options!)
+    (; x_min, x_max, y_min, y_max) = state.plotting.format
+    onany(x_min, x_max, y_min, y_max) do xmin_val, xmax_val, ymin_val, ymax_val
+        Bonito.evaljs(session, js"""
+            requestAnimationFrame(() => {
+                window.CasualPlots.setAxisLimitInputValues($xmin_val, $xmax_val, $ymin_val, $ymax_val);
+            });
+        """)
+    end
 end
 
 """
@@ -926,16 +948,18 @@ end
 
 Set up callback to sync axis limits from Makie when user pans/zooms.
 Listens to axis.finallimits changes and updates observables.
+Uses Observables.throttle to limit update frequency during rapid pan/zoom.
 """
 function setup_axis_pan_zoom_sync(session, state)
     current_axis_ref = Ref{Union{Nothing, Any}}(nothing)
     finallimits_listener = Ref{Union{Nothing, Any}}(nothing)
+    throttled_limits_ref = Ref{Union{Nothing, Any}}(nothing)
     
     on(state.plotting.handles.current_axis) do axis
         # Clean up previous listener
-        if !isnothing(finallimits_listener[]) && !isnothing(current_axis_ref[])
+        if !isnothing(finallimits_listener[]) && !isnothing(throttled_limits_ref[])
             try
-                Observables.off(current_axis_ref[].finallimits, finallimits_listener[])
+                Observables.off(throttled_limits_ref[], finallimits_listener[])
             catch
                 # Ignore errors during cleanup
             end
@@ -944,29 +968,42 @@ function setup_axis_pan_zoom_sync(session, state)
         current_axis_ref[] = axis
         
         if !isnothing(axis)
-            # Set up listener on finallimits
-            finallimits_listener[] = on(axis.finallimits) do limits
+            # Create throttled observable for finallimits (100ms delay to handle rapid zoom/pan)
+            # Note: Observables.throttle returns a new observable that only updates at most once per interval
+            throttled_limits = Observables.throttle(0.1, axis.finallimits)
+            throttled_limits_ref[] = throttled_limits
+            
+            # Set up listener on throttled finallimits
+            finallimits_listener[] = on(throttled_limits) do limits
                 # Skip if block_format_update is set (we're in a replot)
                 state.misc.block_format_update[] && return
                 
-                # Update state from axis (this handles default detection)
-                update_axis_limits_from_axis(state, axis; set_defaults=false)
-                
-                # Sync to UI - for current values (empty string if at default/nothing)
-                format = state.plotting.format
-                xmin_val = format.x_min[]
-                xmax_val = format.x_max[]
-                ymin_val = format.y_min[]
-                ymax_val = format.y_max[]
-                
-                Bonito.evaljs(session, js"""
-                    requestAnimationFrame(() => {
-                        window.CasualPlots.setAxisLimitInputValues($xmin_val, $xmax_val, $ymin_val, $ymax_val);
-                    });
-                """)
+                # Block format callbacks during pan/zoom observable updates
+                # to prevent cascade that would recreate the plot
+                state.misc.block_format_update[] = true
+                try
+                    # Update state from axis (this handles default detection)
+                    update_axis_limits_from_axis(state, axis; set_defaults=false)
+                    
+                    # Sync to UI - for current values (empty string if at default/nothing)
+                    format = state.plotting.format
+                    xmin_val = format.x_min[]
+                    xmax_val = format.x_max[]
+                    ymin_val = format.y_min[]
+                    ymax_val = format.y_max[]
+                    
+                    Bonito.evaljs(session, js"""
+                        requestAnimationFrame(() => {
+                            window.CasualPlots.setAxisLimitInputValues($xmin_val, $xmax_val, $ymin_val, $ymax_val);
+                        });
+                    """)
+                finally
+                    state.misc.block_format_update[] = false
+                end
             end
         else
             finallimits_listener[] = nothing
+            throttled_limits_ref[] = nothing
         end
     end
 end
