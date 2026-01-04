@@ -100,6 +100,7 @@ function create_tab_content(control_panel, state, outputs)
     t2_format_content = DOM.div(
         control_panel.plot_kind,
         control_panel.theme_selector,
+        control_panel.group_by_selector,
         control_panel.legend_control,
         control_panel.xlabel_input,
         control_panel.ylabel_input,

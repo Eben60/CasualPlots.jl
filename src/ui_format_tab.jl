@@ -67,6 +67,61 @@ function create_theme_selector(theme_node)
 end
 
 """
+    create_group_by_dropdown(selected_group_by, selected_plottype)
+
+Create a reactive dropdown for selecting how groups are visually differentiated.
+The "Geometry" option is disabled when BarPlot is selected.
+
+# Arguments
+- `selected_group_by`: Observable tracking the selected group style
+- `selected_plottype`: Observable tracking the selected plot type (to disable Geometry for BarPlot)
+
+# Returns
+Observable containing the dropdown DOM element that updates reactively
+"""
+function create_group_by_dropdown(selected_group_by, selected_plottype)
+    # Create a reactive dropdown that updates when plottype changes
+    dropdown_node = map(selected_plottype) do plottype
+        is_barplot = plottype == "BarPlot"
+        
+        # Build options with disabled attribute for Geometry when BarPlot
+        options = map(GROUP_BY_OPTIONS) do opt
+            if opt == "Geometry" && is_barplot
+                DOM.option(opt; value=opt, disabled=true)
+            else
+                DOM.option(opt; value=opt)
+            end
+        end
+        
+        DOM.select(
+            options...;
+            class="dropdown",
+            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(selected_group_by))"
+        )
+    end
+    
+    return dropdown_node
+end
+
+"""
+    create_group_by_selector(group_by_node)
+
+Create group-by selection UI.
+
+# Arguments
+- `group_by_node`: The dropdown node for group-by selection
+
+# Returns
+DOM.div containing group-by dropdown with label
+"""
+function create_group_by_selector(group_by_node)
+    DOM.div(
+        "Show group by:", group_by_node;
+        class="flex-row align-center gap-1 mb-1"
+    )
+end
+
+"""
     create_legend_control(show_legend, legend_title_text)
 
 Create legend visibility checkbox and title input UI.

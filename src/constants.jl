@@ -24,6 +24,9 @@ const SUPPORTED_THEMES = [
 
 const DEFAULT_THEME = "Makie default"
 
+const GROUP_BY_OPTIONS = ["Color", "Geometry"]
+const DEFAULT_GROUP_BY = "Color"
+
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
 
 const AXES_LIMITS_OPTIONS = [:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed]

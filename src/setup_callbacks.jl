@@ -136,7 +136,7 @@ Note: This callback does NOT check for block_format_update since theme changes
 are considered independent from other format changes.
 """
 function setup_theme_callback(state, outputs)
-    (; selected_theme, selected_plottype, show_legend) = state.plotting.format
+    (; selected_theme, selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; legend_title_text, current_figure) = state.plotting.handles
     (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
@@ -182,6 +182,73 @@ function setup_theme_callback(state, outputs)
                     plottype = selected_plottype[] |> Symbol |> eval,
                     show_legend = show_legend[],
                     legend_title = legend_title_text[],
+                    group_by = selected_group_by[],
+                )),
+            )
+        else  # DataFrame mode
+            cols = selected_columns[]
+            df_name = selected_dataframe[]
+            (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
+            
+            update_dataframe_plot(state, outputs, df_name, cols; 
+                                  is_new_data=false, update_table=false)
+        end
+    end
+end
+
+"""
+    setup_group_by_callback(state, outputs)
+
+Set up callback for group-by selection changes. When the group_by style changes:
+1. Triggers replot with current data (if any plot exists)
+
+Group differentiation styles:
+- "Color": Groups distinguished by color palette (default)
+- "Geometry": Groups distinguished by linestyle (Lines) or marker (Scatter)
+  - Disabled for BarPlot (falls back to Color)
+"""
+function setup_group_by_callback(state, outputs)
+    (; selected_group_by, selected_plottype, show_legend) = state.plotting.format
+    (; legend_title_text, current_figure) = state.plotting.handles
+    (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
+       range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
+    current_plot_x = outputs.current_x
+    current_plot_y = outputs.current_y
+    
+    on(selected_group_by) do group_by
+        state.misc.block_format_update[] && return
+        
+        # If no plot exists, nothing to do
+        isnothing(current_figure[]) && return
+        
+        # Helper to get current range values
+        function get_range_values()
+            from_val = range_from[]
+            to_val = range_to[]
+            if isnothing(from_val)
+                from_val = data_bounds_from[]
+            end
+            if isnothing(to_val)
+                to_val = data_bounds_to[]
+            end
+            return (from_val, to_val)
+        end
+        
+        # Trigger replot based on current mode
+        if source_type[] == "X, Y Arrays"
+            x = current_plot_x[]
+            y = current_plot_y[]
+            (isnothing(x) || isnothing(y)) && return
+            
+            from_val, to_val = get_range_values()
+            
+            do_replot(state, outputs;
+                data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
+                plot_format = merge(get_current_axis_limits(state), (; 
+                    plottype = selected_plottype[] |> Symbol |> eval,
+                    show_legend = show_legend[],
+                    legend_title = legend_title_text[],
+                    group_by = group_by,
                 )),
             )
         else  # DataFrame mode
@@ -306,7 +373,7 @@ This is triggered when the user clicks the (Re-)Plot button with valid X,Y selec
 function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
     (; selected_x, selected_y, source_type, range_from, range_to,
        data_bounds_from, data_bounds_to) = state.data_selection
-    (; selected_plottype, show_legend) = state.plotting.format
+    (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     (; last_plotted_x, last_plotted_y) = state.misc
     table_observable = outputs.table
@@ -340,6 +407,7 @@ function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
                 plottype = plottype, 
                 show_legend = is_new_source ? nothing : show_legend[],
                 legend_title = is_new_source ? "" : legend_title_text[],
+                group_by = selected_group_by[],
             ),
             is_new_data = is_new_source,
             reset_semipersistent = true, # Requirement 16: Reset on (Re-)Plot
@@ -361,7 +429,7 @@ Handle format changes for X,Y Array mode: plottype, show_legend, legend_title_te
 All changes trigger a full replot using the unified do_replot function.
 """
 function setup_format_change_callbacks(state, outputs)
-    (; selected_plottype, show_legend) = state.plotting.format
+    (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     (; range_from, range_to, data_bounds_from, data_bounds_to, source_type) = state.data_selection
     current_plot_x = outputs.current_x
@@ -403,6 +471,7 @@ function setup_format_change_callbacks(state, outputs)
                 plottype = plottype_sym |> eval,
                 show_legend = show_legend[],
                 legend_title = legend_title_text[],
+                group_by = selected_group_by[],
             )),
         )
     end
@@ -427,6 +496,7 @@ function setup_format_change_callbacks(state, outputs)
                 plottype = selected_plottype[] |> Symbol |> eval,
                 show_legend = legend_bool,
                 legend_title = legend_title_text[],
+                group_by = selected_group_by[],
             )),
         )
     end
@@ -456,6 +526,7 @@ function setup_format_change_callbacks(state, outputs)
                 plottype = selected_plottype[] |> Symbol |> eval,
                 show_legend = show_legend[],
                 legend_title = leg_title,
+                group_by = selected_group_by[],
             )),
         )
     end
@@ -485,7 +556,7 @@ function update_dataframe_plot(state, outputs, df_name, cols;
                                range_to::Union{Nothing,Int}=nothing,
                                reset_semipersistent::Bool=false)
     (; show_modal, modal_type) = state.dialogs
-    (; selected_plottype, show_legend) = state.plotting.format
+    (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     plot_observable = outputs.plot
     table_observable = outputs.table
@@ -562,6 +633,7 @@ function update_dataframe_plot(state, outputs, df_name, cols;
             plottype = plottype,
             show_legend = is_new_data ? nothing : show_legend[],
             legend_title = is_new_data ? "" : legend_title_text[],
+            group_by = selected_group_by[],
         )
         plot_format = if is_new_data || reset_semipersistent
             base_format
@@ -939,7 +1011,7 @@ Set up callbacks for axis limit and reversal changes.
 Changes are applied immediately without needing a Replot button.
 """
 function setup_axis_limits_callbacks(state, outputs)
-    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, show_legend) = state.plotting.format
+    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; current_axis, current_figure, legend_title_text) = state.plotting.handles
     (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
@@ -951,6 +1023,7 @@ function setup_axis_limits_callbacks(state, outputs)
             plottype = selected_plottype[] |> Symbol |> eval,
             show_legend = show_legend[],
             legend_title = legend_title_text[],
+            group_by = selected_group_by[],
             x_min = x_min[],
             x_max = x_max[],
             y_min = y_min[],
