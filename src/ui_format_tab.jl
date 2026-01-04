@@ -34,6 +34,39 @@ function create_plot_kind_selector(plottype_node)
 end
 
 """
+    create_theme_dropdown(selected_theme)
+
+Create the dropdown for selecting Makie themes.
+
+# Arguments
+- `selected_theme`: Observable tracking the selected theme
+
+# Returns
+Observable containing the dropdown DOM element
+"""
+function create_theme_dropdown(selected_theme)
+    return Observable(create_dropdown(SUPPORTED_THEMES, selected_theme))
+end
+
+"""
+    create_theme_selector(theme_node)
+
+Create theme selection UI.
+
+# Arguments
+- `theme_node`: The dropdown node for theme selection
+
+# Returns
+DOM.div containing theme dropdown
+"""
+function create_theme_selector(theme_node)
+    DOM.div(
+        "Theme:", theme_node;
+        class="flex-row align-center gap-1 mb-1"
+    )
+end
+
+"""
     create_legend_control(show_legend, legend_title_text)
 
 Create legend visibility checkbox and title input UI.

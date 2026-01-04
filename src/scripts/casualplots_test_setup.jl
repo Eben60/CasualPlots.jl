@@ -1,5 +1,6 @@
 using CasualPlots
 using WGLMakie
+using AlgebraOfGraphics
 using Bonito
 using Unitful
 using DataFrames
