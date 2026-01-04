@@ -8,6 +8,7 @@
     - *Agent*: Yes, XY is good because of A, B, and C. Should I implement it for you?
     - *Human*: Yes, please
 - **Do not** update this file unless explicitely requested.
+- Abbreviation "aqogo" means "Ask questions, if you have any, otherwise go on"
 
 ## Package Overview
 **CasualPlots.jl** is a GUI-based plotting application for Julia which is positioned in the middle ground between purely script-based plotting and standalone GUI plotting applications. Target users are experimental scientists and engineers needing quick visualization without memorizing syntax. Aims to cover 60-80% of common 2D plotting needs (Scatter/Line/BarPlot, basic formatting).
@@ -118,80 +119,8 @@ scripts/                        # Example/demo scripts
 
 ### Reactive State Architecture
 
-#### State Structure
-The application uses a `NamedTuple` called `state` with nested categories:
-
-```julia
-state = (;
-    file_opening = (;
-        opened_file_df::Observable{Union{Nothing, DataFrame}},
-        opened_file_name::Observable{String},
-        opened_file_path::Observable{String},  # Full path for reload
-        header_row::Observable{Int},          # 0 = no headers
-        skip_after_header::Observable{Int},   # Rows to skip after header
-        skip_empty_rows::Observable{Bool},
-        delimiter::Observable{String},        # Auto, Comma, Tab, etc.
-        decimal_separator::Observable{String}
-    ),
-    file_saving = (;
-        save_file_path::Observable{String},
-        save_status_message::Observable{String},
-        save_status_type::Observable{Symbol},  # :none, :success, :warning, :error
-        show_overwrite_confirm::Observable{Bool}
-    ),
-    dialogs = (;
-        show_modal::Observable{Bool},
-        modal_type::Observable{Symbol}         # :none, :success, :warning, :confirm
-    ),
-    data_selection = (;
-        source_type::Observable{String},       # "X, Y Arrays" or "DataFrame"
-        dims_dict_obs::Observable{Dict},
-        dataframes_dict_obs::Observable{Vector},
-        selected_dataframe::Observable{Union{String, Nothing}},
-        selected_columns::Observable{Vector{String}},
-        selected_x::Observable{Union{String, Nothing}},
-        selected_y::Observable{Union{String, Nothing}},
-        range_from::Observable{Union{Nothing, Int}},     # User-selected range start
-        range_to::Observable{Union{Nothing, Int}},       # User-selected range end
-        data_bounds_from::Observable{Union{Nothing, Int}},  # Data's first index (auto-set)
-        data_bounds_to::Observable{Union{Nothing, Int}}     # Data's last index (auto-set)
-    ),
-    plotting = (;
-        format = (;
-            selected_plottype::Observable{String},
-            show_legend::Observable{Bool}
-        ),
-        handles = (;
-            xlabel_text::Observable{String},
-            ylabel_text::Observable{String},
-            title_text::Observable{String},
-            legend_title_text::Observable{String},
-            current_figure::Observable{Union{Figure, Nothing}},
-            current_axis::Observable{Union{Axis, Nothing}}
-        )
-    ),
-    misc = (;
-        trigger_update::Observable{Bool},
-        last_update::Ref{Float64},
-        block_format_update::Observable{Bool},  # Race condition prevention
-        format_is_default::DefaultDict{Symbol, Bool},  # Track user-customized format options
-        last_plotted_x::Observable{Union{Nothing, String}},  # Data source tracking (Array)
-        last_plotted_y::Observable{Union{Nothing, String}},  # Data source tracking (Array)
-        last_plotted_dataframe::Observable{Union{Nothing, String}}  # Data source tracking (DataFrame)
-    )
-)
-```
-
-#### Output Observables
-Separate `outputs` NamedTuple for UI display:
-```julia
-outputs = (
-    plot::Observable{Any},           # DOM element for plot pane
-    table::Observable{Any},          # DOM element for table pane
-    current_x::Observable{Any},      # Currently plotted X data
-    current_y::Observable{Any}       # Currently plotted Y data
-)
-```
+The application uses a reactive `state` NamedTuple with `Observables.jl` for all UI state management.
+See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_state_architecture.md) for the full state structure and output observables documentation.
 
 ### Developer Diagrams
 
@@ -263,33 +192,41 @@ The Open tab provides configurable file reading options before/after loading:
 Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
 
 **A. Format Callback Logic:**
-- **Triggered by**: `selected_plottype`, `show_legend`, `legend_title_text`.
+- **Triggered by**: `selected_plottype`, `show_legend`, `legend_title_text`, axis limit observables.
 - **Implementations**:
     - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
     - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` → `do_replot`)
+    - Axis Limits: `setup_axis_limits_callbacks` (triggers immediate replot with current limits)
 - **Shared Behavior**:
     - **All format changes trigger full replot** using the unified `do_replot` function.
-    - **Preserves user labels**: `format_is_default` dict tracks which options are customized. After replot, `apply_custom_formatting!` re-applies non-default values.
+    - **Preserves user labels and axis limits**: `format_is_default` dict tracks which options are customized. After replot, `apply_custom_formatting!` re-applies non-default values.
+    - **Axis limits preserved during format changes**: `get_current_axis_limits(state)` helper merges current limits into `plot_format`.
     - **Does NOT update table**: Table update is skipped as data hasn't changed.
     - **Race Condition Prevention**: Returns early if `block_format_update[]` is true.
     - **Legend title optimization**: Skip replot if legend is not visible (title is saved for when legend becomes visible).
 
-**B. Format Persistence Strategy (`format_is_default`):**
-A `DefaultDict{Symbol, Bool}` tracks which format options are still at their default values:
-- `:title`, `:xlabel`, `:ylabel` - label text fields
-- `:show_legend`, `:legend_title` - legend settings  
-- `:plottype` - plot type (persists across data source changes)
+**B. Format Persistence Strategy (`format_is_default` and `RESET_FORMAT_OPTION`):**
+A `DefaultDict{Symbol, Bool}` tracks which format options are still at their default values.
+
+**Reset behavior is defined in `constants.jl` via `RESET_FORMAT_OPTION` Dict:**
+- `"never"` → Options that persist across all changes:
+    - `:plottype`
+- `"source"` → Options reset when data source changes:
+    - `:title`, `:xlabel`, `:ylabel`, `:show_legend`, `:legend_title`
+    - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
+- `"range"` → Options reset when (Re-)Plot button is clicked:
+    - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
 
 **Data Source Tracking:**
 - `last_plotted_x`, `last_plotted_y` - track last X and Y variable names (Array mode)
 - `last_plotted_dataframe` - tracks last DataFrame name (DataFrame mode)
-- Format resets only when **data source changes** (different X or Y variable, or different DataFrame), not when re-plotting same source with different columns.
 
 **Flow:**
-1.  **New Data Source**: `is_new_data=true` → reset all non-persistent flags to `true`, initialize text fields from plot defaults.
-2.  **Same Source, Different Columns**: `is_new_data=false` → preserve all format customizations.
-3.  **User Edit**: Mark corresponding flag as `false` (e.g., user changes title → `format_is_default[:title] = false`).
-4.  **Replot**: After creating new plot, `apply_custom_formatting!` iterates over non-default options and re-applies them.
+1.  **New Data Source**: `is_new_data=true` → reset options in `RESET_FORMAT_OPTION["source"]`, initialize text fields from plot defaults.
+2.  **(Re-)Plot Button**: `reset_semipersistent=true` → reset options in `RESET_FORMAT_OPTION["range"]` (axis limits).
+3.  **Format Change**: Preserve all format customizations, axis limits passed via `get_current_axis_limits(state)`.
+4.  **User Edit**: Mark corresponding flag as `false` (e.g., user changes title → `format_is_default[:title] = false`).
+5.  **Replot**: After creating new plot, `apply_custom_formatting!` iterates over non-default options and re-applies them.
 
 #### 3. Legend Behavior
 - **Default Visibility**: `show_legend` defaults to `true` only if `n_cols > 1`.
@@ -338,9 +275,10 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Planned Enhancements (as of v0.3.1)
+#### Planned Enhancements (as of v0.4.0)
 
-- Additional formatting options (e.g., axis limits, themes)  
+- ~~Axis limits~~ ✓ Implemented (configurable min/max, reversal, pan/zoom sync)
+- Additional formatting options (e.g., themes)
 - Support for multiple independent data sources
 - Automatic Julia code generation from GUI actions
 - Optional regression‑fit overlays  

@@ -133,9 +133,9 @@ end
     reset_format_defaults!(format_is_default::DefaultDict{Symbol, Bool})
 
 Reset format_is_default dict to all-default state, EXCEPT for options
-listed in PERSISTENT_FORMAT_OPTIONS which should persist across data source changes.
+that should never be reset (listed in `RESET_FORMAT_OPTION["never"]`).
 """
-reset_format_defaults!(format_is_default) = filter!(p -> p.first in PERSISTENT_FORMAT_OPTIONS, format_is_default)
+reset_format_defaults!(format_is_default) = filter!(p -> p.first in RESET_FORMAT_OPTION["never"], format_is_default)
 
 """
     reset_semipersistent_format_options!(state)
@@ -163,7 +163,7 @@ function reset_semipersistent_format_options!(state)
     format.yreversed[] = false
     
     # Mark as default in format_is_default dict
-    for key in SEMIPERSISTENT_FORMAT_OPTIONS
+    for key in RESET_FORMAT_OPTION["range"]
         format_is_default[key] = true
     end
 end

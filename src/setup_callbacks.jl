@@ -15,6 +15,25 @@ Unified function for plotting and replotting, regardless of data source or updat
 # Returns
 - The FigureResult if successful, nothing otherwise
 """
+
+"""
+    get_current_axis_limits(state) -> NamedTuple
+
+Get the current axis limits from state for use in plot_format.
+Returns a NamedTuple with x_min, x_max, y_min, y_max, xreversed, yreversed.
+"""
+function get_current_axis_limits(state)
+    format = state.plotting.format
+    return (;
+        x_min = format.x_min[],
+        x_max = format.x_max[],
+        y_min = format.y_min[],
+        y_max = format.y_max[],
+        xreversed = format.xreversed[],
+        yreversed = format.yreversed[],
+    )
+end
+
 function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_semipersistent=false)
     (; current_figure, current_axis, xlabel_text, ylabel_text, title_text, legend_title_text) = state.plotting.handles
     (; show_legend) = state.plotting.format
@@ -285,11 +304,11 @@ function setup_format_change_callbacks(state, outputs)
         
         do_replot(state, outputs;
             data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = (; 
+            plot_format = merge(get_current_axis_limits(state), (; 
                 plottype = plottype_sym |> eval,
                 show_legend = show_legend[],
                 legend_title = legend_title_text[],
-            ),
+            )),
         )
     end
     
@@ -309,11 +328,11 @@ function setup_format_change_callbacks(state, outputs)
         
         do_replot(state, outputs;
             data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = (; 
+            plot_format = merge(get_current_axis_limits(state), (; 
                 plottype = selected_plottype[] |> Symbol |> eval,
                 show_legend = legend_bool,
                 legend_title = legend_title_text[],
-            ),
+            )),
         )
     end
     
@@ -338,11 +357,11 @@ function setup_format_change_callbacks(state, outputs)
         
         do_replot(state, outputs;
             data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = (; 
+            plot_format = merge(get_current_axis_limits(state), (; 
                 plottype = selected_plottype[] |> Symbol |> eval,
                 show_legend = show_legend[],
                 legend_title = leg_title,
-            ),
+            )),
         )
     end
 end
@@ -443,13 +462,21 @@ function update_dataframe_plot(state, outputs, df_name, cols;
         plottype = selected_plottype[] |> Symbol |> eval
         
         # Use unified replot function
+        # Include current axis limits unless we're resetting them
+        base_format = (;
+            plottype = plottype,
+            show_legend = is_new_data ? nothing : show_legend[],
+            legend_title = is_new_data ? "" : legend_title_text[],
+        )
+        plot_format = if is_new_data || reset_semipersistent
+            base_format
+        else
+            merge(get_current_axis_limits(state), base_format)
+        end
+        
         do_replot(state, outputs;
             data = (; df = df_selected, x_name = xcol_name, y_name = y_names),
-            plot_format = (;
-                plottype = plottype,
-                show_legend = is_new_data ? nothing : show_legend[],
-                legend_title = is_new_data ? "" : legend_title_text[],
-            ),
+            plot_format = plot_format,
             is_new_data = is_new_data,
             reset_semipersistent = reset_semipersistent,
         )
@@ -805,7 +832,7 @@ function clear_axis_limits(state)
     format.yreversed[] = false
     
     # Mark all as default
-    for key in SEMIPERSISTENT_FORMAT_OPTIONS
+    for key in RESET_FORMAT_OPTION["range"]
         format_is_default[key] = true
     end
 end

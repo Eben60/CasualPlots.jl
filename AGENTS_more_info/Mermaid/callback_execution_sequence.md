@@ -66,7 +66,10 @@ sequenceDiagram
         FormatCB->>Obs: format_is_default[:plottype] = false
         Note over FormatCB: Mark as user-customized
         
-        FormatCB->>Plot: do_replot(data, plot_format)
+        FormatCB->>FormatCB: get_current_axis_limits(state)
+        Note over FormatCB: Preserve axis limits in plot_format
+        
+        FormatCB->>Plot: do_replot(data, plot_format with limits)
         Note over Plot: Create new plot with format settings
         Plot-->>FormatCB: fig_result
         

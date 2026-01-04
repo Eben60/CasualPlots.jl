@@ -54,11 +54,13 @@ stateDiagram-v2
         block_format_update = true
         normalize_numeric_columns!
         if is_new_source: reset format_is_default
+        reset_semipersistent: reset axis limits
     end note
     
     note right of Replotting
         Uses stored current_plot_x,
         current_plot_y (no refetch)
+        get_current_axis_limits() preserves limits
         apply_custom_formatting!
         re-applies non-default labels
     end note
