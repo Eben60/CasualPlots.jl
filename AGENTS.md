@@ -71,7 +71,7 @@ scripts/                        # Example/demo scripts
 
 ### Reactive State Architecture
 
-The application uses a reactive `state` NamedTuple with `Observables.jl` for all UI state management.
+The application uses a reactive `state` struct (`CasualPlotsState`) with `Observables.jl` for all UI state management.
 To provide REPL read-access, the `Bonito.App` and the `state` are bundled in a `CasualPlotApp` struct returned by `casualplots_app()`.
 See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_state_architecture.md) for the full state structure and output observables documentation.
 

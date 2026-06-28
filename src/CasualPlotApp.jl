@@ -7,7 +7,7 @@ programmatic interaction with the UI via `app.state`.
 """
 struct CasualPlotApp
     app::Bonito.App
-    state::NamedTuple
+    state::CasualPlotsState
 end
 
 # Forward lifecycle

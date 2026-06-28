@@ -84,7 +84,7 @@ and update the table display.
 - `df`: The DataFrame to process
 - `filepath`: Path to the file to load
 - `table_observable::Observable`: Table display observable
-- `state::Union{Nothing, NamedTuple}`: Application state (optional, for storing opened file DataFrame)
+- `state::Union{Nothing, CasualPlotsState}`: Application state (optional, for storing opened file DataFrame)
 - `info_suffix`: Optional suffix to append to info text (e.g., ":SheetName" for XLSX)
 """
 function store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix="")
@@ -121,7 +121,7 @@ Also stores the DataFrame in state for use in DataFrame mode.
 - `filepath`: Path to the file to load
 - `sheet::AbstractString`: excel sheet
 - `table_observable::Observable`: Table display observable
-- `state::Union{Nothing, NamedTuple}`: Application state (optional, for storing opened file DataFrame)
+- `state::Union{Nothing, CasualPlotsState}`: Application state (optional, for storing opened file DataFrame)
 """
 function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothing)
     (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
