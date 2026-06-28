@@ -2,7 +2,7 @@ include("casualplots_test_setup.jl")
 
 app = casualplots_app()
 
-Ele.serve_app(app)
+Ele.serve_app(app);
 
 
 # the current plot is exported and accessible as `cp_figure`

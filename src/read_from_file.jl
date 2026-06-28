@@ -128,6 +128,10 @@ function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothi
     try
         df = readtable_xlsx(filepath, sheet; infer_eltypes=true, stop_in_empty_row=false, kwargs...)
         skip_rows!(df, skip_subheaders, skip_empty_rows)
+        # Store sheet name for code generation
+        if !isnothing(state)
+            state.file_opening.sheet_name[] = string(sheet)
+        end
         store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix=":" * string(sheet))
     catch e
         @warn "Error loading XLSX sheet: $e"
@@ -152,6 +156,10 @@ function load_csv_to_table(filepath, table_observable, state=nothing)
     try
         df = read_csv(filepath; kwargs...)
         skip_rows!(df, 0, kwargs.ignoreemptyrows)
+        # Clear sheet name (not an XLSX source)
+        if !isnothing(state)
+            state.file_opening.sheet_name[] = ""
+        end
         store_and_display_dataframe!(df, filepath, table_observable, state)
     catch e
         @warn "Error loading file: $e"

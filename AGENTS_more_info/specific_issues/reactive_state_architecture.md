@@ -21,6 +21,7 @@ Base.@kwdef struct FileOpening
     opened_file_df::Observable{Union{Nothing, DataFrame}}
     opened_file_name::Observable{String}
     opened_file_path::Observable{String}  # Full path for reload
+    sheet_name::Observable{String}        # XLSX sheet name (empty for CSV)
     header_row::Observable{Int}          # 0 = no headers
     skip_after_header::Observable{Int}   # Rows to skip after header
     skip_empty_rows::Observable{Bool}
