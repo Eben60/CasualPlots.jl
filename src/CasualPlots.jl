@@ -48,11 +48,12 @@ include("ui_help_section.jl")
 include("ui_table.jl")
 include("ui_layout.jl")
 include("app_state.jl")
+include("CasualPlotApp.jl")
 include("app.jl")
 include("extensions.jl")
 include("precompile.jl")
 
-export casualplots_app
+export casualplots_app, CasualPlotApp
 export cp_figure, cp_figure_ax
 export Ele
 

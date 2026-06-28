@@ -10,7 +10,7 @@ This function assembles the complete interactive plotting application with:
 - Real-time plot and table display
 - Tabbed interface for organized controls
 """
-casualplots_app() = App() do session
+function casualplots_app()
     supported_plot_types = ["Lines", "Scatter", "BarPlot"]
 
     # Initialize application state
@@ -44,13 +44,8 @@ casualplots_app() = App() do session
     setup_array_plot_trigger_callback(state, outputs, control_panel.plot_trigger)  # Array mode callbacks
     setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger)  # DataFrame mode callbacks
     
-    # Setup range input field synchronization
-    setup_range_ui_sync(session, state)
-    
-    # Setup axis limits callbacks and synchronization
+    # Setup axis limits callbacks
     setup_axis_limits_callbacks(state, outputs)
-    setup_axis_limits_ui_sync(session, state)
-    setup_axis_pan_zoom_sync(session, state)
     
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)
@@ -62,9 +57,20 @@ casualplots_app() = App() do session
     layout = assemble_layout(tabs_result.tabs, help_visibility, outputs.plot, outputs.table, 
                            state, tabs_result.overwrite_trigger, tabs_result.cancel_trigger)
                            
-    return DOM.div(
-        DOM.script(js_content),
-        layout
-    )
+    app = App() do session
+        # Setup range input field synchronization
+        setup_range_ui_sync(session, state)
+        
+        # Setup axis limits callbacks and synchronization
+        setup_axis_limits_ui_sync(session, state)
+        setup_axis_pan_zoom_sync(session, state)
+        
+        return DOM.div(
+            DOM.script(js_content),
+            layout
+        )
+    end
+    
+    return CasualPlotApp(app, state)
 end
 

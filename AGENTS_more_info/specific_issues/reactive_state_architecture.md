@@ -1,7 +1,7 @@
 # Reactive State Architecture
 
 ## State Structure
-The application uses a `NamedTuple` called `state` with nested categories:
+The application uses a `NamedTuple` called `state` with nested categories. To expose the state to the REPL, both the state and the underlying `Bonito.App` are bundled in a `CasualPlotApp` wrapper type:
 
 ```julia
 state = (;

@@ -23,6 +23,7 @@
 
 ```
 CasualPlots.jl                  # Main module, exports casualplots_app()
+CasualPlotApp.jl                # Wrapper struct to expose reactive state and avoid memory leaks
 app.jl                          # Main app entry point (casualplots_app function)
 app_state.jl                    # Application state initialization (Observables)
 css_styles.css                  # Global CSS styles for all UI components
@@ -71,6 +72,7 @@ scripts/                        # Example/demo scripts
 ### Reactive State Architecture
 
 The application uses a reactive `state` NamedTuple with `Observables.jl` for all UI state management.
+To provide REPL read-access, the `Bonito.App` and the `state` are bundled in a `CasualPlotApp` struct returned by `casualplots_app()`.
 See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_state_architecture.md) for the full state structure and output observables documentation.
 
 ### Developer Diagrams
@@ -281,6 +283,7 @@ See [Precompilation](AGENTS_more_info/specific_issues.md/precompilation.md) for 
 ### Exports
 ```julia
 export casualplots_app      # Main app launcher
+export CasualPlotApp        # Wrapper around Bonito.App containing reactive state
 export cp_figure            # Global Figure object
 export cp_figure_ax         # Global Axis object  
 export Ele                  # Displaying Bonito `app` in Electron window 
