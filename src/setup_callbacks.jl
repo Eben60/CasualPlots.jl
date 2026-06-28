@@ -190,8 +190,10 @@ function setup_theme_callback(state, outputs)
             df_name = selected_dataframe[]
             (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
             
+            from_val, to_val = get_range_values()
             update_dataframe_plot(state, outputs, df_name, cols; 
-                                  is_new_data=false, update_table=false)
+                                  is_new_data=false, update_table=false,
+                                  range_from=from_val, range_to=to_val)
         end
     end
 end
@@ -256,8 +258,10 @@ function setup_group_by_callback(state, outputs)
             df_name = selected_dataframe[]
             (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
             
+            from_val, to_val = get_range_values()
             update_dataframe_plot(state, outputs, df_name, cols; 
-                                  is_new_data=false, update_table=false)
+                                  is_new_data=false, update_table=false,
+                                  range_from=from_val, range_to=to_val)
         end
     end
 end
@@ -801,7 +805,11 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             state.misc.format_is_default[:plottype] = false
         end
         
-        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
+        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
+        update_dataframe_plot(state, outputs, df_name, cols; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
 
     # === Legend Visibility Change Handler for DataFrame mode ===
@@ -816,7 +824,11 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Mark as non-default
         state.misc.format_is_default[:show_legend] = false
         
-        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
+        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
+        update_dataframe_plot(state, outputs, df_name, cols; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
 
     # === Legend Title Change Handler for DataFrame mode ===
@@ -836,7 +848,11 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Skip replot if legend is not shown - title is saved for when legend becomes visible
         show_legend[] || return
         
-        update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
+        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
+        update_dataframe_plot(state, outputs, df_name, cols; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
 end
 
@@ -1054,7 +1070,11 @@ function setup_axis_limits_callbacks(state, outputs)
             cols = selected_columns[]
             (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
             
-            update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false)
+            from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
+            to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
+            update_dataframe_plot(state, outputs, df_name, cols; 
+                                  is_new_data=false, update_table=false,
+                                  range_from=from_val, range_to=to_val)
         end
     end
     

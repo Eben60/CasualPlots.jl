@@ -6,6 +6,7 @@ Base.@kwdef struct FileOpening
     opened_file_df::Observable{Union{Nothing, DataFrame}} = Observable{Union{Nothing, DataFrame}}(nothing)
     opened_file_name::Observable{String} = Observable("")
     opened_file_path::Observable{String} = Observable("")
+    sheet_name::Observable{String} = Observable("")  # XLSX sheet name (empty for CSV)
     header_row::Observable{Int} = Observable(1)
     skip_after_header::Observable{Int} = Observable(0)
     skip_empty_rows::Observable{Bool} = Observable(true)

@@ -51,11 +51,14 @@ include("app_types.jl")
 include("CasualPlotApp.jl")
 include("app_state.jl")
 include("app.jl")
+include("code_generation.jl")
 include("extensions.jl")
 include("precompile.jl")
 
 export casualplots_app, CasualPlotApp
 export cp_figure, cp_figure_ax
 export Ele
+
+@static VERSION ≥ v"1.11" && include("public.julia") # define public functions
 
 end
