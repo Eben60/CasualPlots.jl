@@ -29,8 +29,8 @@ using CairoMakie
             include_string(test_mod, code)
 
             # Explicitly execute the functions and save the plot
-            data = Base.invokelatest(test_mod.cp_load_data; _casualplots_e2e_test_x=Main._casualplots_e2e_test_x, _casualplots_e2e_test_y=Main._casualplots_e2e_test_y)
-            fg = Base.invokelatest(test_mod.cp_create_plot, data)
+            data = Core.eval(test_mod, :(cp_load_data(; _casualplots_e2e_test_x=Main._casualplots_e2e_test_x, _casualplots_e2e_test_y=Main._casualplots_e2e_test_y)))
+            fg = Core.eval(test_mod, :(cp_create_plot($data)))
             
             CairoMakie.activate!()
             CairoMakie.save(png_path, fg.figure)
@@ -71,8 +71,8 @@ using CairoMakie
             include_string(test_mod, code)
 
             # Explicitly execute the functions and save the plot
-            data = Base.invokelatest(test_mod.cp_load_data; _casualplots_e2e_df=Main._casualplots_e2e_df)
-            fg = Base.invokelatest(test_mod.cp_create_plot, data)
+            data = Core.eval(test_mod, :(cp_load_data(; _casualplots_e2e_df=Main._casualplots_e2e_df)))
+            fg = Core.eval(test_mod, :(cp_create_plot($data)))
             
             CairoMakie.activate!()
             CairoMakie.save(png_path, fg.figure)
