@@ -114,7 +114,7 @@ function generate_dataframe_code(state::CasualPlotsState)
         code *= "    df_selected = df_selected[from_idx:to_idx, :]\n"
     end
     
-    code *= "    CasualPlots.normalize_numeric_columns!(df_selected, $cols_repr)\n"
+    code *= "    df_selected = CasualPlots.clean_plot_data!(df_selected, $cols_repr)\n"
     
     x_name = cols[1]
     y_names = length(cols) > 2 ? (df_name == "__opened_file__" ? state.file_opening.opened_file_name[] : df_name) : cols[2]

@@ -16,3 +16,4 @@ using SafeTestsets
 @safetestset "App State Management" include("app_state_test.jl")
 @safetestset "Code Generation" include("code_generation_test.jl")
 @safetestset "Code Generation E2E" include("code_generation_e2e_test.jl")
+@safetestset "Unitful Integration" include("unitful_integration_test.jl")

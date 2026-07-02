@@ -610,19 +610,8 @@ function update_dataframe_plot(state, outputs, df_name, cols;
         # Slice the DataFrame
         df_selected = df_selected[from_idx:to_idx, :]
         
-        # Normalize numeric columns for plotting and track any columns with data issues
-        df_selected, dirty_cols = normalize_numeric_columns!(df_selected, valid_cols)
-        
-        # Show warning if any columns had non-numeric values converted to missing
-        if !isempty(dirty_cols)
-            warning_msg = "Converted non-numeric values to missing in column(s): $(join(dirty_cols, ", "))"
-            @warn warning_msg
-            # Show popup warning
-            state.file_saving.save_status_message[] = warning_msg
-            state.file_saving.save_status_type[] = :warning
-            modal_type[] = :warning
-            show_modal[] = true
-        end
+        # Clean data for plotting (normalizes numerics, unifies units, and handles warnings)
+        df_selected = clean_plot_data!(df_selected, valid_cols, state)
         
         # First column is X, rest are Y
         xcol_name = valid_cols[1]

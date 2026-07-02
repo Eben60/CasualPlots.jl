@@ -27,7 +27,7 @@ end
     
     @test occursin("function cp_load_data(; my_df)", code)
     @test occursin("data = cp_load_data(; my_df)", code)
-    @test occursin("CasualPlots.normalize_numeric_columns!(df_selected, [\"col_A\", \"col_B\"])", code)
+    @test occursin("CasualPlots.clean_plot_data!(df_selected, [\"col_A\", \"col_B\"])", code)
     # Uses CasualPlots here
     @test occursin("using CasualPlots", code)
 end

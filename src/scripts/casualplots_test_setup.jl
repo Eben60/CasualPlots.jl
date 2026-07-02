@@ -16,13 +16,13 @@ isdefined(Main, :caspl_x_100) || (caspl_x_100 = 0:0.1:10)
 isdefined(Main, :caspl_z100) || (caspl_z100 = caspl_x_100 .|> sqrt)
 isdefined(Main, :caspl_tbl100x10) || (caspl_tbl100x10 = create_data_matrix(caspl_x_100, 10))
 isdefined(Main, :caspl_u_10) || (caspl_u_10 = (1:10).*u"mm^2")
-
+isdefined(Main, :caspl_u_25) || (caspl_u_25 = (1:25).*u"mm^2")
 
 # Create test DataFrames from existing arrays
 isdefined(Main, :caspl_df_simple) || (caspl_df_simple = DataFrame(
     x = caspl_x_10,
     y1 = caspl_x_10.^2,
-    y2 = caspl_x_10.^1.5
+    y2 = caspl_x_10.^1.5,
 ))
 
 isdefined(Main, :caspl_df_large) || (caspl_df_large = DataFrame(
@@ -30,14 +30,36 @@ isdefined(Main, :caspl_df_large) || (caspl_df_large = DataFrame(
     sqrt_val = caspl_z100,
     col1 = caspl_tbl100x10[:, 1],
     col2 = caspl_tbl100x10[:, 2],
-    col3 = caspl_tbl100x10[:, 3]
+    col3 = caspl_tbl100x10[:, 3],
 ))
 
 isdefined(Main, :caspl_df_unitful) || (caspl_df_unitful = DataFrame(
     index = 1:10,
     area = caspl_u_10,
-    linear = (1:10).*u"mm"
+    linear = (1:10).*u"mm",
 ))
+
+if !isdefined(Main, :caspl_df_unitmix)
+    unimix = copy(caspl_u_25) |> Vector{Any}
+    unimix[3] = missing
+    unimix[5] = π
+    unimix = collect(unimix)
+
+    unimiss = copy(caspl_u_25) |> Vector{Any}
+    unimiss[4] = missing
+    unimiss[5] = "Missis"
+    unimiss = collect(unimiss)
+
+    caspl_df_unitmix = DataFrame(
+    index = 1:25,
+    area = caspl_u_25 .* 1.1,
+    linear = ((1:25)./1.1).*u"mm",
+    unimix = unimix,
+    unimiss = unimiss,
+    )
+end
+
+
 
 if !isdefined(Main, :caspl_df_exp) 
     xs = 0.0:10
@@ -46,3 +68,4 @@ if !isdefined(Main, :caspl_df_exp)
     nms = vcat("x", ["y$n" for n in 1:n_cols])
     caspl_df_exp = DataFrame(m, nms)
 end
+;

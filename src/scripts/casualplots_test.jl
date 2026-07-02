@@ -1,4 +1,4 @@
-include("casualplots_test_setup.jl")
+include("casualplots_test_setup.jl") # populate Main and do imports
 
 app = casualplots_app()
 
