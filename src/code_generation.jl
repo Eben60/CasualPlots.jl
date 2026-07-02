@@ -246,28 +246,58 @@ using AlgebraOfGraphics
         code *= "using CasualPlots # for helper functions like skip_rows!\n"
     end
     
+    code *= "# uncomment next line for high quality static output, esp. for saving:\n"
+    code *= "# using CairoMakie\n"
+
     code *= source_code
     code *= plot_code
     
-    code *= "\n# Execution (e.g. uncomment and run the following lines to generate the plot)\n"
+    code *= "\n# Execution \n"
+    code *= "#\n"
+    code *= "# uncomment and run the corresponding lines to generate, display, and/or save the plot\n"
+    code *= "#\n"
+    code *= "# # --- taking exactly the same data already existing in the Main --\n"
+    code *= "#\n"
     
     if source_type == "X, Y Arrays"
         x_name = state.data_selection.selected_x[]
         y_name = state.data_selection.selected_y[]
+        filename_base = "$(x_name)-vs-$(y_name)"
         code *= "# data = cp_load_data(; $(x_name), $(y_name)); fg = cp_create_plot(data);\n"
-        code *= "# or\n"
+        code *= "#\n"
+        code *= "# # --- or, specify your input data (here my_x, my_y) ---\n"
+        code *= "#\n"
         code *= "# data = cp_load_data(; $(x_name)=my_x, $(y_name)=my_y); fg = cp_create_plot(data);\n"
     elseif source_type == "DataFrame" && state.data_selection.selected_dataframe[] != "__opened_file__"
         df_name = state.data_selection.selected_dataframe[]
+        cols = state.data_selection.selected_columns[]
+        x_col = !isempty(cols) ? cols[1] : "x"
+        y_col = length(cols) > 1 ? cols[2] : "y"
+        filename_base = "$(x_col)-vs-$(y_col)"
         code *= "# data = cp_load_data(; $(df_name)); fg = cp_create_plot(data);\n"
-        code *= "# or\n"
+        code *= "#\n"
+        code *= "# # --- or, specify your input data (here my_df) ---\n"
+        code *= "#\n"
         code *= "# data = cp_load_data(; $(df_name)=my_df); fg = cp_create_plot(data);\n"
     else
+        cols = state.data_selection.selected_columns[]
+        x_col = !isempty(cols) ? cols[1] : "x"
+        y_col = length(cols) > 1 ? cols[2] : "y"
+        filename_base = "$(x_col)-vs-$(y_col)"
         code *= "# data = cp_load_data(); fg = cp_create_plot(data);\n"
     end
     
     code *= "# \n"
     code *= "# display(fg)\n"
+    code *= "#\n"
+    code *= "# # --- in case not already done:  ---\n"
+    code *= "# using CairoMakie\n"
+    code *= "# CairoMakie.activate!()\n"
+    code *= "#\n"
+    code *= "# CairoMakie.save(\"$(filename_base).svg\", fg) # saving as svg\n"
+    code *= "# CairoMakie.save(\"$(filename_base).pdf\", fg) # saving as pdf\n"
+    code *= "# CairoMakie.save(\"$(filename_base).png\", fg) # saving as png\n"
+    code *= ";\n"
     return code
 end
 
