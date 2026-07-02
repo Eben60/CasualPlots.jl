@@ -16,6 +16,7 @@ julia> Ele.serve_app(app) # Open GUI in Electron window
 module CasualPlots
 
 using Bonito, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
+using Unitful
 using DataStructures: DefaultDict
 
 include("electron.jl")
@@ -42,6 +43,7 @@ include("save_plot.jl")
 include("ui_modal_dialog.jl")
 include("ui_save_tab.jl")
 include("file_reading_options.jl")
+include("unitful_integration.jl")
 include("preprocess_dataframes.jl")
 include("read_from_file.jl")
 include("ui_help_section.jl")
