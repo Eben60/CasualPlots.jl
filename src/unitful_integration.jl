@@ -8,7 +8,7 @@ If multiple Y-columns are Unitful:
 1. If they have compatible physical dimensions, it unifies them to the largest metric unit used (or largest overall unit).
 2. If they have incompatible dimensions, it issues a warning and strips the units to prevent AlgebraOfGraphics from crashing.
 """
-function unify_units!(df, cols, state)
+function unify_units!(df, cols, state=nothing)
     # Return early if we don't have multiple columns to unify
     if length(cols) < 2
         return df
@@ -52,10 +52,12 @@ function unify_units!(df, cols, state)
         warning_msg = "Incompatible physical dimensions detected among Y columns: $(join(unitful_cols, ", ")). Stripping units to plot."
         @warn warning_msg
         
-        state.file_saving.save_status_message[] = warning_msg
-        state.file_saving.save_status_type[] = :warning
-        state.dialogs.modal_type[] = :warning
-        state.dialogs.show_modal[] = true
+        if !isnothing(state)
+            state.file_saving.save_status_message[] = warning_msg
+            state.file_saving.save_status_type[] = :warning
+            state.dialogs.modal_type[] = :warning
+            state.dialogs.show_modal[] = true
+        end
         
         # Strip units for all unitful columns
         for col in unitful_cols
