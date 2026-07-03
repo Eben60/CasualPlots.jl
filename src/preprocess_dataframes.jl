@@ -204,5 +204,9 @@ function clean_plot_data!(df_selected, valid_cols, state=nothing)
         end
     end
     
+    # 5. Replace missing values with typed NaNs in Unitful columns to avoid Makie crash
+    # See Makie issue: https://github.com/MakieOrg/Makie.jl/issues/3931
+    replace_missing_with_nan_in_unitful!(df_selected, valid_cols)
+    
     return df_selected
 end

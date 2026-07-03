@@ -125,3 +125,31 @@ function check_internal_unit_compatibility!(df, cols)
         end
     end
 end
+
+"""
+    replace_missing_with_nan_in_unitful!(df, cols) -> DataFrame
+
+Replaces `missing` values in Unitful columns with typed `NaN`s (e.g. `NaN * u"m"`), 
+converting values via `float(v)` to ensure a solid array type `Vector{Quantity{Float64}}`.
+This acts as a workaround for a Makie bug (https://github.com/MakieOrg/Makie.jl/issues/3931) 
+where `Union{Missing, Quantity}` causes a `MethodError`.
+"""
+function replace_missing_with_nan_in_unitful!(df, cols)
+    for col in cols
+        if !any(ismissing, df[!, col])
+            continue
+        end
+        
+        idx = findfirst(!ismissing, df[!, col])
+        if isnothing(idx)
+            continue
+        end
+        
+        first_val = df[idx, col]
+        if first_val isa Unitful.Quantity
+            nan_val = Float64(NaN) * Unitful.unit(first_val)
+            df[!, col] = [ismissing(v) ? nan_val : float(v) for v in df[!, col]]
+        end
+    end
+    return df
+end
