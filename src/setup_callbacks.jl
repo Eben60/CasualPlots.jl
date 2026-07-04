@@ -79,6 +79,20 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_s
             legend_title_text[] = ""
             # Reset format flags (preserves persistent ones like plottype)
             reset_format_defaults!(state.misc.format_is_default)
+        else
+            # Not new data (e.g. format change). Update text fields that are still at their default values
+            if state.misc.format_is_default[:xlabel]
+                xlabel_text[] = fig.fig_params.x_name
+            end
+            if state.misc.format_is_default[:ylabel]
+                ylabel_text[] = fig.fig_params.y_name
+            end
+            if state.misc.format_is_default[:title]
+                title_text[] = fig.fig_params.title
+            end
+            if state.misc.format_is_default[:show_legend]
+                show_legend[] = fig.fig_params.updated_show_legend
+            end
         end
         
         # Update defaults for semipersistent options if they were reset
