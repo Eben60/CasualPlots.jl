@@ -19,7 +19,7 @@ using CairoMakie
     state.plotting.format.selected_plottype[] = "Lines"
 
     mktempdir() do dir
-        code = CasualPlots.generate_julia_code(state)
+        code = CasualPlots.generate_julia_code(state).code
         
         png_path = joinpath(dir, "plot1.png")
         svg_path = joinpath(dir, "plot1.svg")
@@ -62,7 +62,7 @@ end
     state.plotting.format.x_max[] = 8.0
 
     mktempdir() do dir
-        code = CasualPlots.generate_julia_code(state)
+        code = CasualPlots.generate_julia_code(state).code
         
         png_path = joinpath(dir, "plot2.png")
         
@@ -79,6 +79,50 @@ end
 
         @test isfile(png_path)
         @test filesize(png_path) > 1000
+    end
+end
+
+@testset "E2E Script File Execution" begin
+    state = CasualPlots.initialize_app_state()
+    state.data_selection.source_type[] = "DataFrame"
+    state.data_selection.selected_dataframe[] = "_casualplots_e2e_df"
+    state.data_selection.selected_columns[] = ["a", "b"]
+    state.plotting.handles.title_text[] = "My E2E Integration Title"
+    
+    mktempdir() do dir
+        script_path = joinpath(dir, "my_test_script.jl")
+        
+        # 1. Generate and save the script using the full pipeline
+        CasualPlots.generate_julia_code(state; file=script_path)
+        @test isfile(script_path)
+        
+        # 2. Read, uncomment execution lines, and rewrite
+        script_content = read(script_path, String)
+        
+        # Uncomment the data loading and plotting
+        script_content = replace(script_content, r"^# (data = .*cp_create_plot.*)$"m => s"\1"; count=1)
+        # Uncomment CairoMakie usage
+        script_content = replace(script_content, r"^# (using CairoMakie)$"m => s"\1")
+        script_content = replace(script_content, r"^# (CairoMakie\.activate!\(\))$"m => s"\1")
+        # Uncomment SVG saving
+        script_content = replace(script_content, r"^# (CairoMakie\.save\(.*\.svg\".*)$"m => s"\1")
+        
+        write(script_path, script_content)
+        
+        # 3. Execute in an isolated module
+        cd(dir) do
+            test_mod = Module(:ScriptFileTestingMod)
+            Core.eval(test_mod, :(const _casualplots_e2e_df = Main._casualplots_e2e_df))
+            Base.include(test_mod, script_path)
+        end
+        
+        # 4. Verify the SVG was generated
+        svg_file = joinpath(dir, "a-vs-b.svg")
+        @test isfile(svg_file)
+        @test filesize(svg_file) > 1000
+        
+        # Check script contents for the title string (CairoMakie converts text to paths in SVGs, so we can't grep the SVG)
+        @test occursin("My E2E Integration Title", script_content)
     end
 end
 

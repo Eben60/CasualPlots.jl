@@ -194,7 +194,7 @@ Create the axis limits section with two rows (X and Y).
 Each row has: "X from:" [input] "to:" [input] "rev.:" [checkbox]
 
 # Arguments
-- `format`: The plotting.format NamedTuple containing axis limit and reversal observables
+- `format`: The `PlotFormat` struct containing axis limit and reversal observables
 
 # Returns
 DOM.div containing the complete axis limits section

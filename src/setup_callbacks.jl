@@ -4,8 +4,8 @@
 Unified function for plotting and replotting, regardless of data source or update reason.
 
 # Arguments
-- `state`: Application state NamedTuple
-- `outputs`: Output observables NamedTuple
+- `state`: Application state struct `CasualPlotsState`
+- `outputs`: Output observables struct `Outputs`
 - `data`: NamedTuple with either:
   - `(; x_name, y_name, range_from=nothing, range_to=nothing)` for array mode (fetches from Main)
   - `(; df, x_name, y_name)` for DataFrame mode (uses provided DataFrame)
@@ -545,8 +545,8 @@ Helper function to update DataFrame plot with selected columns and format settin
 Handles data preparation (fetching, validation, normalization) then delegates to do_replot.
 
 # Arguments
-- `state`: Application state NamedTuple
-- `outputs`: Output observables NamedTuple
+- `state`: Application state struct `CasualPlotsState`
+- `outputs`: Output observables struct `Outputs`
 - `df_name`: Name of the DataFrame
 - `cols`: Selected column names
 - `is_new_data`: If true, initializes text fields from plot defaults (for new plots)

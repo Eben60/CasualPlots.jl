@@ -80,8 +80,8 @@ Organize control panel elements into tabbed interface.
 
 # Arguments
 - `control_panel`: NamedTuple with x_source, y_source, plot_kind, legend_control
-- `state`: Application state NamedTuple with save-related observables
-- `outputs`: Output observables NamedTuple with table observable
+- `state`: Application state struct `CasualPlotsState` with save-related observables
+- `outputs`: Output observables struct `Outputs` with table observable
 
 # Returns
 NamedTuple with:

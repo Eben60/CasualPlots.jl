@@ -3,7 +3,7 @@
 
 Initialize all Observable state variables for the application.
 
-Returns a NamedTuple with nested categories:
+Returns a `CasualPlotsState` struct with nested categories:
 - `file_opening`: Opened file DataFrame and reading options
 - `file_saving`: Save path and status observables
 - `dialogs`: Modal dialog visibility and type
@@ -110,7 +110,7 @@ end
 
 Create observables for plot and table output display.
 
-Returns a NamedTuple with:
+Returns an `Outputs` struct with:
 - `plot`: Observable for plot display
 - `table`: Observable for table display
 - `current_x`, `current_y`: Observables tracking currently plotted data

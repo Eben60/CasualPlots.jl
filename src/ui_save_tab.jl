@@ -33,11 +33,11 @@ function create_path_textarea(save_file_path)
 end
 
 """
-    create_save_button(save_trigger, button_enabled)
+    create_button_save_plot(save_trigger, button_enabled)
 
 Create the main Save button that triggers saving.
 """
-function create_save_button(save_trigger, button_enabled)
+function create_button_save_plot(save_trigger, button_enabled)
     # Re-render button when enabled state changes to update interactions/styles
     map(button_enabled) do enabled
         DOM.button(
@@ -50,15 +50,33 @@ function create_save_button(save_trigger, button_enabled)
 end
 
 """
-    setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
+    create_button_create_script(script_trigger, button_enabled)
+
+Create the button that triggers code generation.
+"""
+function create_button_create_script(script_trigger, button_enabled)
+    map(button_enabled) do enabled
+        DOM.button(
+            "Create Script";
+            onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(script_trigger))" : js"() => {}",
+            disabled=!enabled,
+            class=enabled ? "btn btn-primary mb-2" : "btn btn-disabled mb-2"
+        )
+    end
+end
+
+"""
+    setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigger, overwrite_trigger, cancel_trigger)
 
 Setup Julia-side callbacks for save functionality.
 Callbacks now show popup modals instead of inline status displays.
 """
-function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
-    (; save_file_path, save_status_message, save_status_type, show_overwrite_confirm) = state.file_saving
+function setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigger, overwrite_trigger, cancel_trigger)
+    (; save_file_path, save_status_message, save_status_type) = state.file_saving
     (; show_modal, modal_type) = state.dialogs
     (; current_figure) = state.plotting.handles
+    
+    save_type = Ref(:plot)
     
     # Callback for file dialog button
     on(dialog_trigger) do _
@@ -80,11 +98,11 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_tr
     
     # Callback for save button
     on(save_trigger) do _
+        save_type[] = :plot
         path = strip(save_file_path[])
         
         # Check if there's a plot to save
-        fig = current_figure[]
-        if isnothing(fig)
+        if isnothing(current_figure[])
             save_status_message[] = "No plot to save. Create a plot first."
             modal_type[] = :error
             show_modal[] = true
@@ -109,17 +127,52 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_tr
         end
         
         # Save the file
-        do_save(path, fig, state)
+        do_save(path, state, save_type[])
+    end
+
+    # Callback for create script button
+    on(script_trigger) do _
+        save_type[] = :script
+        path = strip(save_file_path[])
+        
+        # Check if there's a plot to save script for
+        if isnothing(current_figure[])
+            save_status_message[] = "No plot to create script for."
+            modal_type[] = :error
+            show_modal[] = true
+            return
+        end
+        
+        # For overwrite check, we must know the final file path
+        valid, path, err_msg = validate_script_path(path)
+        if !valid
+            save_status_message[] = err_msg
+            modal_type[] = :error
+            show_modal[] = true
+            return
+        end
+        
+        if isfile(path)
+            save_status_message[] = "File already exists. Do you want to overwrite it?"
+            modal_type[] = :confirm
+            show_modal[] = true
+            return
+        end
+        
+        do_save(path, state, save_type[])
     end
     
     # Callback for overwrite confirmation
     on(overwrite_trigger) do _
         show_modal[] = false
         path = strip(save_file_path[])
-        fig = current_figure[]
+        if save_type[] == :script
+             _, path, _ = validate_script_path(path)
+        end
         
+        fig = current_figure[]
         if !isnothing(fig)
-            do_save(path, fig, state)
+            do_save(path, state, save_type[])
         end
     end
     
@@ -132,14 +185,23 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_tr
 end
 
 """
-    do_save(path, fig, state)
+    do_save(path, state, type)
 
 Actually perform the save operation and show result in modal popup.
 """
-function do_save(path, fig, state)
+function do_save(path, state, type)
     (; save_status_message, save_status_type) = state.file_saving
     (; show_modal, modal_type) = state.dialogs
-    (success, message) = save_current_plot(path, fig)
+    (; current_figure) = state.plotting.handles
+    
+    if type == :plot
+        (success, message) = save_current_plot(path, current_figure[])
+    else
+        res = generate_julia_code(state; file=path)
+        success = res.success
+        message = res.message
+    end
+    
     save_status_message[] = message
     save_status_type[] = success ? :success : :error
     modal_type[] = success ? :success : :error
@@ -163,6 +225,7 @@ function create_save_tab_content(state)
     # Create trigger observables for button clicks
     dialog_trigger = Observable(0)
     save_trigger = Observable(0)
+    script_trigger = Observable(0)
     overwrite_trigger = Observable(0)
     cancel_trigger = Observable(0)
     
@@ -172,17 +235,25 @@ function create_save_tab_content(state)
     end
     
     # Setup callbacks
-    setup_save_callbacks!(state, dialog_trigger, save_trigger, overwrite_trigger, cancel_trigger)
+    setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigger, overwrite_trigger, cancel_trigger)
     
     # Create UI elements (status is now shown in modal popup)
     file_dialog_button = create_file_dialog_button(dialog_trigger)
     path_input = create_path_textarea(save_file_path)
-    save_button = create_save_button(save_trigger, button_enabled)
+    save_button = create_button_save_plot(save_trigger, button_enabled)
+    script_button = create_button_create_script(script_trigger, button_enabled)
+    
+    buttons_row = DOM.div(
+        save_button,
+        script_button;
+        class="d-flex justify-content-between",
+        style=Styles("display" => "flex", "justify-content" => "space-between")
+    )
     
     content = DOM.div(
         file_dialog_button,
         path_input,
-        save_button;
+        buttons_row;
         class="p-1"
     )
     

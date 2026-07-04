@@ -259,10 +259,20 @@ using AlgebraOfGraphics
     code *= "# # --- taking exactly the same data already existing in the Main --\n"
     code *= "#\n"
     
+    filename_base = if source_type == "X, Y Arrays"
+        x_name = state.data_selection.selected_x[]
+        y_name = state.data_selection.selected_y[]
+        "$(x_name)-vs-$(y_name)"
+    else
+        cols = state.data_selection.selected_columns[]
+        x_col = !isempty(cols) ? cols[1] : "x"
+        y_col = length(cols) > 1 ? cols[2] : "y"
+        "$(x_col)-vs-$(y_col)"
+    end
+    
     if source_type == "X, Y Arrays"
         x_name = state.data_selection.selected_x[]
         y_name = state.data_selection.selected_y[]
-        filename_base = "$(x_name)-vs-$(y_name)"
         code *= "# data = cp_load_data(; $(x_name), $(y_name)); fg = cp_create_plot(data);\n"
         code *= "#\n"
         code *= "# # --- or, specify your input data (here my_x, my_y) ---\n"
@@ -270,20 +280,12 @@ using AlgebraOfGraphics
         code *= "# data = cp_load_data(; $(x_name)=my_x, $(y_name)=my_y); fg = cp_create_plot(data);\n"
     elseif source_type == "DataFrame" && state.data_selection.selected_dataframe[] != "__opened_file__"
         df_name = state.data_selection.selected_dataframe[]
-        cols = state.data_selection.selected_columns[]
-        x_col = !isempty(cols) ? cols[1] : "x"
-        y_col = length(cols) > 1 ? cols[2] : "y"
-        filename_base = "$(x_col)-vs-$(y_col)"
         code *= "# data = cp_load_data(; $(df_name)); fg = cp_create_plot(data);\n"
         code *= "#\n"
         code *= "# # --- or, specify your input data (here my_df) ---\n"
         code *= "#\n"
         code *= "# data = cp_load_data(; $(df_name)=my_df); fg = cp_create_plot(data);\n"
     else
-        cols = state.data_selection.selected_columns[]
-        x_col = !isempty(cols) ? cols[1] : "x"
-        y_col = length(cols) > 1 ? cols[2] : "y"
-        filename_base = "$(x_col)-vs-$(y_col)"
         code *= "# data = cp_load_data(); fg = cp_create_plot(data);\n"
     end
     
@@ -302,27 +304,65 @@ using AlgebraOfGraphics
 end
 
 """
-    generate_julia_code(state::CasualPlotsState; file=nothing) -> Union{String, Nothing}
+    validate_script_path(path::AbstractString) -> (valid::Bool, resolved_path::String, error_message::String)
+
+Validates that a script path has a `.jl` extension or no extension.
+If it has no extension, `.jl` is appended.
+Returns a tuple indicating if the path is valid, the resolved path, and any error message.
+"""
+function validate_script_path(path::AbstractString)
+    path = strip(path)
+    if isempty(path)
+        return (false, "", "Please specify a file path")
+    end
+    
+    ext = lowercase(splitext(path)[2])
+    if !isempty(ext) && ext != ".jl"
+        return (false, "", "Script must have a .jl extension or no extension")
+    end
+    
+    if isempty(ext)
+        path = path * ".jl"
+    end
+    
+    return (true, path, "")
+end
+
+"""
+    generate_julia_code(state::CasualPlotsState; file=nothing) -> NamedTuple
 
 Generates executable Julia code to replicate the current CasualPlots state.
-If `file` is provided, writes the code to the file (appending a ".jl" suffix if it has no suffix) and returns `nothing`.
-Otherwise, returns the code as a `String`.
+Returns a NamedTuple: `(; code::String, path::Union{String, Nothing}, success::Bool, message::String)`.
+If `file` is provided, writes the code to the file (appending a ".jl" suffix if it has no suffix).
 """
 function generate_julia_code(state::CasualPlotsState; file=nothing)
     code = _generate_julia_code_string(state)
-    if isnothing(file)
-        return code
-    else
-        if isempty(splitext(file)[2])
-            file = file * ".jl"
-        end
+    if isnothing(file) || isempty(strip(file))
+        return (; code=code, path=nothing, success=true, message="Code generated successfully")
+    end
+    
+    valid, file, err_msg = validate_script_path(file)
+    if !valid
+        return (; code=code, path=nothing, success=false, message=err_msg)
+    end
+    
+    try
         write(file, code)
-        return nothing
+        msg = "Script saved to $(basename(file))"
+        @info msg
+        return (; code=code, path=file, success=true, message=msg)
+    catch e
+        err_msg = "Error saving script: $(e)"
+        if e isa ErrorException
+             err_msg = e.msg
+        end
+        @warn err_msg
+        return (; code=code, path=nothing, success=false, message=err_msg)
     end
 end
 
 """
-    generate_julia_code(app::CasualPlotApp; file=nothing) -> Union{String, Nothing}
+    generate_julia_code(app::CasualPlotApp; file=nothing) -> NamedTuple
 
 Generates executable Julia code to replicate the current CasualPlots state.
 Delegates to `generate_julia_code(app.state; file)`.
