@@ -110,9 +110,9 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigg
         end
         
         # Validate path
-        (valid, err_msg) = validate_save_path(path)
-        if !valid
-            save_status_message[] = err_msg
+        val = validate_save_path(path)
+        if !val.valid
+            save_status_message[] = val.error_message
             modal_type[] = :error
             show_modal[] = true
             return
