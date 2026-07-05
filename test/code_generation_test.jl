@@ -13,8 +13,11 @@ using Test
     @test occursin("data = cp_load_data(; xx100, yy100)", code)
     @test occursin("cp_create_plot(data)", code)
     
-    # Should not include CasualPlots import if not needed
-    @test !occursin("using CasualPlots", code)
+    @test occursin("df = DataFrame(m, valid_cols)", code)
+    @test occursin("CasualPlots.clean_plot_data!(df_selected, valid_cols)", code)
+    
+    # Arrays mode now uses CasualPlots.clean_plot_data!
+    @test occursin("using CasualPlots", code)
 end
 
 @testset "Code Generation String Verification - DataFrame Mode" begin

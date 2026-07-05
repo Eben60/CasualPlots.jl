@@ -12,7 +12,7 @@ Observable containing the dropdown DOM element
 """
 function create_plottype_dropdown(supported_plot_types, selected_plottype)
     # create_dropdown is available from dropdowns_setup.jl (module scope)
-    return Observable(create_dropdown(supported_plot_types, selected_plottype))
+    return Observable(create_dropdown(supported_plot_types, selected_plottype; id="dropdown-plottype"))
 end
 
 """
@@ -45,7 +45,7 @@ Create the dropdown for selecting Makie themes.
 Observable containing the dropdown DOM element
 """
 function create_theme_dropdown(selected_theme)
-    return Observable(create_dropdown(SUPPORTED_THEMES, selected_theme))
+    return Observable(create_dropdown(SUPPORTED_THEMES, selected_theme; id="dropdown-theme"))
 end
 
 """
@@ -96,7 +96,8 @@ function create_group_by_dropdown(selected_group_by, selected_plottype)
         DOM.select(
             options...;
             class="dropdown",
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(selected_group_by))"
+            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(selected_group_by))",
+            id="dropdown-groupby"
         )
     end
     

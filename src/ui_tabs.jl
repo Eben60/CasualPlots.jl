@@ -10,7 +10,7 @@ Create a tabbed interface component.
 - `default_active`: Index of the tab to show by default (1-indexed)
 
 # Returns
-A DOM node containing the complete tabs interface
+A DOM node containing the complete tabs interface. The DOM node is enveloped in a NamedTuple
 
 # Example
 ```julia
@@ -22,43 +22,27 @@ tabs = create_tabs_component([
 ```
 """
 function create_tabs_component(tab_configs::Vector; default_active=1)
-    # Observable to track which tab is active (1-indexed)
-    active_tab = Observable(default_active)
+    # Give the container a fixed ID to scope the JS
+    container_id = "casualplots-tabs"
     
     # Create tab buttons
     tab_buttons = map(enumerate(tab_configs)) do (idx, config)
-        is_active = Observable(idx == active_tab[])
+        is_active = (idx == default_active)
+        button_class = is_active ? "tab-button active" : "tab-button"
         
-        # Update is_active when active_tab changes
-        on(active_tab) do active_idx
-            is_active[] = (idx == active_idx)
-        end
-        
-        # Create button with dynamic class
-        button_class = map(is_active) do active
-            active ? "tab-button active" : "tab-button"
-        end
-        
+        tab_id = "tab-button-$(lowercase(replace(config.name, " " => "-")))"
         DOM.button(
             config.name;
             class=button_class,
-            onclick=js"() => window.CasualPlots.setObservableValue($(active_tab), $idx)"
+            id=tab_id,
+            onclick=js"(e) => window.CasualPlots.switchTab(e, $idx, $container_id)"
         )
     end
     
     # Create tab content panels
     tab_panels = map(enumerate(tab_configs)) do (idx, config)
-        is_active = Observable(idx == active_tab[])
-        
-        # Update is_active when active_tab changes
-        on(active_tab) do active_idx
-            is_active[] = (idx == active_idx)
-        end
-        
-        # Create panel with dynamic class
-        panel_class = map(is_active) do active
-            active ? "tab-panel active" : "tab-panel"
-        end
+        is_active = (idx == default_active)
+        panel_class = is_active ? "tab-panel active" : "tab-panel"
         
         DOM.div(config.content; class=panel_class)
     end
@@ -67,10 +51,11 @@ function create_tabs_component(tab_configs::Vector; default_active=1)
     tabs_html = DOM.div(
         DOM.div(tab_buttons...; class="tab-buttons"),
         DOM.div(tab_panels...; class="tab-content");
-        class="tabs-container"
+        class="tabs-container",
+        id=container_id
     )
     
-    return (; dom=tabs_html, active_tab)
+    return (; dom=tabs_html)
 end
 
 """
@@ -90,11 +75,8 @@ NamedTuple with:
 - `cancel_trigger`: Observable for cancel button (passed to modal)
 """
 function create_tab_content(control_panel, state, outputs)
-    # Create a refresh trigger for the Open tab that fires when it becomes active
-    open_tab_refresh = Observable(0)
-    
     # Open tab - shows extension availability status (reactive) with file loading
-    open_tab_content = create_open_tab_content(open_tab_refresh, outputs.table, state)
+    open_tab_content = create_open_tab_content(outputs.table, state)
     
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(
@@ -118,14 +100,7 @@ function create_tab_content(control_panel, state, outputs)
     
     # default_active=2 keeps "Source" tab as the default (Open is now index 1)
     tabs_result = create_tabs_component(tab_configs; default_active=2)
-    
-    # Wire up the Open tab refresh: trigger when Open tab (index 1) becomes active
-    on(tabs_result.active_tab) do tab_idx
-        if tab_idx == 1  # Open tab
-            open_tab_refresh[] = open_tab_refresh[] + 1
-        end
-    end
-    
+   
     return (; tabs=tabs_result.dom, overwrite_trigger=save_tab_result.overwrite_trigger, 
               cancel_trigger=save_tab_result.cancel_trigger)
 end

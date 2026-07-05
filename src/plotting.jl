@@ -4,64 +4,6 @@ function var_to_string(t)
     return parts[end]
 end
 
-function create_plot(x_data::AbstractVector, y_data, x_name, y_name; 
-    plot_format = (; plottype=Scatter, show_legend=nothing, legend_title="")) # x, y AbstractString or Symbol 
-    (; show_legend) = plot_format 
-    if length(x_data) != size(y_data, 1)
-        println("Error: Dimension mismatch. X has length $(length(x_data)) but Y has $(size(y_data, 1)) rows.")
-        return nothing
-    end
-
-    n_cols = size(y_data, 2)    
-    # If show_legend is nothing, default to showing legend only for multi-column data
-    # Otherwise, use the explicit value (from checkbox)
-    updated_show_legend = isnothing(show_legend) ? (n_cols > 1) : plot_format.show_legend
-    plot_format = merge(plot_format, (; show_legend=updated_show_legend))
-
-    m = hcat(x_data, y_data)
-    ys = ["y_name_$n" for n in 1:n_cols]
-    nms = vcat("x", ys)
-    dfw = DataFrame(m, nms)
-    return create_plot(dfw; x_name, y_name, plot_format)
-end
-
-function select_cols(dfw; xcol=nothing, cols=nothing) 
-    if !isnothing(cols)
-        isnothing(xcol) || error("Either first column, or all columns can be provided, not both simultaneously")
-        return select(dfw, cols)
-    end
-    if isnothing(xcol)
-        xcol = 1
-    end
-    if xcol isa Integer
-        x_pos = xcol
-    else
-        x_pos = columnindex(dfw, xcol)
-    end
-    return dfw[!, x_pos:end]
-end
-
-function create_plot(df_w::AbstractDataFrame ; xcol=1, x_name=nothing, y_name, plot_format)
-    dfw = select_cols(df_w; xcol)
-    
-    x_col = names(dfw)[1] |> Symbol
-    if isnothing(x_name)
-        x_name = String(x_col)
-    end
-    ys = names(dfw)[2:end]
-    
-    # Handle show_legend like in array version - convert nothing to boolean based on num columns
-    n_cols = length(ys)
-    (; show_legend) = plot_format
-    updated_show_legend = isnothing(show_legend) ? (n_cols > 1) : show_legend
-    plot_format = merge(plot_format, (; show_legend=updated_show_legend))
-
-    df = stack(dfw, ys;
-        variable_name=:group, value_name=:y)
-
-    mappings = (; x_col, y_col=:y, group_col=:group)
-    return create_plot_df_long(df, x_name, y_name, plot_format; mappings)
-end
 
 function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     WGLMakie.activate!()
@@ -143,55 +85,7 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     return (; fig, axis, fig_params = (; title, x_name, y_name, updated_show_legend=show_legend))
 end
 
-function check_data_create_plot(x_name, y_name; plot_format, range_from=nothing, range_to=nothing) # x, y AbstractString or Symbol
-    try
-        x_data = getfield(Main, Symbol(x_name))
-        y_data = getfield(Main, Symbol(y_name))
 
-        if y_data isa AbstractVector
-            y_data = reshape(y_data, :, 1)
-        end
-
-        if y_data isa AbstractMatrix && x_data isa AbstractVector
-            # Apply range slicing if specified
-            if !isnothing(range_from) || !isnothing(range_to)
-                x_first = firstindex(x_data)
-                x_last = lastindex(x_data)
-                from_idx = isnothing(range_from) ? x_first : range_from
-                to_idx = isnothing(range_to) ? x_last : range_to
-                
-                # Clamp to valid range
-                from_idx = clamp(from_idx, x_first, x_last)
-                to_idx = clamp(to_idx, x_first, x_last)
-                
-                # Slice X data
-                x_data = x_data[from_idx:to_idx]
-                
-                # Convert X indices to linear positions for Y
-                y_first = firstindex(y_data, 1)
-                pos_from = from_idx - x_first + y_first
-                pos_to = to_idx - x_first + y_first
-                
-                # Slice Y data
-                y_data = y_data[pos_from:pos_to, :]
-            end
-            
-            return create_plot(x_data, y_data, x_name, y_name; plot_format)
-        else
-            println("Error: Unsupported data types for plotting. x must be a vector, and y can be a vector or a matrix.")
-            return nothing
-        end
-    catch e
-        println("An error occurred during plotting: ", e)
-        println("\nStack trace:")
-        for (exc, bt) in Base.catch_stack()
-            showerror(stdout, exc, bt)
-            println()
-        end
-        return nothing
-    end
-
-end
 """
     update_plot_format!(fig, axis; kwargs...)
 

@@ -79,6 +79,10 @@ Base.@kwdef struct Misc
     last_plotted_x::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)
     last_plotted_y::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)
     last_plotted_dataframe::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)
+    cached_cleaned_df::Ref{Union{Nothing, DataFrame}} = Ref{Union{Nothing, DataFrame}}(nothing)
+    cached_xcol_name::Ref{Union{Nothing, String}} = Ref{Union{Nothing, String}}(nothing)
+    cached_y_names::Ref{Any} = Ref{Any}(nothing)
+    cached_cols::Ref{Vector{String}} = Ref{Vector{String}}(String[])
 end
 
 # ==========================================

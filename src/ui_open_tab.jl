@@ -276,11 +276,11 @@ function render_open_tab_view(open_file_trigger, reload_trigger, reload_enabled,
 end
 
 """
-    create_open_tab_content(refresh_trigger, table_observable, state)
+    create_open_tab_content(table_observable, state)
 
 Create reactive content for the Open tab.
 """
-function create_open_tab_content(refresh_trigger, table_observable, state)
+function create_open_tab_content(table_observable, state)
     (; opened_file_name) = state.file_opening
     
     # Create trigger for Open File button clicks
@@ -339,8 +339,6 @@ function create_open_tab_content(refresh_trigger, table_observable, state)
         end
     end
     
-    # Render view on refresh
-    return map(refresh_trigger) do _
-        render_open_tab_view(open_file_trigger, reload_trigger, reload_enabled, sheet_names, selected_sheet, state)
-    end
+    # Render view
+    return render_open_tab_view(open_file_trigger, reload_trigger, reload_enabled, sheet_names, selected_sheet, state)
 end

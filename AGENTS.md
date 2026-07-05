@@ -271,6 +271,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 ### Testing
 - Manual testing via `src/scripts/casualplots_test.jl`
 - Browser testing with Antigravity plugin (conversation history refs) via `src/scripts/casualplots_browser-test.jl`
+  - See [Browser Dropdown Testing Procedure](AGENTS_more_info/specific_issues/browser_testing_dropdowns.md) for how to reliably interact with native `<select>` dropdowns in automated testing.
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
 - Test suite WIP in early stage.
   - Tests for non-GUI-functions only yet

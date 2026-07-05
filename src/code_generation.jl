@@ -31,6 +31,13 @@ function cp_load_data(; $(x_name), $(y_name))
     if y_data isa AbstractVector
         y_data = reshape(y_data, :, 1)
     end
+    
+    n_cols = size(y_data, 2)
+    ys = ["y_name_\$n" for n in 1:n_cols]
+    valid_cols = vcat("x", ys)
+    m = hcat(x_data, y_data)
+    df = DataFrame(m, valid_cols)
+    df_selected = select(df, valid_cols)
 """
     
     range_from = state.data_selection.range_from[]
@@ -39,25 +46,24 @@ function cp_load_data(; $(x_name), $(y_name))
     if !isnothing(range_from) || !isnothing(range_to)
         code *= """
     # Apply range slicing
-    from_idx = $(isnothing(range_from) ? "firstindex(x_data)" : range_from)
-    to_idx = $(isnothing(range_to) ? "lastindex(x_data)" : range_to)
+    n_rows = nrow(df_selected)
+    from_idx = $(isnothing(range_from) ? 1 : range_from)
+    to_idx = $(isnothing(range_to) ? "n_rows" : range_to)
     
-    x_first = firstindex(x_data)
-    x_last = lastindex(x_data)
-    from_idx = clamp(from_idx, x_first, x_last)
-    to_idx = clamp(to_idx, x_first, x_last)
+    from_idx = clamp(from_idx, 1, n_rows)
+    to_idx = clamp(to_idx, 1, n_rows)
     
-    x_data = x_data[from_idx:to_idx]
+    if from_idx > to_idx
+        from_idx, to_idx = to_idx, from_idx
+    end
     
-    y_first = firstindex(y_data, 1)
-    pos_from = from_idx - x_first + y_first
-    pos_to = to_idx - x_first + y_first
-    y_data = y_data[pos_from:pos_to, :]
+    df_selected = df_selected[from_idx:to_idx, :]
 """
     end
     
     code *= """
-    return (; x_data, y_data, x_name="$(x_name)", y_name="$(y_name)")
+    df_selected = CasualPlots.clean_plot_data!(df_selected, valid_cols)
+    return (; df=df_selected, x_name="$(x_name)", y_name="$(y_name)")
 end
 """
     return code
@@ -157,22 +163,7 @@ function cp_create_plot(data)
         code *= "    set_theme!($(theme)())\n"
     end
     
-    if source_type == "X, Y Arrays"
-        code *= """
-    (; x_data, y_data, x_name, y_name) = data
-    n_cols = size(y_data, 2)
-    ys = ["y_name_\$n" for n in 1:n_cols]
-    nms = vcat("x", ys)
-    m = hcat(x_data, y_data)
-    df_w = DataFrame(m, nms)
-    df = stack(df_w, ys; variable_name=:group, value_name=:y)
-    
-    x_col = :x
-    y_col = :y
-    group_col = :group
-"""
-    else
-        code *= """
+    code *= """
     (; df, x_name, y_name) = data
     ys = names(df)[2:end]
     x_col = Symbol(names(df)[1])
@@ -180,7 +171,6 @@ function cp_create_plot(data)
     group_col = :group
     df = stack(df, ys; variable_name=:group, value_name=:y)
 """
-    end
     
     # Generate labels fallback
     code *= """

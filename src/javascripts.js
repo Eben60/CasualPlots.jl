@@ -465,3 +465,34 @@ window.CasualPlots.clearAxisLimitInputs = () => {
     if (xRevCheckbox) xRevCheckbox.checked = false;
     if (yRevCheckbox) yRevCheckbox.checked = false;
 }
+
+/**
+ * Switches the active tab in a tabs container.
+ * @param {Event} event - The click event
+ * @param {number} activeIdx - The 1-based index of the tab to activate
+ * @param {string} containerId - The ID of the tabs container
+ */
+window.CasualPlots.switchTab = (event, activeIdx, containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Update buttons
+    const buttons = container.querySelectorAll('.tab-buttons > .tab-button');
+    buttons.forEach((btn, i) => {
+        if (i + 1 === activeIdx) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Update panels
+    const panels = container.querySelectorAll('.tab-content > .tab-panel');
+    panels.forEach((panel, i) => {
+        if (i + 1 === activeIdx) {
+            panel.classList.add('active');
+        } else {
+            panel.classList.remove('active');
+        }
+    });
+}

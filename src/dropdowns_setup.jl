@@ -14,7 +14,7 @@ function create_x_dropdown(state)
         if isempty(array_names)
             array_names = [""]
         end
-        dropdown_x_node[] = create_dropdown(array_names, selected_x; placeholder="Select X")
+        dropdown_x_node[] = create_dropdown(array_names, selected_x; placeholder="Select X", id="dropdown-x")
     end
     notify(dims_dict_obs)
     return dropdown_x_node
@@ -29,7 +29,8 @@ function create_y_dropdown()
     # The actual options will be populated dynamically by setup_x_callback()
     return create_dropdown([], nothing; 
         placeholder="Select Y after you selected X", 
-        disabled=true) |> Observable
+        disabled=true,
+        id="dropdown-y") |> Observable
 end
 
 """
@@ -66,7 +67,7 @@ function create_dataframe_dropdown(state)
             end
         end
         
-        dropdown_dataframe_node[] = create_dropdown(options, selected_dataframe; placeholder="Select DataFrame")
+        dropdown_dataframe_node[] = create_dropdown(options, selected_dataframe; placeholder="Select DataFrame", id="dropdown-dataframe")
     end
     notify(dataframes_dict_obs)
     return dropdown_dataframe_node
@@ -86,7 +87,7 @@ Create a generic dropdown menu.
 # Returns
 DOM.select element
 """
-function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=nothing; placeholder=nothing, disabled=false)
+function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=nothing; placeholder=nothing, disabled=false, id=nothing)
     
     final_options = []
     current_val = isnothing(selected_val_obs) ? nothing : selected_val_obs[]
@@ -116,6 +117,10 @@ function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=n
     attributes = Dict{Symbol, Any}()
     if disabled
         attributes[:disabled] = true
+    end
+    
+    if !isnothing(id)
+        attributes[:id] = id
     end
     
     if !isnothing(selected_val_obs)
