@@ -171,4 +171,4 @@ In short, it is WIP, however, the main goals are already implemented and the pac
 - [X, Y Source Selection, Scatter Plot](AGENTS_more_info/ScreenShots/xy_source_selection.png)
 - [DataFrame Source Selection](AGENTS_more_info/ScreenShots/dataframe_source_selection.png)
 - [Format Tab, Lines Plot](AGENTS_more_info/ScreenShots/format_tab.png)
-- [Save Tab](AGENTS_more_info/ScreenShots/save_tab.png) # TODO!
+- [Save Tab](AGENTS_more_info/ScreenShots/save_tab.png)
