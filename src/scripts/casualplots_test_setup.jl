@@ -47,25 +47,27 @@ isdefined(Main, :caspl_df_unitful) || (caspl_df_unitful = DataFrame(
 ))
 
 if !isdefined(Main, :caspl_df_unitmix)
-    unimix = copy(caspl_u_25) |> Vector{Any}
-    unimix[3] = missing
-    unimix[5] = π
-    unimix = collect(unimix)
+    caspl_df_unitmix = let
+        unimix = copy(caspl_u_25) |> Vector{Any}
+        unimix[3] = missing
+        unimix[5] = π
+        unimix = collect(unimix)
 
-    unimiss = copy(caspl_u_25) |> Vector{Any}
-    unimiss[4] = missing
-    unimiss[5] = "Missis"
-    unimiss = collect(unimiss)
+        unimiss = copy(caspl_u_25) |> Vector{Any}
+        unimiss[4] = missing
+        unimiss[5] = "Missis"
+        unimiss = collect(unimiss)
 
-    caspl_df_unitmix = DataFrame(
-    index = 1:25,
-    area = caspl_u_25 .* 1.1,
-    linear = ((1:25)./1.1).*u"mm",
-    unimix = unimix,
-    unimiss = unimiss,
-    areacm = caspl_cm_25 .* 0.009,
-    areammcm = caspl_mmcm_25 .* 0.008,
-    )
+        DataFrame(
+        index = 1:25,
+        area = caspl_u_25 .* 1.1,
+        linear = ((1:25)./1.1).*u"mm",
+        unimix = unimix,
+        unimiss = unimiss,
+        areacm = caspl_cm_25 .* 0.009,
+        areammcm = caspl_mmcm_25 .* 0.008,
+        )
+    end
 end
 
 
