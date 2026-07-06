@@ -26,6 +26,8 @@ CasualPlots.jl                  # Main module, exports casualplots_app()
 CasualPlotApp.jl                # Wrapper struct to expose reactive state and avoid memory leaks
 app.jl                          # Main app entry point (casualplots_app function)
 app_state.jl                    # Application state initialization (Observables)
+app_types.jl                    # Type definitions used across the application
+constants.jl                    # Application-wide constants
 css_styles.css                  # Global CSS styles for all UI components
 javascripts.js                  # Global JavaScript functions (namespaced window.CasualPlots)
 
@@ -34,6 +36,8 @@ plotting.jl                     # Plot generation using AlgebraOfGraphics
 setup_callbacks.jl              # Core reactive callbacks (do_replot, source, format, DataFrame)
 label_update_callbacks.jl       # Label text field callbacks
 dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
+code_generation.jl              # Automatic Julia code generation from GUI state
+unitful_integration.jl          # Unitful.jl support for plotting quantities with units
 
 # UI Components (ui_*.jl)
 ui_tabs.jl                      # Tab component + create_tab_content wiring
@@ -47,7 +51,7 @@ ui_save_tab.jl                  # Save tab UI
 ui_modal_dialog.jl              # Modal dialog component
 
 # Control Panel
-create_control_panel_ui.jl      # Control panel UI construction
+create_control_panel_ui.jl      # Control panel UI construction (static layout w/ CSS toggling)
 
 # Data Handling
 collect_data.jl                 # Data collection from Main module
@@ -62,6 +66,7 @@ save_plot.jl                    # Plot saving functionality (CairoMakie backend)
 # Other
 electron.jl                     # Electron window integration (show kwarg for hidden windows)
 FileDialogWorkAround.jl         # Cross-platform file dialog utilities
+gui_testing_utils.jl            # Helper functions for UI/session inspection during tests
 extensions.jl                   # Package extensions loader
 precompile.jl                   # PrecompileTools workload for reducing TTFP
 
@@ -241,8 +246,8 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - ~~Axis limits~~ ✓ Implemented (configurable min/max, reversal, pan/zoom sync)
 - ~~Themes~~ ✓ Implemented (Makie default, AoG, theme_black/dark/ggplot2/light/minimal)
 - ~~Group differentiation~~ ✓ Implemented (Color or Geometry; Geometry disabled for BarPlot)
-- Support for multiple independent data sources
-- Automatic Julia code generation from GUI actions
+- ~~Automatic Julia code generation from GUI actions~~ ✓ Implemented
+- Support for multiple independent data sources in a diagram
 - Optional regression‑fit overlays  
 
 ### Development Workflows
@@ -270,8 +275,10 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Testing
 - Manual testing via `src/scripts/casualplots_test.jl`
-- Browser testing with Antigravity plugin (conversation history refs) via `src/scripts/casualplots_browser-test.jl`
-  - See [Browser Dropdown Testing Procedure](AGENTS_more_info/specific_issues/browser_testing_dropdowns.md) for how to reliably interact with native `<select>` dropdowns in automated testing.
+- Browser testing with Antigravity plugin via `src/scripts/casualplots_browser-test.jl`
+  - Granular testing protocol: See [Granular Subagent Testing Plan](AGENTS_more_info/specific_issues/granular_subagent_testing_plan.md) for executing strict, step-by-step browser subagent calls with REPL verification to prevent context bloat.
+  - Dropdown interaction: See [Browser Dropdown Testing Procedure](AGENTS_more_info/specific_issues/browser_testing_dropdowns.md) for interacting with native `<select>` dropdowns.
+  - Diagnostic tracing: See [DOM Corruption Bug Testing Plan](AGENTS_more_info/specific_issues/dom_corruption_bug_testing_plan.md) for examples of troubleshooting UI anomalies.
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
 - Test suite WIP in early stage.
   - Tests for non-GUI-functions only yet
