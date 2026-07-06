@@ -236,7 +236,7 @@ using AlgebraOfGraphics
         code *= "using CasualPlots # for helper functions like skip_rows!\n"
     end
     
-    code *= "# uncomment next line for high quality static output, esp. for saving:\n"
+    code *= "# # --- uncomment next line for high quality static output, esp. for saving ---\n"
     code *= "# using CairoMakie\n"
 
     code *= source_code

@@ -10,6 +10,18 @@ window.CasualPlots.updateObservableValue = (event, observable) => {
 }
 
 /**
+ * Toggles visibility of source mode containers (Array vs DataFrame).
+ * Used to avoid Bonito reactive DOM patching for source type switching.
+ * @param {string} sourceType - The selected source type ("X, Y Arrays" or "DataFrame")
+ */
+window.CasualPlots.toggleSourceMode = (sourceType) => {
+    const arrayMode = document.getElementById('source-array-mode');
+    const dfMode = document.getElementById('source-dataframe-mode');
+    if (arrayMode) arrayMode.style.display = sourceType === 'X, Y Arrays' ? 'flex' : 'none';
+    if (dfMode) dfMode.style.display = sourceType === 'DataFrame' ? 'flex' : 'none';
+}
+
+/**
  * Updates an observable with the checked state from an event (for checkbox).
  * @param {Event} event - The DOM event
  * @param {Observable} observable - The observable to update

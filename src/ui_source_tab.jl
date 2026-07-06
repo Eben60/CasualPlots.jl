@@ -57,12 +57,12 @@ function create_source_type_selector(source_type)
         DOM.input(
             type="radio", name="source_type", value="X, Y Arrays", 
             checked=(source_type[] == "X, Y Arrays"),
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(source_type))"
+            onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(source_type)); window.CasualPlots.toggleSourceMode(event.target.value); }"
         ), " X, Y Arrays  ",
         DOM.input(
             type="radio", name="source_type", value="DataFrame",
             checked=(source_type[] == "DataFrame"),
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(source_type))"
+            onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(source_type)); window.CasualPlots.toggleSourceMode(event.target.value); }"
         ), " File/DataFrame";
         class="mb-2"
     )
