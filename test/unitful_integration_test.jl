@@ -72,10 +72,23 @@ end
     @test occursin("Incompatible", state.file_saving.save_status_message[])
 end
 
+@testset "Internal Mixed Compatible Units" begin
+    df = DataFrame(A = Any[1.0u"m", 2.0u"cm", 3.0u"mm"])
+    df_out = CasualPlots.unify_internal_column_units!(df, ["A"])
+    
+    @test Unitful.unit(df_out.A[1]) == u"m"
+    @test Unitful.unit(df_out.A[2]) == u"m"
+    @test Unitful.unit(df_out.A[3]) == u"m"
+    @test df_out.A[2] ≈ 0.02u"m"
+    @test df_out.A[3] ≈ 0.003u"m"
+end
+
 @testset "Internal Unit Compatibility" begin
-    # 1. Compatible but different units (should not throw)
+    # 1. Compatible but different units (should be unified)
     df_compat = DataFrame(A = Any[1.0u"m", 2.0u"cm", missing])
-    @test isnothing(CasualPlots.check_internal_unit_compatibility!(df_compat, ["A"]))
+    df_out = CasualPlots.unify_internal_column_units!(df_compat, ["A"])
+    @test Unitful.unit(df_out.A[1]) == u"m"
+    @test Unitful.unit(df_out.A[2]) == u"m"
 
     # 2. Incompatible units in the same column (should throw ArgumentError)
     df_incompat = DataFrame(A = Any[1.0u"m", 2.0u"m^2"])

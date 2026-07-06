@@ -124,7 +124,7 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
     - `plot_trigger` observable fires:
         - Validates selection (at least 2 columns).
-        - **Data Normalization**: Calls `normalize_numeric_columns!` to convert Abstract/Any types to Float64/Int. Warns if non-numeric values are lost (popup + log).
+        - **Data Cleansing and Normalization**: Calls `clean_plot_data!` to manage unit conversions and normalize non-numeric values (see Section 4 below).
         - Calls `update_dataframe_plot` helper.
         - Generates plot with **default labels** (resets legend title).
         - Updates table view.
@@ -194,6 +194,12 @@ A `DefaultDict{Symbol, Bool}` tracks which format options are still at their def
     - **New Plot**: Legend title is reset to empty.
     - **Format Change**: Legend title and visibility persist.
 - **User Override**: Checkbox allows manual toggle, persisting through format updates.
+
+#### 4. Data Cleansing and Normalization
+Centralized via `clean_plot_data!` (in `preprocess_dataframes.jl`) to ensure all data passed to the plotting backend is valid and properly typed.
+- **Unitful Unification (Within Column)**: Checks each column for mixed compatible units (e.g., `m` and `cm`). If found, it unifies all elements to the largest metric unit present in that column (`unify_internal_column_units!`). Mixed incompatible units or a mix of units and plain numbers will throw an error.
+- **Numeric Normalization**: Checks column types and contents (`normalize_numeric_columns!`). If an `Any` or `AbstractString` column has `> 90%` numeric values (i.e., less than 10% non-numerics), it replaces the invalid elements with `missing` so the rest of the data can be plotted. A warning popup is shown.
+- **Unitful Unification (Cross-Column)**: If multiple Y-columns contain `Unitful` quantities, it attempts to unify them to a common target unit (`unify_units!`). If dimensions are incompatible (e.g., `s` and `m`), it issues a warning and strips the units entirely to allow plotting on the same axis.
 
 ### Plotting Implementation (plotting.jl)
 

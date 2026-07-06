@@ -120,6 +120,20 @@ In the **Open** tab:
 - The data is displayed in the table. You can adjust options and click **Reload** to read the data anew.
 - Once loaded, the data is available under "opened file" in the **Source** tab's **File/DataFrame** dropdown.
 
+#### Data Cleansing and Normalization
+
+Before plotting, the application automatically cleanses and normalizes selected data. 
+
+##### Non-Numerics
+
+If a column contains less than 10% non-numeric values, these elements are automatically replaced with `missing` so the rest of the valid data can be plotted (a warning popup will alert you). Otherwise the data is left as is. If it is the X-column, it will be considered as categorical data by the plotting backend, otherwise result in error downstream.
+
+##### `Unitful` data normalization:
+
+- **Differing compatible units in a column**: If a single column contains differing but compatible units (e.g., `m` and `cm`), all data will be converted to same unit (`m` in this case). However, a mix of non-compatible units (e.g., `m` and `m^2`), or a mix of units and plain numbers in the same column, will error.
+
+- **Cross-column unit unification**: If multiple selected Y-columns contain `Unitful` quantities, the application will attempt to unify them to a common unit. If the different columns have non-compatible physical dimensions (e.g., trying to plot distance and time on the same axis), a warning is issued and the units are stripped entirely to allow them to be plotted together.
+
 ### Plot Formatting Options
 
 WIP, see **Format** tab.
