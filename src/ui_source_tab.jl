@@ -256,19 +256,21 @@ function create_range_input_row(range_from, range_to, data_bounds_from, data_bou
 end
 
 """
-    create_dataframe_dropdown_row(dataframe_node)
+    create_dataframe_dropdown_row(dataframe_node, trigger_update)
 
 Create the DataFrame source selection dropdown row.
 
 # Arguments
 - `dataframe_node`: Observable DataFrame selection dropdown node
+- `trigger_update`: Observable to trigger data refresh
 
 # Returns
 DOM.div containing the DataFrame dropdown with label
 """
-function create_dataframe_dropdown_row(dataframe_node)
+function create_dataframe_dropdown_row(dataframe_node, trigger_update)
     DOM.div(
-        "Select Source:", dataframe_node;
+        "Select Source:", 
+        DOM.div(dataframe_node; onclick=js"() => window.CasualPlots.setObservableValue($(trigger_update), true)");
         class="flex-row align-center gap-1 mb-2"
     )
 end

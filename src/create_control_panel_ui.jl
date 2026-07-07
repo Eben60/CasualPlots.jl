@@ -41,7 +41,7 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     array_dropdowns = create_array_mode_content(x_node, y_node, trigger_update)
     
     # DataFrame mode: dropdown row + column controls (buttons and checkboxes)
-    dataframe_dropdown_row = create_dataframe_dropdown_row(dataframe_node)
+    dataframe_dropdown_row = create_dataframe_dropdown_row(dataframe_node, trigger_update)
     dataframe_column_controls = create_dataframe_column_controls(
         selected_dataframe, selected_columns, opened_file_df
     )

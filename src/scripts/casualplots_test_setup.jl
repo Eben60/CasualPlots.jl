@@ -24,6 +24,14 @@ if !isdefined(Main, :caspl_mmcm_25)
     caspl_mmcm_25[3] = (2.9*u"cm^2" |> u"mm^2")
 end
 
+if !isdefined(Main, :caspl_3d)
+    caspl_3d = 
+    let
+        m = create_data_matrix(caspl_x_10, 12)
+        t = reshape(m, 10, 3, 4)
+    end
+end
+
 
 # Create test DataFrames from existing arrays
 isdefined(Main, :caspl_df_simple) || (caspl_df_simple = DataFrame(
