@@ -16,9 +16,22 @@ function generate_xy_arrays_code(state::CasualPlotsState)
     x_name = state.data_selection.selected_x[]
     y_name = state.data_selection.selected_y[]
     
+    range_from = state.data_selection.range_from[]
+    range_to = state.data_selection.range_to[]
+    from_val = isnothing(range_from) ? ":begin" : range_from
+    to_val = isnothing(range_to) ? ":end" : range_to
+    
     code = """
 
-function cp_load_data(; $(x_name), $(y_name))
+function cp_load_data(; $(x_name), $(y_name),
+    # rows: rows range to plot. Examples: (:begin, :end), (1, 100), (:begin, 10), (10, :end)
+    rows = (:begin, :end),
+    )
+    
+    @assert length(rows) == 2 &&
+        (rows[1] isa Integer || rows[1] == :begin) &&
+        (rows[2] isa Integer || rows[2] == :end)
+
     # Assuming $(x_name) and $(y_name) are available in the executing environment
 """
     code *= generate_data_preview(x_name) * "\n"
@@ -40,26 +53,17 @@ function cp_load_data(; $(x_name), $(y_name))
     df_selected = select(df, valid_cols)
 """
     
-    range_from = state.data_selection.range_from[]
-    range_to = state.data_selection.range_to[]
-    
-    if !isnothing(range_from) || !isnothing(range_to)
-        code *= """
-    # Apply range slicing
-    n_rows = nrow(df_selected)
-    from_idx = $(isnothing(range_from) ? 1 : range_from)
-    to_idx = $(isnothing(range_to) ? "n_rows" : range_to)
-    
-    from_idx = clamp(from_idx, 1, n_rows)
-    to_idx = clamp(to_idx, 1, n_rows)
-    
-    if from_idx > to_idx
-        from_idx, to_idx = to_idx, from_idx
+    code *= """
+    if rows != (:begin, :end)
+        if rows[1] == :begin
+            df_selected = df_selected[begin:rows[2], :]
+        elseif rows[2] == :end
+            df_selected = df_selected[rows[1]:end, :]
+        else
+            df_selected = df_selected[rows[1]:rows[2], :]
+        end
     end
-    
-    df_selected = df_selected[from_idx:to_idx, :]
 """
-    end
     
     code *= """
     df_selected = CasualPlots.clean_plot_data!(df_selected, valid_cols)
@@ -74,17 +78,38 @@ function generate_dataframe_code(state::CasualPlotsState)
     cols = state.data_selection.selected_columns[]
     cols_repr = repr(cols)
     
+    range_from = state.data_selection.range_from[]
+    range_to = state.data_selection.range_to[]
+    from_val = isnothing(range_from) ? ":begin" : range_from
+    to_val = isnothing(range_to) ? ":end" : range_to
+    
     code = """
 
 """
     if df_name == "__opened_file__"
-        code *= "function cp_load_data()\n"
         filepath = state.file_opening.opened_file_path[]
         if endswith(lowercase(filepath), ".csv") || endswith(lowercase(filepath), ".tsv")
             opts = collect_csv_options(state)
-            kwargs_str = join(["$k=$(repr(v))" for (k,v) in pairs(opts)], ", ")
-            code *= "    using CSV\n"
-            code *= "    df = CSV.read($(repr(filepath)), DataFrame; $kwargs_str)\n"
+            kwargs_list = ["$k=$(repr(v))" for (k,v) in pairs(opts)]
+            kwargs_sig = join(kwargs_list, ",\n    ")
+            kwargs_call = join(keys(opts), ", ")
+            
+            code *= "function cp_load_data(; file = $(repr(filepath))"
+            if !isempty(kwargs_list)
+                code *= ",\n    $kwargs_sig"
+            end
+            code *= ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
+            code *= "    rows = (:begin, :end),\n    )\n\n"
+            
+            code *= "    @assert length(rows) == 2 &&\n"
+            code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
+            code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+            
+            code *= "    df = CSV.read(file, DataFrame"
+            if !isempty(kwargs_call)
+                code *= "; $kwargs_call"
+            end
+            code *= ")\n"
             
             skip_after_header = state.file_opening.skip_after_header[]
             skip_empty_rows = state.file_opening.skip_empty_rows[]
@@ -93,17 +118,40 @@ function generate_dataframe_code(state::CasualPlotsState)
             end
         elseif endswith(lowercase(filepath), ".xlsx")
             sheet = state.file_opening.sheet_name[]
-            code *= "    using XLSX\n"
-            
             (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
-            kwargs_str = join(["$k=$(repr(v))" for (k,v) in pairs(kwargs)], ", ")
-            code *= "    df = CasualPlots.readtable_xlsx($(repr(filepath)), $(repr(sheet)); infer_eltypes=true, stop_in_empty_row=false, $kwargs_str)\n"
+            kwargs_list = ["$k=$(repr(v))" for (k,v) in pairs(kwargs)]
+            kwargs_sig = join(kwargs_list, ",\n    ")
+            kwargs_call = join(keys(kwargs), ", ")
+            
+            code *= "function cp_load_data(; file = $(repr(filepath)),\n"
+            code *= "    sheet = $(repr(sheet))"
+            if !isempty(kwargs_list)
+                code *= ",\n    $kwargs_sig"
+            end
+            code *= ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
+            code *= "    rows = (:begin, :end),\n    )\n\n"
+            
+            code *= "    @assert length(rows) == 2 &&\n"
+            code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
+            code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+            
+            code *= "    df = CasualPlots.readtable_xlsx(file, sheet; infer_eltypes=true, stop_in_empty_row=false"
+            if !isempty(kwargs_call)
+                code *= ", $kwargs_call"
+            end
+            code *= ")\n"
+            
             if skip_subheaders > 0 || skip_empty_rows
                 code *= "    CasualPlots.skip_rows!(df, $skip_subheaders, $skip_empty_rows)\n"
             end
         end
     else
-        code *= "function cp_load_data(; $df_name)\n"
+        code *= "function cp_load_data(; $df_name,\n"
+        code *= "    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
+        code *= "    rows = (:begin, :end),\n    )\n\n"
+        code *= "    @assert length(rows) == 2 &&\n"
+        code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
+        code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
         code *= "    # Assuming $df_name is available in the executing environment\n"
         code *= generate_data_preview(df_name) * "\n"
         code *= "    df = $df_name\n"
@@ -111,14 +159,17 @@ function generate_dataframe_code(state::CasualPlotsState)
     
     code *= "    df_selected = select(df, $cols_repr)\n"
     
-    range_from = state.data_selection.range_from[]
-    range_to = state.data_selection.range_to[]
-    
-    if !isnothing(range_from) || !isnothing(range_to)
-        code *= "    from_idx = $(isnothing(range_from) ? 1 : range_from)\n"
-        code *= "    to_idx = $(isnothing(range_to) ? "nrow(df_selected)" : range_to)\n"
-        code *= "    df_selected = df_selected[from_idx:to_idx, :]\n"
+    code *= """
+    if rows != (:begin, :end)
+        if rows[1] == :begin
+            df_selected = df_selected[begin:rows[2], :]
+        elseif rows[2] == :end
+            df_selected = df_selected[rows[1]:end, :]
+        else
+            df_selected = df_selected[rows[1]:rows[2], :]
+        end
     end
+"""
     
     code *= "    df_selected = CasualPlots.clean_plot_data!(df_selected, $cols_repr)\n"
     
@@ -226,14 +277,24 @@ function _generate_julia_code_string(state::CasualPlotsState)
     
     uses_casualplots = occursin("CasualPlots.", source_code) || occursin("CasualPlots.", plot_code)
     
-    code = """
-# Auto-generated by CasualPlots.jl
+    code = "# Auto-generated by CasualPlots.jl\n"
+    
+    if source_type == "DataFrame" && state.data_selection.selected_dataframe[] == "__opened_file__"
+        filepath = state.file_opening.opened_file_path[]
+        if endswith(lowercase(filepath), ".csv") || endswith(lowercase(filepath), ".tsv")
+            code *= "using CSV\n"
+        elseif endswith(lowercase(filepath), ".xlsx")
+            code *= "using XLSX\n"
+        end
+    end
+    
+    code *= """
 using DataFrames
 using WGLMakie
 using AlgebraOfGraphics
 """
     if uses_casualplots
-        code *= "using CasualPlots # for helper functions like skip_rows!\n"
+        code *= "using CasualPlots\n"
     end
     
     code *= "# # --- uncomment next line for high quality static output, esp. for saving ---\n"
@@ -260,23 +321,31 @@ using AlgebraOfGraphics
         "$(x_col)-vs-$(y_col)"
     end
     
+    code *= "# # For available kwargs (like `rows`), see the cp_load_data signature\n"
+    
     if source_type == "X, Y Arrays"
         x_name = state.data_selection.selected_x[]
         y_name = state.data_selection.selected_y[]
-        code *= "# data = cp_load_data(; $(x_name), $(y_name)); fg = cp_create_plot(data);\n"
+        
+        code *= "# data = cp_load_data(; $(x_name), $(y_name))\n"
+        code *= "# fg = cp_create_plot(data)\n"
         code *= "#\n"
         code *= "# # --- or, specify your input data (here my_x, my_y) ---\n"
         code *= "#\n"
-        code *= "# data = cp_load_data(; $(x_name)=my_x, $(y_name)=my_y); fg = cp_create_plot(data);\n"
+        code *= "# data = cp_load_data(; $(x_name)=my_x, $(y_name)=my_y)\n"
+        code *= "# fg = cp_create_plot(data)\n"
     elseif source_type == "DataFrame" && state.data_selection.selected_dataframe[] != "__opened_file__"
         df_name = state.data_selection.selected_dataframe[]
-        code *= "# data = cp_load_data(; $(df_name)); fg = cp_create_plot(data);\n"
+        code *= "# data = cp_load_data(; $(df_name))\n"
+        code *= "# fg = cp_create_plot(data)\n"
         code *= "#\n"
         code *= "# # --- or, specify your input data (here my_df) ---\n"
         code *= "#\n"
-        code *= "# data = cp_load_data(; $(df_name)=my_df); fg = cp_create_plot(data);\n"
+        code *= "# data = cp_load_data(; $(df_name)=my_df)\n"
+        code *= "# fg = cp_create_plot(data)\n"
     else
-        code *= "# data = cp_load_data(); fg = cp_create_plot(data);\n"
+        code *= "# data = cp_load_data()\n"
+        code *= "# fg = cp_create_plot(data)\n"
     end
     
     code *= "# \n"
