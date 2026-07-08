@@ -187,6 +187,7 @@ function setup_theme_callback(state, outputs)
             return (from_val, to_val)
         end
         
+        from_val, to_val = get_range_values()
         update_unified_plot!(state, outputs; 
                               is_new_data=false, update_table=false,
                               range_from=from_val, range_to=to_val)
