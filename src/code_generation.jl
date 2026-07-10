@@ -11,29 +11,56 @@ function generate_data_preview(var_name::String)
         return "# Preview for $var_name not available"
     end
 end
+function _generate_rows_kwarg_and_assert()
+    code = ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
+    code *= "    rows = (:begin, :end),\n    )\n\n"
+    
+    code *= "    @assert length(rows) == 2 &&\n"
+    code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
+    code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+    return code
+end
+
+function _generate_rows_subsetting_code()
+    return """
+    if rows != (:begin, :end)
+        if rows[1] == :begin
+            df_selected = df_selected[begin:rows[2], :]
+        elseif rows[2] == :end
+            df_selected = df_selected[rows[1]:end, :]
+        else
+            df_selected = df_selected[rows[1]:rows[2], :]
+        end
+    end
+"""
+end
+
+function _generate_rows_arg_for_call(state::CasualPlotsState)
+    range_from = state.data_selection.range_from[]
+    range_to = state.data_selection.range_to[]
+    bounds_from = state.data_selection.data_bounds_from[]
+    bounds_to = state.data_selection.data_bounds_to[]
+    
+    is_default_from = isnothing(range_from) || range_from == bounds_from
+    is_default_to = isnothing(range_to) || range_to == bounds_to
+
+    if is_default_from && is_default_to
+        return ""
+    end
+
+    from_val = is_default_from ? ":begin" : range_from
+    to_val = is_default_to ? ":end" : range_to
+
+    return "rows = ($from_val, $to_val)"
+end
 
 function generate_xy_arrays_code(state::CasualPlotsState)
     x_name = state.data_selection.selected_x[]
     y_name = state.data_selection.selected_y[]
     
-    range_from = state.data_selection.range_from[]
-    range_to = state.data_selection.range_to[]
-    from_val = isnothing(range_from) ? ":begin" : range_from
-    to_val = isnothing(range_to) ? ":end" : range_to
-    
-    code = """
-
-function cp_load_data(; $(x_name), $(y_name),
-    # rows: rows range to plot. Examples: (:begin, :end), (1, 100), (:begin, 10), (10, :end)
-    rows = (:begin, :end),
-    )
-    
-    @assert length(rows) == 2 &&
-        (rows[1] isa Integer || rows[1] == :begin) &&
-        (rows[2] isa Integer || rows[2] == :end)
-
-    # Assuming $(x_name) and $(y_name) are available in the executing environment
-"""
+    code = "\nfunction cp_load_data(; $(x_name), $(y_name)"
+    code *= _generate_rows_kwarg_and_assert()
+    code *= "    # Assuming $(x_name) and $(y_name) are available in the executing environment\n"
     code *= generate_data_preview(x_name) * "\n"
     code *= generate_data_preview(y_name) * "\n"
     
@@ -53,17 +80,7 @@ function cp_load_data(; $(x_name), $(y_name),
     df_selected = select(df, valid_cols)
 """
     
-    code *= """
-    if rows != (:begin, :end)
-        if rows[1] == :begin
-            df_selected = df_selected[begin:rows[2], :]
-        elseif rows[2] == :end
-            df_selected = df_selected[rows[1]:end, :]
-        else
-            df_selected = df_selected[rows[1]:rows[2], :]
-        end
-    end
-"""
+    code *= _generate_rows_subsetting_code()
     
     code *= """
     df_selected = CasualPlots.clean_plot_data!(df_selected, valid_cols)
@@ -77,11 +94,6 @@ function generate_dataframe_code(state::CasualPlotsState)
     df_name = state.data_selection.selected_dataframe[]
     cols = state.data_selection.selected_columns[]
     cols_repr = repr(cols)
-    
-    range_from = state.data_selection.range_from[]
-    range_to = state.data_selection.range_to[]
-    from_val = isnothing(range_from) ? ":begin" : range_from
-    to_val = isnothing(range_to) ? ":end" : range_to
     
     code = """
 
@@ -98,12 +110,7 @@ function generate_dataframe_code(state::CasualPlotsState)
             if !isempty(kwargs_list)
                 code *= ",\n    $kwargs_sig"
             end
-            code *= ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
-            code *= "    rows = (:begin, :end),\n    )\n\n"
-            
-            code *= "    @assert length(rows) == 2 &&\n"
-            code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
-            code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+            code *= _generate_rows_kwarg_and_assert()
             
             code *= "    df = CSV.read(file, DataFrame"
             if !isempty(kwargs_call)
@@ -128,12 +135,7 @@ function generate_dataframe_code(state::CasualPlotsState)
             if !isempty(kwargs_list)
                 code *= ",\n    $kwargs_sig"
             end
-            code *= ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
-            code *= "    rows = (:begin, :end),\n    )\n\n"
-            
-            code *= "    @assert length(rows) == 2 &&\n"
-            code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
-            code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+            code *= _generate_rows_kwarg_and_assert()
             
             code *= "    df = CasualPlots.readtable_xlsx(file, sheet; infer_eltypes=true, stop_in_empty_row=false"
             if !isempty(kwargs_call)
@@ -146,12 +148,8 @@ function generate_dataframe_code(state::CasualPlotsState)
             end
         end
     else
-        code *= "function cp_load_data(; $df_name,\n"
-        code *= "    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
-        code *= "    rows = (:begin, :end),\n    )\n\n"
-        code *= "    @assert length(rows) == 2 &&\n"
-        code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
-        code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+        code *= "function cp_load_data(; $df_name"
+        code *= _generate_rows_kwarg_and_assert()
         code *= "    # Assuming $df_name is available in the executing environment\n"
         code *= generate_data_preview(df_name) * "\n"
         code *= "    df = $df_name\n"
@@ -159,17 +157,7 @@ function generate_dataframe_code(state::CasualPlotsState)
     
     code *= "    df_selected = select(df, $cols_repr)\n"
     
-    code *= """
-    if rows != (:begin, :end)
-        if rows[1] == :begin
-            df_selected = df_selected[begin:rows[2], :]
-        elseif rows[2] == :end
-            df_selected = df_selected[rows[1]:end, :]
-        else
-            df_selected = df_selected[rows[1]:rows[2], :]
-        end
-    end
-"""
+    code *= _generate_rows_subsetting_code()
     
     code *= "    df_selected = CasualPlots.clean_plot_data!(df_selected, $cols_repr)\n"
     
@@ -323,28 +311,38 @@ using AlgebraOfGraphics
     
     code *= "# # For available kwargs (like `rows`), see the cp_load_data signature\n"
     
+    rows_arg = _generate_rows_arg_for_call(state)
+    
     if source_type == "X, Y Arrays"
         x_name = state.data_selection.selected_x[]
         y_name = state.data_selection.selected_y[]
         
-        code *= "# data = cp_load_data(; $(x_name), $(y_name))\n"
+        call_arg1 = join(filter(!isempty, ["$(x_name)", "$(y_name)", rows_arg]), ", ")
+        call_arg2 = join(filter(!isempty, ["$(x_name)=my_x", "$(y_name)=my_y", rows_arg]), ", ")
+        
+        code *= "# data = cp_load_data(; $call_arg1)\n"
         code *= "# fg = cp_create_plot(data)\n"
         code *= "#\n"
         code *= "# # --- or, specify your input data (here my_x, my_y) ---\n"
         code *= "#\n"
-        code *= "# data = cp_load_data(; $(x_name)=my_x, $(y_name)=my_y)\n"
+        code *= "# data = cp_load_data(; $call_arg2)\n"
         code *= "# fg = cp_create_plot(data)\n"
     elseif source_type == "DataFrame" && state.data_selection.selected_dataframe[] != "__opened_file__"
         df_name = state.data_selection.selected_dataframe[]
-        code *= "# data = cp_load_data(; $(df_name))\n"
+        
+        call_arg1 = join(filter(!isempty, ["$(df_name)", rows_arg]), ", ")
+        call_arg2 = join(filter(!isempty, ["$(df_name)=my_df", rows_arg]), ", ")
+        
+        code *= "# data = cp_load_data(; $call_arg1)\n"
         code *= "# fg = cp_create_plot(data)\n"
         code *= "#\n"
         code *= "# # --- or, specify your input data (here my_df) ---\n"
         code *= "#\n"
-        code *= "# data = cp_load_data(; $(df_name)=my_df)\n"
+        code *= "# data = cp_load_data(; $call_arg2)\n"
         code *= "# fg = cp_create_plot(data)\n"
     else
-        code *= "# data = cp_load_data()\n"
+        call_arg = !isempty(rows_arg) ? "; $rows_arg" : ""
+        code *= "# data = cp_load_data($call_arg)\n"
         code *= "# fg = cp_create_plot(data)\n"
     end
     

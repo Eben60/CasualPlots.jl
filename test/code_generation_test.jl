@@ -9,7 +9,7 @@ using Test
     
     code = CasualPlots.generate_julia_code(state).code
     
-    @test occursin("function cp_load_data(; xx100, yy100)", code)
+    @test occursin("function cp_load_data(; xx100, yy100,", code)
     @test occursin("data = cp_load_data(; xx100, yy100)", code)
     @test occursin("cp_create_plot(data)", code)
     
@@ -28,7 +28,7 @@ end
     
     code = CasualPlots.generate_julia_code(state).code
     
-    @test occursin("function cp_load_data(; my_df)", code)
+    @test occursin("function cp_load_data(; my_df,", code)
     @test occursin("data = cp_load_data(; my_df)", code)
     @test occursin("CasualPlots.clean_plot_data!(df_selected, [\"col_A\", \"col_B\"])", code)
     # Uses CasualPlots here
@@ -44,7 +44,7 @@ end
     
     code = CasualPlots.generate_julia_code(state).code
     
-    @test occursin("function cp_load_data()", code)
+    @test occursin("function cp_load_data(; file", code)
     @test occursin("data = cp_load_data()", code)
     @test occursin("using CSV", code)
     @test occursin("CSV.read", code)
@@ -107,6 +107,47 @@ end
     state.plotting.format.selected_plottype[] = "Scatter"
     code_scatter = CasualPlots.generate_julia_code(state).code
     @test occursin("group_mapping = (; marker = group_col =>", code_scatter)
+end
+
+@testset "Code Generation - Rows Kwarg (Partial and Full Ranges)" begin
+    state = CasualPlots.initialize_app_state()
+    state.data_selection.source_type[] = "DataFrame"
+    state.data_selection.selected_dataframe[] = "my_df"
+    state.data_selection.selected_columns[] = ["col_A", "col_B"]
+    
+    # Set data bounds
+    state.data_selection.data_bounds_from[] = 1
+    state.data_selection.data_bounds_to[] = 100
+    
+    # 1. Full range (defaults, should not include `rows` kwarg in call)
+    state.data_selection.range_from[] = nothing
+    state.data_selection.range_to[] = nothing
+    code1 = CasualPlots.generate_julia_code(state).code
+    @test occursin("data = cp_load_data(; my_df)\n", code1)
+    
+    # 1b. Full range (bounds matched explicitly, should also omit `rows` kwarg in call)
+    state.data_selection.range_from[] = 1
+    state.data_selection.range_to[] = 100
+    code1b = CasualPlots.generate_julia_code(state).code
+    @test occursin("data = cp_load_data(; my_df)\n", code1b)
+
+    # 2. Start to a specific end
+    state.data_selection.range_from[] = 1
+    state.data_selection.range_to[] = 50
+    code2 = CasualPlots.generate_julia_code(state).code
+    @test occursin("rows = (:begin, 50)", code2)
+    
+    # 3. Specific start to the end
+    state.data_selection.range_from[] = 10
+    state.data_selection.range_to[] = 100
+    code3 = CasualPlots.generate_julia_code(state).code
+    @test occursin("rows = (10, :end)", code3)
+    
+    # 4. Specific range
+    state.data_selection.range_from[] = 10
+    state.data_selection.range_to[] = 50
+    code4 = CasualPlots.generate_julia_code(state).code
+    @test occursin("rows = (10, 50)", code4)
 end
 
 @testset "validate_script_path" begin

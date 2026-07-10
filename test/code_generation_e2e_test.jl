@@ -99,8 +99,10 @@ end
         # 2. Read, uncomment execution lines, and rewrite
         script_content = read(script_path, String)
         
+
         # Uncomment the data loading and plotting
-        script_content = replace(script_content, r"^# (data = .*cp_create_plot.*)$"m => s"\1"; count=1)
+        script_content = replace(script_content, r"^# (data = cp_load_data\(.*\))$"m => s"\1"; count=1)
+        script_content = replace(script_content, r"^# (fg = cp_create_plot\(.*\))$"m => s"\1"; count=1)
         # Uncomment CairoMakie usage
         script_content = replace(script_content, r"^# (using CairoMakie)$"m => s"\1")
         script_content = replace(script_content, r"^# (CairoMakie\.activate!\(\))$"m => s"\1")
