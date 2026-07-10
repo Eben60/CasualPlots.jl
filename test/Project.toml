@@ -10,7 +10,7 @@ WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 
 [compat]
-Bonito = "4.1" # update to "4.1, 5" as soon as WGLMakie updates to Bonito 5
+Bonito = "4.1, 5.1" # update to "4.1, 5" as soon as WGLMakie updates to Bonito 5
 CSV = "0.10"
 DataFrames = "1.8"
 Dates = "<0.0.1, 1"
