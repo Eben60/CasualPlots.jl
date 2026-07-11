@@ -1,0 +1,18 @@
+name = "AgenticTesting"
+uuid = "085b914d-9eed-4d8c-8c25-b357aad3ea7d"
+version = "0.1.0"
+
+[deps]
+Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
+CasualPlots = "96609e94-6212-48a9-9561-4cd28ba001d1"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
+
+[compat]
+Bonito = "4.1, 5"
+CasualPlots = "0.6"
+DataFrames = "1.8"
+Dates = "1.10"
+Observables = "0.5"
+julia = "1.12"

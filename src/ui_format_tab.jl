@@ -135,7 +135,7 @@ Create legend visibility checkbox and title input UI.
 DOM.div containing legend checkbox and title input
 """
 function create_legend_control(show_legend, legend_title_text)
-    legend_checkbox = DOM.input(type="checkbox", checked=show_legend;
+    legend_checkbox = DOM.input(type="checkbox", id="chk-show-legend", checked=show_legend;
         onchange = js"event => window.CasualPlots.updateObservableChecked(event, $(show_legend))"
     )
     
@@ -147,6 +147,7 @@ function create_legend_control(show_legend, legend_title_text)
 
     legend_title_input = DOM.input(
         type="text", 
+        id="input-legend-title",
         value=legend_title_text,
         placeholder="Legend Title",
         onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(legend_title_text))",
@@ -179,6 +180,7 @@ function create_label_input(label_text, label_name, label_observable)
         DOM.label(label_text; class="label-fixed"),
         DOM.input(
             type="text", 
+            id="input-$(label_name)",
             value=label_observable,
             onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(label_observable))",
             onblur=js"event => window.CasualPlots.handleTextInputBlur(event, $(label_observable))",

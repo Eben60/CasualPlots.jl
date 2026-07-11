@@ -1,0 +1,12 @@
+[deps]
+Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
+CasualPlots = "96609e94-6212-48a9-9561-4cd28ba001d1"
+Electron = "a1bb12fb-d4d1-54b4-b10a-ee7951ef7ad3"
+SafeTestsets = "1bc83da4-3b8d-516f-aca4-4fe02f6d838f"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+Bonito = "5"
+
+[sources]
+CasualPlots = {path = "../../.."}

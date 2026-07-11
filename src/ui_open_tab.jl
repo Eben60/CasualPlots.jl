@@ -42,6 +42,7 @@ function create_sheet_selector(sheet_names, selected_sheet)
             # No XLSX file selected - show disabled placeholder
             DOM.select(
                 DOM.option("Select sheet"; value="", selected=true);
+                id="dropdown-sheet",
                 disabled=true,
                 class="select-standard"
             )
@@ -53,6 +54,7 @@ function create_sheet_selector(sheet_names, selected_sheet)
             end
             DOM.select(
                 options...;
+                id="dropdown-sheet",
                 onchange=js"(e) => { window.CasualPlots.updateObservableValue(e, $(selected_sheet)); }",
                 class="select-standard"
             )
@@ -94,6 +96,7 @@ function create_reload_button(reload_trigger, enabled)
     map(enabled) do is_enabled
         DOM.button(
             "Reload";
+            id="btn-reload",
             disabled=!is_enabled,
             onclick=is_enabled ? js"() => { window.CasualPlots.incrementObservable($(reload_trigger)); }" : js"() => {}",
             class=is_enabled ? "btn btn-primary" : "btn btn-disabled"
@@ -110,6 +113,7 @@ Returns a tuple of (control, label, info) for grid placement.
 function create_header_input(header_row)
     control = DOM.input(
         type="text",
+        id="input-header-row",
         value=string(header_row[]),
         onchange=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(header_row)); }",
         onblur=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(header_row)); }",
@@ -129,6 +133,7 @@ Returns a tuple of (control, label, info) for grid placement.
 function create_skip_after_header_input(skip_after_header)
     control = DOM.input(
         type="text",
+        id="input-skip-subheaders",
         value=string(skip_after_header[]),
         onchange=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(skip_after_header)); }",
         onblur=js"(e) => { window.CasualPlots.updateObservableInteger(e, $(skip_after_header)); }",
@@ -148,6 +153,7 @@ Returns a tuple of (control, label, info) for grid placement.
 function create_skip_empty_rows_checkbox(skip_empty_rows)
     control = DOM.input(
         type="checkbox",
+        id="chk-skip-empty-rows",
         checked=skip_empty_rows[],
         onchange=js"(e) => { window.CasualPlots.updateObservableChecked(e, $(skip_empty_rows)); }",
         class="checkbox-option option-control"
@@ -169,6 +175,7 @@ function create_delimiter_dropdown(delimiter)
     
     control = DOM.select(
         [DOM.option(opt; value=opt, selected=(opt == current)) for opt in options]...;
+        id="dropdown-delimiter",
         onchange=js"(e) => { window.CasualPlots.updateObservableValue(e, $(delimiter)); }",
         class="select-option option-control"
     )
@@ -189,6 +196,7 @@ function create_decimal_separator_dropdown(decimal_separator)
     
     control = DOM.select(
         [DOM.option(opt; value=opt, selected=(opt == current)) for opt in options]...;
+        id="dropdown-decimal",
         onchange=js"(e) => { window.CasualPlots.updateObservableValue(e, $(decimal_separator)); }",
         class="select-option option-control"
     )

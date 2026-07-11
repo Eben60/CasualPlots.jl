@@ -66,12 +66,12 @@ save_plot.jl                    # Plot saving functionality (CairoMakie backend)
 # Other
 electron.jl                     # Electron window integration (show kwarg for hidden windows)
 FileDialogWorkAround.jl         # Cross-platform file dialog utilities
-gui_testing_utils.jl            # Helper functions for UI/session inspection during tests
 extensions.jl                   # Package extensions loader
 precompile.jl                   # PrecompileTools workload for reducing TTFP
 
 scripts/                        # Example/demo scripts
 ../ext/                         # Package Extensions (ReadCSV_Ext.jl, ReadXLSX_Ext.jl)
+../test/AgenticTesting/         # Workspace sub-project containing GUI testing utilities
 ```
 
 ### Reactive State Architecture

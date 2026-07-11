@@ -9,6 +9,7 @@
 # Usage: include("src/scripts/gui_test_bonito_driven.jl")
 
 using Test
+using ShareAdd; @usingany AgenticTesting
 
 session = get_active_session()
 @info "Session acquired" session.id session.status

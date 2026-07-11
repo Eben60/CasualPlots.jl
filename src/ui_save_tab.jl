@@ -6,6 +6,7 @@ Create a button that triggers the OS file save dialog.
 function create_file_dialog_button(dialog_trigger)
     DOM.button(
         "Select File...";
+        id="btn-select-file",
         onclick=js"() => window.CasualPlots.incrementObservable($(dialog_trigger))",
         class="btn btn-primary mb-2"
     )
@@ -42,6 +43,7 @@ function create_button_save_plot(save_trigger, button_enabled)
     map(button_enabled) do enabled
         DOM.button(
             "Save Plot";
+            id="btn-save-plot",
             onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(save_trigger))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-success mb-2" : "btn btn-disabled mb-2"
@@ -58,6 +60,7 @@ function create_button_create_script(script_trigger, button_enabled)
     map(button_enabled) do enabled
         DOM.button(
             "Create Script";
+            id="btn-create-script",
             onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(script_trigger))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-primary mb-2" : "btn btn-disabled mb-2"

@@ -1,30 +1,24 @@
-"""
-    gui_testing_utils.jl
-
-Utility functions for querying the browser DOM state from Julia. 
-These functions are intended for development, testing, and debugging purposes only.
-They use `Bonito.evaljs_value` to execute JavaScript in the connected browser session
-and return the results back to the Julia REPL.
-
-### How to use:
-All functions require an active `Bonito.Session` object. 
-Since `Session`s contain Tasks and cannot be safely cached in global package variables 
-(it breaks precompilation), you should fetch the session dynamically from your active server.
-
-Use the provided `get_active_session()` helper function in your REPL/tests:
-```julia
-# 1. Start your app and server
-# 2. Get the session:
-my_session = get_active_session()
-
-# 3. Query the GUI:
-info = get_active_element_info(my_session)
-```
-"""
-
-export get_active_session, get_active_element_info, get_active_element_id, get_active_element_tag, get_active_element_value, get_dropdown_options
-export select_dropdown_value, click_button, set_radio_value, toggle_checkbox, get_element_info, get_checkboxes_state
-
+# gui_testing_utils.jl
+# 
+# Utility functions for querying the browser DOM state from Julia. 
+# These functions are intended for development, testing, and debugging purposes only.
+# They use `Bonito.evaljs_value` to execute JavaScript in the connected browser session
+# and return the results back to the Julia REPL.
+# 
+# ### How to use:
+# All functions require an active `Bonito.Session` object. 
+# Since `Session`s contain Tasks and cannot be safely cached in global package variables 
+# (it breaks precompilation), you should fetch the session dynamically from your active server.
+# 
+# Use the provided `get_active_session()` helper function in your REPL/tests:
+# ```julia
+# # 1. Start your app and server
+# # 2. Get the session:
+# my_session = get_active_session()
+# 
+# # 3. Query the GUI:
+# info = get_active_element_info(my_session)
+# ```
 """
     get_active_session()
 
@@ -53,6 +47,24 @@ function get_active_session()
     end
     
     return session
+end
+
+"""
+    wait_for_session(; timeout::Real=10) -> Bonito.Session
+
+Poll `get_active_session()` every 0.5 s until a session is available or `timeout`
+seconds have elapsed. Throws if no session connects within the deadline.
+"""
+function wait_for_session(; timeout::Real=10)
+    deadline = time() + timeout
+    while time() < deadline
+        try
+            return get_active_session()
+        catch
+            sleep(0.5)
+        end
+    end
+    error("No active Bonito session after $(timeout) s.")
 end
 
 
@@ -234,4 +246,108 @@ function get_checkboxes_state(session::Bonito.Session)
     """)
 end
 
+"""
+    get_focusable_elements(session::Bonito.Session)
+
+Returns a Vector of Dicts representing all currently visible and focusable elements in their natural tab order.
+Each Dict contains `id`, `tag`, `className`, and `value`.
+"""
+function get_focusable_elements(session::Bonito.Session)
+    return Bonito.evaljs_value(session, js"""
+        (function() {
+            const focusable = Array.from(document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+                .filter(el => {
+                    if (el.disabled || el.offsetWidth === 0 || el.offsetHeight === 0) return false;
+                    // Radio button logic: only checked radio is focusable, or first one if none checked
+                    if (el.type === 'radio' && el.name) {
+                        if (!el.checked) {
+                            const group = document.querySelectorAll(`input[type="radio"][name="${el.name}"]`);
+                            const anyChecked = Array.from(group).some(r => r.checked);
+                            if (anyChecked) return false;
+                            if (group.length > 0 && group[0] !== el) return false;
+                        }
+                    }
+                    return true;
+                });
+            return focusable.map(el => {
+                return {
+                    id: el.id || "",
+                    tag: el.tagName || "",
+                    className: el.className || "",
+                    value: el.value || ""
+                };
+            });
+        })()
+    """)
+end
+
+"""
+    calculate_tab_distance(session::Bonito.Session, css_selector::String)
+
+Calculates the number of `TAB` presses needed to navigate from the currently focused element
+to the target element identified by `css_selector`.
+Returns an integer (positive for `TAB`, negative for `Shift+TAB`), or `nothing` if the active
+element or target element cannot be found in the focusable sequence.
+"""
+function calculate_tab_distance(session::Bonito.Session, css_selector::String)
+    return Bonito.evaljs_value(session, js"""
+        (function() {
+            const focusable = Array.from(document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+                .filter(el => {
+                    if (el.disabled || el.offsetWidth === 0 || el.offsetHeight === 0) return false;
+                    if (el.type === 'radio' && el.name) {
+                        if (!el.checked) {
+                            const group = document.querySelectorAll(`input[type="radio"][name="${el.name}"]`);
+                            const anyChecked = Array.from(group).some(r => r.checked);
+                            if (anyChecked) return false;
+                            if (group.length > 0 && group[0] !== el) return false;
+                        }
+                    }
+                    return true;
+                });
+            
+            const active = document.activeElement;
+            const target = document.querySelector($(css_selector));
+            
+            if (!target) return null;
+            
+            const activeIdx = focusable.indexOf(active);
+            const targetIdx = focusable.indexOf(target);
+            
+            if (targetIdx === -1) return null;
+            
+            return targetIdx - activeIdx;
+        })()
+    """)
+end
+
+"""
+    calculate_dropdown_keystrokes(session::Bonito.Session, css_selector::String, target_value::String)
+
+Calculates the number of `Arrow Down` or `Arrow Up` keystrokes needed to select
+`target_value` in the specified `<select>` element from its current selection.
+Returns an integer (positive for down, negative for up).
+"""
+function calculate_dropdown_keystrokes(session::Bonito.Session, css_selector::String, target_value::String)
+    return Bonito.evaljs_value(session, js"""
+        (function() {
+            const select = document.querySelector($(css_selector));
+            if (!select || select.tagName !== 'SELECT') return null;
+            
+            const currentIdx = select.selectedIndex;
+            let targetIdx = -1;
+            
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === $(target_value)) {
+                    targetIdx = i;
+                    break;
+                }
+            }
+            
+            if (targetIdx === -1) return null;
+            
+            return targetIdx - currentIdx;
+        })()
+    """)
+end
 

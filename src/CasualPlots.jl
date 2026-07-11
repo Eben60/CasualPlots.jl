@@ -55,7 +55,7 @@ include("app_state.jl")
 include("app.jl")
 include("code_generation.jl")
 include("extensions.jl")
-include("gui_testing_utils.jl")
+
 include("precompile.jl")
 
 export casualplots_app
