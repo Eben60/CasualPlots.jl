@@ -281,13 +281,10 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Testing
 - Manual testing via `src/scripts/casualplots_test.jl`
-- Browser testing with Antigravity plugin via `src/scripts/casualplots_browser-test.jl`
-  - Granular testing protocol: See [Granular Subagent Testing Plan](AGENTS_more_info/specific_issues/granular_subagent_testing_plan.md) for executing strict, step-by-step browser subagent calls with REPL verification to prevent context bloat.
-  - Dropdown interaction: See [Browser Dropdown Testing Procedure](AGENTS_more_info/specific_issues/browser_testing_dropdowns.md) for interacting with native `<select>` dropdowns.
-  - Diagnostic tracing: See [DOM Corruption Bug Testing Plan](AGENTS_more_info/specific_issues/dom_corruption_bug_testing_plan.md) for examples of troubleshooting UI anomalies.
-- Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
-- Test suite WIP in early stage.
-  - Tests for non-GUI-functions only yet
+    - see also [extended manual testing protocol](AGENTS_more_info/specific_issues/manual_testing_plan.md)
+- GUI agentic testing was not successfull. See attempts and more info in Branch `v0.6.0-refactoring`
+- Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage
+- Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more
 
 ### Precompilation
 
