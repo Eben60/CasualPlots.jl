@@ -631,7 +631,7 @@ function update_unified_plot!(state, outputs;
                 df_with_index = df_with_index[from_idx:to_idx, :]
                 insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
                 
-                table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text)
+                table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text; has_generated_index=true)
             end
         end
         

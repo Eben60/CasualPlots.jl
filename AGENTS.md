@@ -42,7 +42,7 @@ unitful_integration.jl          # Unitful.jl support for plotting quantities wit
 # UI Components (ui_*.jl)
 ui_tabs.jl                      # Tab component + create_tab_content wiring
 ui_layout.jl                    # assemble_layout - main pane grid construction
-ui_table.jl                     # Table display with info header
+ui_table.jl                     # Table display with info header and dynamic column type coloring
 ui_help_section.jl              # Mouse controls help text
 ui_source_tab.jl                # Source selection UI (Array/DataFrame modes)
 ui_format_tab.jl                # Format controls UI (plot type, legend, labels)
