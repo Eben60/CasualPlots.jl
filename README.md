@@ -120,6 +120,10 @@ In the **Open** tab:
 - The data is displayed in the table. You can adjust options and click **Reload** to read the data anew.
 - Once loaded, the data is available under "opened file" in the **Source** tab's **File/DataFrame** dropdown.
 
+#### Datatype coloring
+
+When data is displayed in the table, the headers' colors indicate column types: green for numeric values, blue for Unitful quantities, and yellow for anything else.
+
 #### Data Cleansing and Normalization
 
 Before plotting, the application automatically cleanses and normalizes selected data. 
