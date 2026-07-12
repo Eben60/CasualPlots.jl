@@ -80,11 +80,14 @@ end
 
 
 
-if !isdefined(Main, :caspl_df_exp) 
-    xs = 0.0:10
-    n_cols = 40
-    m = hcat(xs, make_y(xs, n_cols))
-    nms = vcat("x", ["y$n" for n in 1:n_cols])
-    caspl_df_exp = DataFrame(m, nms)
+if !isdefined(Main, :caspl_df_exp)
+    caspl_df_exp = 
+    let
+        xs = 0.0:10
+        n_cols = 40
+        m = hcat(xs, make_y(xs, n_cols))
+        nms = vcat("x", ["y$n" for n in 1:n_cols])
+        DataFrame(m, nms)
+    end
 end
 ;
