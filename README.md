@@ -28,7 +28,7 @@ Note: it needs Julia v1.10 or higher. The package is registered. Keep in mind, t
 (@v1.12) pkg> add CasualPlots
 ```
 
-Instead better install it in directly your project environment(s). Alternatively you can install it into a shared environment and make it available from everywhere with the help of [ShareAdd.jl](https://github.com/Eben60/ShareAdd.jl) package:
+Instead better install it directly into your project environment(s). Alternatively you can install it into a shared environment and make it available from everywhere with the help of [ShareAdd.jl](https://github.com/Eben60/ShareAdd.jl) package:
 
 ```
 julia> using ShareAdd
