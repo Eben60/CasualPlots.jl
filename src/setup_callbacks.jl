@@ -486,6 +486,13 @@ function update_unified_plot!(state, outputs;
     plot_observable = outputs.plot
     table_observable = outputs.table
     
+    if !isnothing(range_from) && !isnothing(range_to) && range_from > range_to
+        state.file_saving.save_status_message[] = "Range Error: 'Range from' must be less than or equal to 'Range to'"
+        state.dialogs.modal_type[] = :error
+        state.dialogs.show_modal[] = true
+        return false
+    end
+
     try
         local df
         local display_name
@@ -557,10 +564,6 @@ function update_unified_plot!(state, outputs;
             n_rows = nrow(df_selected)
             from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
             to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
-            
-            if from_idx > to_idx
-                from_idx, to_idx = to_idx, from_idx
-            end
             
             df_selected = df_selected[from_idx:to_idx, :]
             
