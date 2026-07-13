@@ -12,7 +12,7 @@ The expected user is someone who wants an easy way to create common plot types w
 
 ## What It Does
 
-`CasualPlots` provides a GUI window where you can quickly visualize your data. You can select data from your `Main` namespace, or from disk, and the plot will be displayed along with a table view of your data. You can customize some common attributes like plot title, and switch between different plot types. You can simply save it as a `PNG`, `SVG`, or `PDF` file directly from the GUI, or you can manually customize the exported `Makie.Figure` object.
+`CasualPlots` provides an interactive GUI window for quick data visualization. It allows you to select data from your `Main` namespace or disk, displaying both the plot and a synchronized data table. It is possible to switch between plot types and customize common attributes. You can further customize the exported `Makie.Figure` object by applying desired attributes from the REPL. Once satisfied, you can save the plot directly as a `PNG`, `SVG`, or `PDF`. Additionally, `CasualPlots` can generate a standalone Julia script that  recreates the exact plot you built in the GUI, so you can apply final polish for a publication-quality plot or integrate the script directly into your own codebase.
 
 ## How It Does It
 
@@ -136,7 +136,7 @@ If a column contains less than 10% non-numeric values, these elements are automa
 
 - **Differing compatible units in a column**: If a single column contains differing but compatible units (e.g., `m` and `cm`), all data will be converted to same unit (`m` in this case). However, a mix of non-compatible units (e.g., `m` and `m^2`), or a mix of units and plain numbers in the same column, will error.
 
-- **Cross-column unit unification**: If multiple selected Y-columns contain `Unitful` quantities, the application will attempt to unify them to a common unit. If the different columns have non-compatible physical dimensions (e.g., trying to plot distance and time on the same axis), a warning is issued and the units are stripped entirely to allow them to be plotted together.
+- **Cross-column unit unification**: If multiple selected Y-columns contain `Unitful` quantities, the application will attempt to unify them to a common unit. If the different columns have non-compatible physical dimensions (e.g., trying to plot force and time on the same axis), a warning is issued and the units are stripped entirely to allow them to be plotted together.
 
 ### Plot Formatting Options
 
