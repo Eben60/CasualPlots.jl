@@ -30,7 +30,7 @@ ReadXLSX_Ext = "XLSX"
 
 [compat]
 AlgebraOfGraphics = "0.12, 0.13"
-Bonito = "4.1, 5"
+Bonito = "4.1"
 CSV = "0.10"
 CairoMakie = "0.15"
 ColorSchemes = "3.31"

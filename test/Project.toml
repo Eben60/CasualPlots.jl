@@ -15,7 +15,7 @@ XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 
 [compat]
 AlgebraOfGraphics = "0.12, 0.13"
-Bonito = "4.1, 5"
+Bonito = "4.1"
 CSV = "0.10"
 DataFrames = "1.8"
 Dates = "<0.0.1, 1"

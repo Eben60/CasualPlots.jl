@@ -10,7 +10,7 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
 
 [compat]
-Bonito = "4.1, 5"
+Bonito = "4.1"
 CasualPlots = "0.6"
 DataFrames = "1.8"
 Dates = "1.10"
