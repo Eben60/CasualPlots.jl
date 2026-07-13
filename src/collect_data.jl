@@ -50,19 +50,7 @@ end
 
 collect_arrays_from_main() = _collect_variables_from_main(is_main_numeric_iterable)
 
-
-"""
-    is_main_dataframe(var)
-
-Check if `var` is a `DataFrame` (from `Main`).
-"""
-function is_main_dataframe(var)
-    if !isdefined(Main, :DataFrame)
-        return false
-    end
-    DataFrame_type = getfield(Main, :DataFrame)
-    return isa(var, DataFrame_type)
-end
+is_main_dataframe(var) = isa(var, AbstractDataFrame)
 
 collect_dataframes_from_main() = _collect_variables_from_main(is_main_dataframe)
 
@@ -82,6 +70,7 @@ function get_dims_of_arrays()
         try
             var = getfield(Main, name)
             if hasmethod(size, (typeof(var),))
+                ndims(var) > 2 && continue # skip high-dimensional arrays
                 dims = size(var)
                 dims_dict[name] = dims
             end

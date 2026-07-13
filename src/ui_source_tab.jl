@@ -55,14 +55,14 @@ DOM.div containing radio buttons for source type selection
 function create_source_type_selector(source_type)
     DOM.div(
         DOM.input(
-            type="radio", name="source_type", value="X, Y Arrays", 
+            type="radio", name="source_type", id="radio-source-arrays", value="X, Y Arrays", 
             checked=(source_type[] == "X, Y Arrays"),
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(source_type))"
+            onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(source_type)); window.CasualPlots.toggleSourceMode(event.target.value); }"
         ), " X, Y Arrays  ",
         DOM.input(
-            type="radio", name="source_type", value="DataFrame",
+            type="radio", name="source_type", id="radio-source-dataframe", value="DataFrame",
             checked=(source_type[] == "DataFrame"),
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(source_type))"
+            onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(source_type)); window.CasualPlots.toggleSourceMode(event.target.value); }"
         ), " File/DataFrame";
         class="mb-2"
     )
@@ -127,6 +127,7 @@ function create_select_all_button(selected_dataframe, selected_columns, opened_f
         
         DOM.button(
             "Select All",
+            id="btn-select-all",
             onclick=enabled ? js"() => window.CasualPlots.selectAllColumns($(columns), $(selected_columns))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-primary mr-1" : "btn btn-disabled mr-1"
@@ -159,6 +160,7 @@ DOM.button that deselects all columns when clicked
 function create_deselect_all_button(selected_columns)
     DOM.button(
         "Deselect All",
+        id="btn-deselect-all",
         onclick=js"() => window.CasualPlots.deselectAllColumns($(selected_columns))",
         class="btn btn-warning mr-1"
     )
@@ -194,6 +196,7 @@ function create_plot_button(source_type, selected_x, selected_y, selected_column
     map(plot_button_enabled) do enabled
         DOM.button(
             "(Re-)Plot",
+            id="btn-replot",
             onclick=enabled ? js"() => window.CasualPlots.incrementObservable($(plot_trigger))" : js"() => {}",
             disabled=!enabled,
             class=enabled ? "btn btn-success" : "btn btn-disabled"
@@ -256,19 +259,21 @@ function create_range_input_row(range_from, range_to, data_bounds_from, data_bou
 end
 
 """
-    create_dataframe_dropdown_row(dataframe_node)
+    create_dataframe_dropdown_row(dataframe_node, trigger_update)
 
 Create the DataFrame source selection dropdown row.
 
 # Arguments
 - `dataframe_node`: Observable DataFrame selection dropdown node
+- `trigger_update`: Observable to trigger data refresh
 
 # Returns
 DOM.div containing the DataFrame dropdown with label
 """
-function create_dataframe_dropdown_row(dataframe_node)
+function create_dataframe_dropdown_row(dataframe_node, trigger_update)
     DOM.div(
-        "Select Source:", dataframe_node;
+        "Select Source:", 
+        DOM.div(dataframe_node; onclick=js"() => window.CasualPlots.setObservableValue($(trigger_update), true)");
         class="flex-row align-center gap-1 mb-2"
     )
 end

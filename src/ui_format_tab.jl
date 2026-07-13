@@ -12,7 +12,7 @@ Observable containing the dropdown DOM element
 """
 function create_plottype_dropdown(supported_plot_types, selected_plottype)
     # create_dropdown is available from dropdowns_setup.jl (module scope)
-    return Observable(create_dropdown(supported_plot_types, selected_plottype))
+    return Observable(create_dropdown(supported_plot_types, selected_plottype; id="dropdown-plottype"))
 end
 
 """
@@ -45,7 +45,7 @@ Create the dropdown for selecting Makie themes.
 Observable containing the dropdown DOM element
 """
 function create_theme_dropdown(selected_theme)
-    return Observable(create_dropdown(SUPPORTED_THEMES, selected_theme))
+    return Observable(create_dropdown(SUPPORTED_THEMES, selected_theme; id="dropdown-theme"))
 end
 
 """
@@ -96,7 +96,8 @@ function create_group_by_dropdown(selected_group_by, selected_plottype)
         DOM.select(
             options...;
             class="dropdown",
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(selected_group_by))"
+            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(selected_group_by))",
+            id="dropdown-groupby"
         )
     end
     
@@ -134,7 +135,7 @@ Create legend visibility checkbox and title input UI.
 DOM.div containing legend checkbox and title input
 """
 function create_legend_control(show_legend, legend_title_text)
-    legend_checkbox = DOM.input(type="checkbox", checked=show_legend;
+    legend_checkbox = DOM.input(type="checkbox", id="chk-show-legend", checked=show_legend;
         onchange = js"event => window.CasualPlots.updateObservableChecked(event, $(show_legend))"
     )
     
@@ -146,6 +147,7 @@ function create_legend_control(show_legend, legend_title_text)
 
     legend_title_input = DOM.input(
         type="text", 
+        id="input-legend-title",
         value=legend_title_text,
         placeholder="Legend Title",
         onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(legend_title_text))",
@@ -178,6 +180,7 @@ function create_label_input(label_text, label_name, label_observable)
         DOM.label(label_text; class="label-fixed"),
         DOM.input(
             type="text", 
+            id="input-$(label_name)",
             value=label_observable,
             onkeydown=js"event => window.CasualPlots.handleEnterKey(event, $(label_observable))",
             onblur=js"event => window.CasualPlots.handleTextInputBlur(event, $(label_observable))",
@@ -194,7 +197,7 @@ Create the axis limits section with two rows (X and Y).
 Each row has: "X from:" [input] "to:" [input] "rev.:" [checkbox]
 
 # Arguments
-- `format`: The plotting.format NamedTuple containing axis limit and reversal observables
+- `format`: The `PlotFormat` struct containing axis limit and reversal observables
 
 # Returns
 DOM.div containing the complete axis limits section

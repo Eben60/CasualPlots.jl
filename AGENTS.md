@@ -26,6 +26,8 @@ CasualPlots.jl                  # Main module, exports casualplots_app()
 CasualPlotApp.jl                # Wrapper struct to expose reactive state and avoid memory leaks
 app.jl                          # Main app entry point (casualplots_app function)
 app_state.jl                    # Application state initialization (Observables)
+app_types.jl                    # Type definitions used across the application
+constants.jl                    # Application-wide constants
 css_styles.css                  # Global CSS styles for all UI components
 javascripts.js                  # Global JavaScript functions (namespaced window.CasualPlots)
 
@@ -34,11 +36,13 @@ plotting.jl                     # Plot generation using AlgebraOfGraphics
 setup_callbacks.jl              # Core reactive callbacks (do_replot, source, format, DataFrame)
 label_update_callbacks.jl       # Label text field callbacks
 dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
+code_generation.jl              # Automatic Julia code generation from GUI state
+unitful_integration.jl          # Unitful.jl support for plotting quantities with units
 
 # UI Components (ui_*.jl)
 ui_tabs.jl                      # Tab component + create_tab_content wiring
 ui_layout.jl                    # assemble_layout - main pane grid construction
-ui_table.jl                     # Table display with info header
+ui_table.jl                     # Table display with info header and dynamic column type coloring
 ui_help_section.jl              # Mouse controls help text
 ui_source_tab.jl                # Source selection UI (Array/DataFrame modes)
 ui_format_tab.jl                # Format controls UI (plot type, legend, labels)
@@ -47,7 +51,7 @@ ui_save_tab.jl                  # Save tab UI
 ui_modal_dialog.jl              # Modal dialog component
 
 # Control Panel
-create_control_panel_ui.jl      # Control panel UI construction
+create_control_panel_ui.jl      # Control panel UI construction (static layout w/ CSS toggling)
 
 # Data Handling
 collect_data.jl                 # Data collection from Main module
@@ -67,6 +71,7 @@ precompile.jl                   # PrecompileTools workload for reducing TTFP
 
 scripts/                        # Example/demo scripts
 ../ext/                         # Package Extensions (ReadCSV_Ext.jl, ReadXLSX_Ext.jl)
+../test/AgenticTesting/         # Workspace sub-project containing GUI testing utilities
 ```
 
 ### Reactive State Architecture
@@ -119,7 +124,7 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
     - `plot_trigger` observable fires:
         - Validates selection (at least 2 columns).
-        - **Data Normalization**: Calls `normalize_numeric_columns!` to convert Abstract/Any types to Float64/Int. Warns if non-numeric values are lost (popup + log).
+        - **Data Cleansing and Normalization**: Calls `clean_plot_data!` to manage unit conversions and normalize non-numeric values (see Section 4 below).
         - Calls `update_dataframe_plot` helper.
         - Generates plot with **default labels** (resets legend title).
         - Updates table view.
@@ -190,6 +195,12 @@ A `DefaultDict{Symbol, Bool}` tracks which format options are still at their def
     - **Format Change**: Legend title and visibility persist.
 - **User Override**: Checkbox allows manual toggle, persisting through format updates.
 
+#### 4. Data Cleansing and Normalization
+Centralized via `clean_plot_data!` (in `preprocess_dataframes.jl`) to ensure all data passed to the plotting backend is valid and properly typed.
+- **Unitful Unification (Within Column)**: Checks each column for mixed compatible units (e.g., `m` and `cm`). If found, it unifies all elements to the largest metric unit present in that column (`unify_internal_column_units!`). Mixed incompatible units or a mix of units and plain numbers will throw an error.
+- **Numeric Normalization**: Checks column types and contents (`normalize_numeric_columns!`). If an `Any` or `AbstractString` column has `> 90%` numeric values (i.e., less than 10% non-numerics), it replaces the invalid elements with `missing` so the rest of the data can be plotted. A warning popup is shown.
+- **Unitful Unification (Cross-Column)**: If multiple Y-columns contain `Unitful` quantities, it attempts to unify them to a common target unit (`unify_units!`). If dimensions are incompatible (e.g., `s` and `m`), it issues a warning and strips the units entirely to allow plotting on the same axis.
+
 ### Plotting Implementation (plotting.jl)
 
 All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`Axis` calls in plotting logic).
@@ -241,8 +252,8 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - ~~Axis limits~~ ✓ Implemented (configurable min/max, reversal, pan/zoom sync)
 - ~~Themes~~ ✓ Implemented (Makie default, AoG, theme_black/dark/ggplot2/light/minimal)
 - ~~Group differentiation~~ ✓ Implemented (Color or Geometry; Geometry disabled for BarPlot)
-- Support for multiple independent data sources
-- Automatic Julia code generation from GUI actions
+- ~~Automatic Julia code generation from GUI actions~~ ✓ Implemented
+- Support for multiple independent data sources in a diagram
 - Optional regression‑fit overlays  
 
 ### Development Workflows
@@ -270,10 +281,10 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 ### Testing
 - Manual testing via `src/scripts/casualplots_test.jl`
-- Browser testing with Antigravity plugin (conversation history refs) via `src/scripts/casualplots_browser-test.jl`
-- Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.
-- Test suite WIP in early stage.
-  - Tests for non-GUI-functions only yet
+    - see also [extended manual testing protocol](AGENTS_more_info/specific_issues/manual_testing_plan.md)
+- GUI agentic testing was not successfull. See attempts and more info in Branch `v0.6.0-refactoring`
+- Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage
+- Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more
 
 ### Precompilation
 

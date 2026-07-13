@@ -11,16 +11,56 @@ function generate_data_preview(var_name::String)
         return "# Preview for $var_name not available"
     end
 end
+function _generate_rows_kwarg_and_assert()
+    code = ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
+    code *= "    rows = (:begin, :end),\n    )\n\n"
+    
+    code *= "    @assert length(rows) == 2 &&\n"
+    code *= "        (rows[1] isa Integer || rows[1] == :begin) &&\n"
+    code *= "        (rows[2] isa Integer || rows[2] == :end)\n\n"
+    return code
+end
+
+function _generate_rows_subsetting_code()
+    return """
+    if rows != (:begin, :end)
+        if rows[1] == :begin
+            df_selected = df_selected[begin:rows[2], :]
+        elseif rows[2] == :end
+            df_selected = df_selected[rows[1]:end, :]
+        else
+            df_selected = df_selected[rows[1]:rows[2], :]
+        end
+    end
+"""
+end
+
+function _generate_rows_arg_for_call(state::CasualPlotsState)
+    range_from = state.data_selection.range_from[]
+    range_to = state.data_selection.range_to[]
+    bounds_from = state.data_selection.data_bounds_from[]
+    bounds_to = state.data_selection.data_bounds_to[]
+    
+    is_default_from = isnothing(range_from) || range_from == bounds_from
+    is_default_to = isnothing(range_to) || range_to == bounds_to
+
+    if is_default_from && is_default_to
+        return ""
+    end
+
+    from_val = is_default_from ? ":begin" : range_from
+    to_val = is_default_to ? ":end" : range_to
+
+    return "rows = ($from_val, $to_val)"
+end
 
 function generate_xy_arrays_code(state::CasualPlotsState)
     x_name = state.data_selection.selected_x[]
     y_name = state.data_selection.selected_y[]
     
-    code = """
-
-function cp_load_data(; $(x_name), $(y_name))
-    # Assuming $(x_name) and $(y_name) are available in the executing environment
-"""
+    code = "\nfunction cp_load_data(; $(x_name), $(y_name)"
+    code *= _generate_rows_kwarg_and_assert()
+    code *= "    # Assuming $(x_name) and $(y_name) are available in the executing environment\n"
     code *= generate_data_preview(x_name) * "\n"
     code *= generate_data_preview(y_name) * "\n"
     
@@ -31,33 +71,20 @@ function cp_load_data(; $(x_name), $(y_name))
     if y_data isa AbstractVector
         y_data = reshape(y_data, :, 1)
     end
+    
+    n_cols = size(y_data, 2)
+    ys = ["y_name_\$n" for n in 1:n_cols]
+    valid_cols = vcat("x", ys)
+    m = hcat(x_data, y_data)
+    df = DataFrame(m, valid_cols)
+    df_selected = select(df, valid_cols)
 """
     
-    range_from = state.data_selection.range_from[]
-    range_to = state.data_selection.range_to[]
-    
-    if !isnothing(range_from) || !isnothing(range_to)
-        code *= """
-    # Apply range slicing
-    from_idx = $(isnothing(range_from) ? "firstindex(x_data)" : range_from)
-    to_idx = $(isnothing(range_to) ? "lastindex(x_data)" : range_to)
-    
-    x_first = firstindex(x_data)
-    x_last = lastindex(x_data)
-    from_idx = clamp(from_idx, x_first, x_last)
-    to_idx = clamp(to_idx, x_first, x_last)
-    
-    x_data = x_data[from_idx:to_idx]
-    
-    y_first = firstindex(y_data, 1)
-    pos_from = from_idx - x_first + y_first
-    pos_to = to_idx - x_first + y_first
-    y_data = y_data[pos_from:pos_to, :]
-"""
-    end
+    code *= _generate_rows_subsetting_code()
     
     code *= """
-    return (; x_data, y_data, x_name="$(x_name)", y_name="$(y_name)")
+    df_selected = CasualPlots.clean_plot_data!(df_selected, valid_cols)
+    return (; df=df_selected, x_name="$(x_name)", y_name="$(y_name)")
 end
 """
     return code
@@ -72,13 +99,24 @@ function generate_dataframe_code(state::CasualPlotsState)
 
 """
     if df_name == "__opened_file__"
-        code *= "function cp_load_data()\n"
         filepath = state.file_opening.opened_file_path[]
         if endswith(lowercase(filepath), ".csv") || endswith(lowercase(filepath), ".tsv")
             opts = collect_csv_options(state)
-            kwargs_str = join(["$k=$(repr(v))" for (k,v) in pairs(opts)], ", ")
-            code *= "    using CSV\n"
-            code *= "    df = CSV.read($(repr(filepath)), DataFrame; $kwargs_str)\n"
+            kwargs_list = ["$k=$(repr(v))" for (k,v) in pairs(opts)]
+            kwargs_sig = join(kwargs_list, ",\n    ")
+            kwargs_call = join(keys(opts), ", ")
+            
+            code *= "function cp_load_data(; file = $(repr(filepath))"
+            if !isempty(kwargs_list)
+                code *= ",\n    $kwargs_sig"
+            end
+            code *= _generate_rows_kwarg_and_assert()
+            
+            code *= "    df = CSV.read(file, DataFrame"
+            if !isempty(kwargs_call)
+                code *= "; $kwargs_call"
+            end
+            code *= ")\n"
             
             skip_after_header = state.file_opening.skip_after_header[]
             skip_empty_rows = state.file_opening.skip_empty_rows[]
@@ -87,17 +125,31 @@ function generate_dataframe_code(state::CasualPlotsState)
             end
         elseif endswith(lowercase(filepath), ".xlsx")
             sheet = state.file_opening.sheet_name[]
-            code *= "    using XLSX\n"
-            
             (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
-            kwargs_str = join(["$k=$(repr(v))" for (k,v) in pairs(kwargs)], ", ")
-            code *= "    df = CasualPlots.readtable_xlsx($(repr(filepath)), $(repr(sheet)); infer_eltypes=true, stop_in_empty_row=false, $kwargs_str)\n"
+            kwargs_list = ["$k=$(repr(v))" for (k,v) in pairs(kwargs)]
+            kwargs_sig = join(kwargs_list, ",\n    ")
+            kwargs_call = join(keys(kwargs), ", ")
+            
+            code *= "function cp_load_data(; file = $(repr(filepath)),\n"
+            code *= "    sheet = $(repr(sheet))"
+            if !isempty(kwargs_list)
+                code *= ",\n    $kwargs_sig"
+            end
+            code *= _generate_rows_kwarg_and_assert()
+            
+            code *= "    df = CasualPlots.readtable_xlsx(file, sheet; infer_eltypes=true, stop_in_empty_row=false"
+            if !isempty(kwargs_call)
+                code *= ", $kwargs_call"
+            end
+            code *= ")\n"
+            
             if skip_subheaders > 0 || skip_empty_rows
                 code *= "    CasualPlots.skip_rows!(df, $skip_subheaders, $skip_empty_rows)\n"
             end
         end
     else
-        code *= "function cp_load_data(; $df_name)\n"
+        code *= "function cp_load_data(; $df_name"
+        code *= _generate_rows_kwarg_and_assert()
         code *= "    # Assuming $df_name is available in the executing environment\n"
         code *= generate_data_preview(df_name) * "\n"
         code *= "    df = $df_name\n"
@@ -105,14 +157,7 @@ function generate_dataframe_code(state::CasualPlotsState)
     
     code *= "    df_selected = select(df, $cols_repr)\n"
     
-    range_from = state.data_selection.range_from[]
-    range_to = state.data_selection.range_to[]
-    
-    if !isnothing(range_from) || !isnothing(range_to)
-        code *= "    from_idx = $(isnothing(range_from) ? 1 : range_from)\n"
-        code *= "    to_idx = $(isnothing(range_to) ? "nrow(df_selected)" : range_to)\n"
-        code *= "    df_selected = df_selected[from_idx:to_idx, :]\n"
-    end
+    code *= _generate_rows_subsetting_code()
     
     code *= "    df_selected = CasualPlots.clean_plot_data!(df_selected, $cols_repr)\n"
     
@@ -157,22 +202,7 @@ function cp_create_plot(data)
         code *= "    set_theme!($(theme)())\n"
     end
     
-    if source_type == "X, Y Arrays"
-        code *= """
-    (; x_data, y_data, x_name, y_name) = data
-    n_cols = size(y_data, 2)
-    ys = ["y_name_\$n" for n in 1:n_cols]
-    nms = vcat("x", ys)
-    m = hcat(x_data, y_data)
-    df_w = DataFrame(m, nms)
-    df = stack(df_w, ys; variable_name=:group, value_name=:y)
-    
-    x_col = :x
-    y_col = :y
-    group_col = :group
-"""
-    else
-        code *= """
+    code *= """
     (; df, x_name, y_name) = data
     ys = names(df)[2:end]
     x_col = Symbol(names(df)[1])
@@ -180,7 +210,6 @@ function cp_create_plot(data)
     group_col = :group
     df = stack(df, ys; variable_name=:group, value_name=:y)
 """
-    end
     
     # Generate labels fallback
     code *= """
@@ -236,17 +265,27 @@ function _generate_julia_code_string(state::CasualPlotsState)
     
     uses_casualplots = occursin("CasualPlots.", source_code) || occursin("CasualPlots.", plot_code)
     
-    code = """
-# Auto-generated by CasualPlots.jl
+    code = "# Auto-generated by CasualPlots.jl\n"
+    
+    if source_type == "DataFrame" && state.data_selection.selected_dataframe[] == "__opened_file__"
+        filepath = state.file_opening.opened_file_path[]
+        if endswith(lowercase(filepath), ".csv") || endswith(lowercase(filepath), ".tsv")
+            code *= "using CSV\n"
+        elseif endswith(lowercase(filepath), ".xlsx")
+            code *= "using XLSX\n"
+        end
+    end
+    
+    code *= """
 using DataFrames
 using WGLMakie
 using AlgebraOfGraphics
 """
     if uses_casualplots
-        code *= "using CasualPlots # for helper functions like skip_rows!\n"
+        code *= "using CasualPlots\n"
     end
     
-    code *= "# uncomment next line for high quality static output, esp. for saving:\n"
+    code *= "# # --- uncomment next line for high quality static output, esp. for saving ---\n"
     code *= "# using CairoMakie\n"
 
     code *= source_code
@@ -259,32 +298,52 @@ using AlgebraOfGraphics
     code *= "# # --- taking exactly the same data already existing in the Main --\n"
     code *= "#\n"
     
-    if source_type == "X, Y Arrays"
+    filename_base = if source_type == "X, Y Arrays"
         x_name = state.data_selection.selected_x[]
         y_name = state.data_selection.selected_y[]
-        filename_base = "$(x_name)-vs-$(y_name)"
-        code *= "# data = cp_load_data(; $(x_name), $(y_name)); fg = cp_create_plot(data);\n"
-        code *= "#\n"
-        code *= "# # --- or, specify your input data (here my_x, my_y) ---\n"
-        code *= "#\n"
-        code *= "# data = cp_load_data(; $(x_name)=my_x, $(y_name)=my_y); fg = cp_create_plot(data);\n"
-    elseif source_type == "DataFrame" && state.data_selection.selected_dataframe[] != "__opened_file__"
-        df_name = state.data_selection.selected_dataframe[]
-        cols = state.data_selection.selected_columns[]
-        x_col = !isempty(cols) ? cols[1] : "x"
-        y_col = length(cols) > 1 ? cols[2] : "y"
-        filename_base = "$(x_col)-vs-$(y_col)"
-        code *= "# data = cp_load_data(; $(df_name)); fg = cp_create_plot(data);\n"
-        code *= "#\n"
-        code *= "# # --- or, specify your input data (here my_df) ---\n"
-        code *= "#\n"
-        code *= "# data = cp_load_data(; $(df_name)=my_df); fg = cp_create_plot(data);\n"
+        "$(x_name)-vs-$(y_name)"
     else
         cols = state.data_selection.selected_columns[]
         x_col = !isempty(cols) ? cols[1] : "x"
         y_col = length(cols) > 1 ? cols[2] : "y"
-        filename_base = "$(x_col)-vs-$(y_col)"
-        code *= "# data = cp_load_data(); fg = cp_create_plot(data);\n"
+        "$(x_col)-vs-$(y_col)"
+    end
+    
+    code *= "# # For available kwargs (like `rows`), see the cp_load_data signature\n"
+    
+    rows_arg = _generate_rows_arg_for_call(state)
+    
+    if source_type == "X, Y Arrays"
+        x_name = state.data_selection.selected_x[]
+        y_name = state.data_selection.selected_y[]
+        
+        call_arg1 = join(filter(!isempty, ["$(x_name)", "$(y_name)", rows_arg]), ", ")
+        call_arg2 = join(filter(!isempty, ["$(x_name)=my_x", "$(y_name)=my_y", rows_arg]), ", ")
+        
+        code *= "# data = cp_load_data(; $call_arg1)\n"
+        code *= "# fg = cp_create_plot(data)\n"
+        code *= "#\n"
+        code *= "# # --- or, specify your input data (here my_x, my_y) ---\n"
+        code *= "#\n"
+        code *= "# data = cp_load_data(; $call_arg2)\n"
+        code *= "# fg = cp_create_plot(data)\n"
+    elseif source_type == "DataFrame" && state.data_selection.selected_dataframe[] != "__opened_file__"
+        df_name = state.data_selection.selected_dataframe[]
+        
+        call_arg1 = join(filter(!isempty, ["$(df_name)", rows_arg]), ", ")
+        call_arg2 = join(filter(!isempty, ["$(df_name)=my_df", rows_arg]), ", ")
+        
+        code *= "# data = cp_load_data(; $call_arg1)\n"
+        code *= "# fg = cp_create_plot(data)\n"
+        code *= "#\n"
+        code *= "# # --- or, specify your input data (here my_df) ---\n"
+        code *= "#\n"
+        code *= "# data = cp_load_data(; $call_arg2)\n"
+        code *= "# fg = cp_create_plot(data)\n"
+    else
+        call_arg = !isempty(rows_arg) ? "; $rows_arg" : ""
+        code *= "# data = cp_load_data($call_arg)\n"
+        code *= "# fg = cp_create_plot(data)\n"
     end
     
     code *= "# \n"
@@ -302,27 +361,65 @@ using AlgebraOfGraphics
 end
 
 """
-    generate_julia_code(state::CasualPlotsState; file=nothing) -> Union{String, Nothing}
+    validate_script_path(path::AbstractString) -> (valid::Bool, resolved_path::String, error_message::String)
+
+Validates that a script path has a `.jl` extension or no extension.
+If it has no extension, `.jl` is appended.
+Returns a tuple indicating if the path is valid, the resolved path, and any error message.
+"""
+function validate_script_path(path::AbstractString)
+    path = strip(path)
+    if isempty(path)
+        return (false, "", "Please specify a file path")
+    end
+    
+    ext = lowercase(splitext(path)[2])
+    if !isempty(ext) && ext != ".jl"
+        return (false, "", "Script must have a .jl extension or no extension")
+    end
+    
+    if isempty(ext)
+        path = path * ".jl"
+    end
+    
+    return (true, path, "")
+end
+
+"""
+    generate_julia_code(state::CasualPlotsState; file=nothing) -> NamedTuple
 
 Generates executable Julia code to replicate the current CasualPlots state.
-If `file` is provided, writes the code to the file (appending a ".jl" suffix if it has no suffix) and returns `nothing`.
-Otherwise, returns the code as a `String`.
+Returns a NamedTuple: `(; code::String, path::Union{String, Nothing}, success::Bool, message::String)`.
+If `file` is provided, writes the code to the file (appending a ".jl" suffix if it has no suffix).
 """
 function generate_julia_code(state::CasualPlotsState; file=nothing)
     code = _generate_julia_code_string(state)
-    if isnothing(file)
-        return code
-    else
-        if isempty(splitext(file)[2])
-            file = file * ".jl"
-        end
+    if isnothing(file) || isempty(strip(file))
+        return (; code=code, path=nothing, success=true, message="Code generated successfully")
+    end
+    
+    valid, file, err_msg = validate_script_path(file)
+    if !valid
+        return (; code=code, path=nothing, success=false, message=err_msg)
+    end
+    
+    try
         write(file, code)
-        return nothing
+        msg = "Script saved to $(basename(file))"
+        @info msg
+        return (; code=code, path=file, success=true, message=msg)
+    catch e
+        err_msg = "Error saving script: $(e)"
+        if e isa ErrorException
+             err_msg = e.msg
+        end
+        @warn err_msg
+        return (; code=code, path=nothing, success=false, message=err_msg)
     end
 end
 
 """
-    generate_julia_code(app::CasualPlotApp; file=nothing) -> Union{String, Nothing}
+    generate_julia_code(app::CasualPlotApp; file=nothing) -> NamedTuple
 
 Generates executable Julia code to replicate the current CasualPlots state.
 Delegates to `generate_julia_code(app.state; file)`.

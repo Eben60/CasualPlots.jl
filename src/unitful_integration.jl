@@ -1,6 +1,33 @@
 # src/unitful_integration.jl
 
 """
+    is_metric_unit(u)
+
+Helper to check if a unit is "metric" by seeing if its factor relative to SI is a clean power of 10.
+"""
+function is_metric_unit(u)
+    val = Unitful.ustrip(Unitful.upreferred(1.0*u))
+    isapprox(log10(val), round(log10(val)), atol=1e-10)
+end
+
+"""
+    select_target_unit(unique_units)
+
+Select the target unit based on which has the largest conversion factor (i.e. the "largest" unit).
+Prefers metric units over non-metric units if available.
+"""
+function select_target_unit(unique_units)
+    metric_units = filter(is_metric_unit, unique_units)
+    if !isempty(metric_units)
+        # Largest metric unit
+        return argmax(u -> Unitful.ustrip(Unitful.upreferred(1.0*u)), metric_units)
+    else
+        # Largest overall unit if no metric units exist
+        return argmax(u -> Unitful.ustrip(Unitful.upreferred(1.0*u)), unique_units)
+    end
+end
+
+"""
     unify_units!(df, cols, state)
 
 Checks the specified columns `cols` in `df` for `Unitful` quantities.
@@ -67,22 +94,7 @@ function unify_units!(df, cols, state=nothing)
     end
     
     # 4. Units are compatible. Find the "largest" unit to unify them.
-    # Helper to check if a unit is "metric" by seeing if its factor relative to SI is a clean power of 10.
-    function is_metric(u)
-        val = Unitful.ustrip(Unitful.upreferred(1.0*u))
-        isapprox(log10(val), round(log10(val)), atol=1e-10)
-    end
-    
-    metric_units = filter(is_metric, unique_units)
-    
-    # Select the target unit based on which has the largest conversion factor (i.e. the "largest" unit)
-    target_unit = if !isempty(metric_units)
-        # Largest metric unit
-        argmax(u -> Unitful.ustrip(Unitful.upreferred(1.0*u)), metric_units)
-    else
-        # Largest overall unit if no metric units exist
-        argmax(u -> Unitful.ustrip(Unitful.upreferred(1.0*u)), unique_units)
-    end
+    target_unit = select_target_unit(unique_units)
     
     # 5. Convert all unitful columns to the target unit
     for col in unitful_cols
@@ -124,6 +136,36 @@ function check_internal_unit_compatibility!(df, cols)
             end
         end
     end
+end
+
+"""
+    unify_internal_column_units!(df, cols)
+
+Checks each individual column in `cols` for internal dimensional consistency using `check_internal_unit_compatibility!`.
+Then, if a single column contains differing but compatible units (e.g., `m` and `cm`), it unifies all elements in that column to the "largest" unit present in the column, avoiding plotting errors with mixed types.
+"""
+function unify_internal_column_units!(df, cols)
+    # First ensure we don't have incompatible dimensions within columns
+    check_internal_unit_compatibility!(df, cols)
+    
+    for col in cols
+        unique_units = Any[]
+        for v in df[!, col]
+            if !ismissing(v) && v isa Unitful.Quantity
+                u = Unitful.unit(v)
+                if !(u in unique_units)
+                    push!(unique_units, u)
+                end
+            end
+        end
+        
+        if length(unique_units) > 1
+            # We already know dimensions match from check_internal_unit_compatibility!
+            target_unit = select_target_unit(unique_units)
+            df[!, col] = map(v -> ismissing(v) ? missing : (v isa Unitful.Quantity ? Unitful.uconvert(target_unit, v) : v), df[!, col])
+        end
+    end
+    return df
 end
 
 """

@@ -6,78 +6,93 @@ validate = CasualPlots.validate_save_path
 # Valid paths tests
 @testset "validate_save_path - valid paths" begin
     # Test valid extensions
-    (valid, msg) = validate("plot.png")
-    @test valid == true
-    @test msg == ""
+    val = validate("plot.png")
+    @test val.valid == true
+    @test val.error_message == ""
+    @test val.path == "plot.png"
 
-    (valid, msg) = validate("output/plot.svg")
-    @test valid == true
-    @test msg == ""
+    val = validate("output/plot.svg")
+    @test val.valid == true
+    @test val.error_message == ""
+    @test val.path == "output/plot.svg"
 
-    (valid, msg) = validate("/absolute/path/to/figure.pdf")
-    @test valid == true
-    @test msg == ""
+    val = validate("/absolute/path/to/figure.pdf")
+    @test val.valid == true
+    @test val.error_message == ""
+    @test val.path == "/absolute/path/to/figure.pdf"
 
-    # Test case insensitivity
-    (valid, msg) = validate("PLOT.PNG")
-    @test valid == true
+    # Test case insensitivity and warnings
+    @test_logs (:warn, r"requires lowercase extensions") begin
+        val = validate("PLOT.PNG")
+        @test val.valid == true
+        @test val.path == "PLOT.png"
+    end
 
-    (valid, msg) = validate("plot.SVG")
-    @test valid == true
+    @test_logs (:warn, r"requires lowercase extensions") begin
+        val = validate("plot.SVG")
+        @test val.valid == true
+        @test val.path == "plot.svg"
+    end
 
-    (valid, msg) = validate("plot.Pdf")
-    @test valid == true
+    @test_logs (:warn, r"requires lowercase extensions") begin
+        val = validate("plot.Pdf")
+        @test val.valid == true
+        @test val.path == "plot.pdf"
+    end
 end
 
 # Invalid paths tests
 @testset "validate_save_path - invalid paths" begin
     # Empty path
-    (valid, msg) = validate("")
-    @test valid == false
-    @test occursin("specify", lowercase(msg))
+    val = validate("")
+    @test val.valid == false
+    @test occursin("specify", lowercase(val.error_message))
 
     # Whitespace only
-    (valid, msg) = validate("   ")
-    @test valid == false
-    @test occursin("specify", lowercase(msg))
+    val = validate("   ")
+    @test val.valid == false
+    @test occursin("specify", lowercase(val.error_message))
 
     # No extension
-    (valid, msg) = validate("plotfile")
-    @test valid == false
-    @test occursin("extension", lowercase(msg))
+    val = validate("plotfile")
+    @test val.valid == false
+    @test occursin("extension", lowercase(val.error_message))
 
     # Unsupported extension
-    (valid, msg) = validate("plot.jpg")
-    @test valid == false
-    @test occursin("unsupported", lowercase(msg))
+    val = validate("plot.jpg")
+    @test val.valid == false
+    @test occursin("unsupported", lowercase(val.error_message))
 
-    (valid, msg) = validate("plot.jpeg")
-    @test valid == false
-    @test occursin("unsupported", lowercase(msg))
+    val = validate("plot.jpeg")
+    @test val.valid == false
+    @test occursin("unsupported", lowercase(val.error_message))
 
-    (valid, msg) = validate("plot.gif")
-    @test valid == false
+    val = validate("plot.gif")
+    @test val.valid == false
 
-    (valid, msg) = validate("plot.bmp")
-    @test valid == false
+    val = validate("plot.bmp")
+    @test val.valid == false
 
-    (valid, msg) = validate("data.csv")
-    @test valid == false
+    val = validate("data.csv")
+    @test val.valid == false
 end
 
 # Edge cases tests
 @testset "validate_save_path - edge cases" begin
     # Path with spaces
-    (valid, msg) = validate("  plot.png  ")
-    @test valid == true
+    val = validate("  plot.png  ")
+    @test val.valid == true
+    @test val.path == "plot.png"
 
     # Multiple dots in filename
-    (valid, msg) = validate("my.plot.output.png")
-    @test valid == true
+    val = validate("my.plot.output.png")
+    @test val.valid == true
+    @test val.path == "my.plot.output.png"
 
     # Dot in directory name
-    (valid, msg) = validate("path.to/output.svg")
-    @test valid == true
+    val = validate("path.to/output.svg")
+    @test val.valid == true
+    @test val.path == "path.to/output.svg"
 end
 
 @testset "SUPPORTED_SAVE_FORMATS constant" begin

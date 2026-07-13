@@ -28,7 +28,7 @@ Note: it needs Julia v1.10 or higher. The package is registered. Keep in mind, t
 (@v1.12) pkg> add CasualPlots
 ```
 
-Instead better install it in directly your project environment(s). Alternatively you can install it into a shared environment and make it available from everywhere with the help of [ShareAdd.jl](https://github.com/Eben60/ShareAdd.jl) package:
+Instead better install it directly into your project environment(s). Alternatively you can install it into a shared environment and make it available from everywhere with the help of [ShareAdd.jl](https://github.com/Eben60/ShareAdd.jl) package:
 
 ```
 julia> using ShareAdd
@@ -120,6 +120,24 @@ In the **Open** tab:
 - The data is displayed in the table. You can adjust options and click **Reload** to read the data anew.
 - Once loaded, the data is available under "opened file" in the **Source** tab's **File/DataFrame** dropdown.
 
+#### Datatype coloring
+
+When data is displayed in the table, the headers' colors indicate column types: green for numeric values, blue for Unitful quantities, and yellow for anything else.
+
+#### Data Cleansing and Normalization
+
+Before plotting, the application automatically cleanses and normalizes selected data. 
+
+##### Non-Numerics
+
+If a column contains less than 10% non-numeric values, these elements are automatically replaced with `missing` so the rest of the valid data can be plotted (a warning popup will alert you). Otherwise the data is left as is. If it is the X-column, it will be considered as categorical data by the plotting backend, otherwise result in error downstream.
+
+##### `Unitful` data normalization:
+
+- **Differing compatible units in a column**: If a single column contains differing but compatible units (e.g., `m` and `cm`), all data will be converted to same unit (`m` in this case). However, a mix of non-compatible units (e.g., `m` and `m^2`), or a mix of units and plain numbers in the same column, will error.
+
+- **Cross-column unit unification**: If multiple selected Y-columns contain `Unitful` quantities, the application will attempt to unify them to a common unit. If the different columns have non-compatible physical dimensions (e.g., trying to plot distance and time on the same axis), a warning is issued and the units are stripped entirely to allow them to be plotted together.
+
 ### Plot Formatting Options
 
 WIP, see **Format** tab.
@@ -148,7 +166,7 @@ In short, it is WIP, however, the main goals are already implemented and the pac
 - [✅] Exporting the Figure object.
 - [✅] Precompile to reduce TTFP.
 - [❌] Documenter.jl based documentation.
-- [❌] Automatic generation of Julia code corresponding to the user’s actions.
+- [✅] Automatic generation of Julia code corresponding to the user’s actions.
 - [❌] Applying a least-squares fit from the GUI.
 
 ## Screenshots

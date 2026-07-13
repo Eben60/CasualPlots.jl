@@ -4,8 +4,8 @@
 Unified function for plotting and replotting, regardless of data source or update reason.
 
 # Arguments
-- `state`: Application state NamedTuple
-- `outputs`: Output observables NamedTuple
+- `state`: Application state struct `CasualPlotsState`
+- `outputs`: Output observables struct `Outputs`
 - `data`: NamedTuple with either:
   - `(; x_name, y_name, range_from=nothing, range_to=nothing)` for array mode (fetches from Main)
   - `(; df, x_name, y_name)` for DataFrame mode (uses provided DataFrame)
@@ -46,21 +46,26 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_s
             reset_semipersistent_format_options!(state)
         end
 
-        # Create the plot based on data type
-        local fig
-        if haskey(data, :df)
-            # DataFrame mode
-            fig = create_plot(data.df; xcol=1, x_name=data.x_name, y_name=data.y_name,
-                             plot_format=plot_format)
-        else
-            # Array mode - fetch from Main, with optional range
-            range_from = get(data, :range_from, nothing)
-            range_to = get(data, :range_to, nothing)
-            fig = check_data_create_plot(data.x_name, data.y_name; 
-                                        plot_format=plot_format, 
-                                        range_from=range_from, 
-                                        range_to=range_to)
-        end
+        # Create the plot
+        # data always has (; df, x_name, y_name)
+        dfw = data.df
+        x_name = data.x_name
+        y_name = data.y_name
+        
+        ys = names(dfw)[2:end]
+        n_cols = length(ys)
+        
+        # Handle show_legend logic
+        format_show_legend = plot_format.show_legend
+        updated_show_legend = isnothing(format_show_legend) ? (n_cols > 1) : format_show_legend
+        plot_format = merge(plot_format, (; show_legend=updated_show_legend))
+        
+        df_long = stack(dfw, ys; variable_name=:group, value_name=:y)
+        
+        x_col = names(dfw)[1] |> Symbol
+        mappings = (; x_col, y_col=:y, group_col=:group)
+        
+        fig = create_plot_df_long(df_long, x_name, y_name, plot_format; mappings)
         
         if isnothing(fig)
             return nothing
@@ -79,6 +84,20 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_s
             legend_title_text[] = ""
             # Reset format flags (preserves persistent ones like plottype)
             reset_format_defaults!(state.misc.format_is_default)
+        else
+            # Not new data (e.g. format change). Update text fields that are still at their default values
+            if state.misc.format_is_default[:xlabel]
+                xlabel_text[] = fig.fig_params.x_name
+            end
+            if state.misc.format_is_default[:ylabel]
+                ylabel_text[] = fig.fig_params.y_name
+            end
+            if state.misc.format_is_default[:title]
+                title_text[] = fig.fig_params.title
+            end
+            if state.misc.format_is_default[:show_legend]
+                show_legend[] = fig.fig_params.updated_show_legend
+            end
         end
         
         # Update defaults for semipersistent options if they were reset
@@ -168,33 +187,10 @@ function setup_theme_callback(state, outputs)
             return (from_val, to_val)
         end
         
-        # Trigger replot based on current mode
-        if source_type[] == "X, Y Arrays"
-            x = current_plot_x[]
-            y = current_plot_y[]
-            (isnothing(x) || isnothing(y)) && return
-            
-            from_val, to_val = get_range_values()
-            
-            do_replot(state, outputs;
-                data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-                plot_format = merge(get_current_axis_limits(state), (; 
-                    plottype = selected_plottype[] |> Symbol |> eval,
-                    show_legend = show_legend[],
-                    legend_title = legend_title_text[],
-                    group_by = selected_group_by[],
-                )),
-            )
-        else  # DataFrame mode
-            cols = selected_columns[]
-            df_name = selected_dataframe[]
-            (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
-            
-            from_val, to_val = get_range_values()
-            update_dataframe_plot(state, outputs, df_name, cols; 
-                                  is_new_data=false, update_table=false,
-                                  range_from=from_val, range_to=to_val)
-        end
+        from_val, to_val = get_range_values()
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
 end
 
@@ -236,33 +232,10 @@ function setup_group_by_callback(state, outputs)
             return (from_val, to_val)
         end
         
-        # Trigger replot based on current mode
-        if source_type[] == "X, Y Arrays"
-            x = current_plot_x[]
-            y = current_plot_y[]
-            (isnothing(x) || isnothing(y)) && return
-            
-            from_val, to_val = get_range_values()
-            
-            do_replot(state, outputs;
-                data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-                plot_format = merge(get_current_axis_limits(state), (; 
-                    plottype = selected_plottype[] |> Symbol |> eval,
-                    show_legend = show_legend[],
-                    legend_title = legend_title_text[],
-                    group_by = group_by,
-                )),
-            )
-        else  # DataFrame mode
-            cols = selected_columns[]
-            df_name = selected_dataframe[]
-            (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
-            
-            from_val, to_val = get_range_values()
-            update_dataframe_plot(state, outputs, df_name, cols; 
-                                  is_new_data=false, update_table=false,
-                                  range_from=from_val, range_to=to_val)
-        end
+        from_val, to_val = get_range_values()
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
 end
 
@@ -287,10 +260,10 @@ function setup_x_callback(state, dropdown_y_node, outputs)
         new_y_opts_strings = get_congruent_y_names(x, dims_dict)
         
         if isempty(new_y_opts_strings)
-            dropdown_y_node[] = create_dropdown([], nothing; placeholder="No congruent Y-arrays for this X", disabled=true)
+            dropdown_y_node[] = create_dropdown([], nothing; placeholder="No congruent Y-arrays for this X", disabled=true, id="dropdown-y")
         else
             # println("trying to set Y menu to $new_y_opts_strings")
-            dropdown_y_node[] = create_dropdown(new_y_opts_strings, selected_y; placeholder="Select Y")
+            dropdown_y_node[] = create_dropdown(new_y_opts_strings, selected_y; placeholder="Select Y", id="dropdown-y")
         end
         
         # Set data bounds from X array
@@ -377,10 +350,7 @@ This is triggered when the user clicks the (Re-)Plot button with valid X,Y selec
 function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
     (; selected_x, selected_y, source_type, range_from, range_to,
        data_bounds_from, data_bounds_to) = state.data_selection
-    (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
-    (; legend_title_text) = state.plotting.handles
     (; last_plotted_x, last_plotted_y) = state.misc
-    table_observable = outputs.table
     
     on(plot_trigger) do _
         # Skip if not in Array mode
@@ -404,25 +374,14 @@ function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
         # Detect if this is a NEW data source (X or Y changed)
         is_new_source = (x != last_plotted_x[] || y != last_plotted_y[])
         
-        plottype = selected_plottype[] |> Symbol |> eval
-        do_replot(state, outputs;
-            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = (; 
-                plottype = plottype, 
-                show_legend = is_new_source ? nothing : show_legend[],
-                legend_title = is_new_source ? "" : legend_title_text[],
-                group_by = selected_group_by[],
-            ),
-            is_new_data = is_new_source,
-            reset_semipersistent = true, # Requirement 16: Reset on (Re-)Plot
-        )
+        update_unified_plot!(state, outputs; 
+                              is_new_data=is_new_source, update_table=true,
+                              range_from=from_val, range_to=to_val,
+                              reset_semipersistent=true) # Requirement 16: Reset on (Re-)Plot
         
         # Update last plotted source
         last_plotted_x[] = x
         last_plotted_y[] = y
-        
-        # Create/update table with range
-        table_observable[] = create_data_table(x, y; range_from=from_val, range_to=to_val)
     end
 end
 
@@ -435,9 +394,7 @@ All changes trigger a full replot using the unified do_replot function.
 function setup_format_change_callbacks(state, outputs)
     (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
-    (; range_from, range_to, data_bounds_from, data_bounds_to, source_type) = state.data_selection
-    current_plot_x = outputs.current_x
-    current_plot_y = outputs.current_y
+    (; range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     
     # Helper to get current range values
     function get_range_values()
@@ -455,11 +412,6 @@ function setup_format_change_callbacks(state, outputs)
     # === Plot Type Change Handler ===
     on(selected_plottype) do plottype_str
         state.misc.block_format_update[] && return
-        source_type[] != "X, Y Arrays" && return
-        
-        x = current_plot_x[]
-        y = current_plot_y[]
-        (isnothing(x) || isnothing(y)) && return
         
         # Mark as non-default if different from DEFAULT_PLOT_TYPE
         plottype_sym = Symbol(plottype_str)
@@ -468,51 +420,27 @@ function setup_format_change_callbacks(state, outputs)
         end
         
         from_val, to_val = get_range_values()
-        
-        do_replot(state, outputs;
-            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = merge(get_current_axis_limits(state), (; 
-                plottype = plottype_sym |> eval,
-                show_legend = show_legend[],
-                legend_title = legend_title_text[],
-                group_by = selected_group_by[],
-            )),
-        )
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
     
     # === Legend Visibility Change Handler ===
     on(show_legend) do legend_bool
         state.misc.block_format_update[] && return
-        source_type[] != "X, Y Arrays" && return
-        
-        x = current_plot_x[]
-        y = current_plot_y[]
-        (isnothing(x) || isnothing(y)) && return
         
         # Mark as non-default
         state.misc.format_is_default[:show_legend] = false
         
         from_val, to_val = get_range_values()
-        
-        do_replot(state, outputs;
-            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = merge(get_current_axis_limits(state), (; 
-                plottype = selected_plottype[] |> Symbol |> eval,
-                show_legend = legend_bool,
-                legend_title = legend_title_text[],
-                group_by = selected_group_by[],
-            )),
-        )
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
     
     # === Legend Title Change Handler ===
     on(legend_title_text) do leg_title
         state.misc.block_format_update[] && return
-        source_type[] != "X, Y Arrays" && return
-        
-        x = current_plot_x[]
-        y = current_plot_y[]
-        (isnothing(x) || isnothing(y)) && return
         
         # Mark as non-default if not empty
         if !isempty(leg_title)
@@ -523,38 +451,30 @@ function setup_format_change_callbacks(state, outputs)
         show_legend[] || return
         
         from_val, to_val = get_range_values()
-        
-        do_replot(state, outputs;
-            data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-            plot_format = merge(get_current_axis_limits(state), (; 
-                plottype = selected_plottype[] |> Symbol |> eval,
-                show_legend = show_legend[],
-                legend_title = leg_title,
-                group_by = selected_group_by[],
-            )),
-        )
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
 end
 
 
 
 """
-    update_dataframe_plot(state, outputs, df_name, cols; is_new_data=false, update_table=false, range_from=nothing, range_to=nothing)
+    update_unified_plot!(state, outputs; is_new_data=false, update_table=false, range_from=nothing, range_to=nothing, reset_semipersistent=false)
 
-Helper function to update DataFrame plot with selected columns and format settings.
-Handles data preparation (fetching, validation, normalization) then delegates to do_replot.
+Helper function to update plot with selected data and format settings.
+Handles data preparation (fetching, validation, caching, normalization) then delegates to do_replot.
 
 # Arguments
-- `state`: Application state NamedTuple
-- `outputs`: Output observables NamedTuple
-- `df_name`: Name of the DataFrame
-- `cols`: Selected column names
+- `state`: Application state struct `CasualPlotsState`
+- `outputs`: Output observables struct `Outputs`
 - `is_new_data`: If true, initializes text fields from plot defaults (for new plots)
 - `update_table`: If true, updates the table observable (only for new plot data)
 - `range_from`: Starting row index (1-based, uses 1 if nothing)
 - `range_to`: Ending row index (uses nrow if nothing)
+- `reset_semipersistent`: If true, resets axis limits to default.
 """
-function update_dataframe_plot(state, outputs, df_name, cols; 
+function update_unified_plot!(state, outputs; 
                                is_new_data=false, update_table=false,
                                range_from::Union{Nothing,Int}=nothing, 
                                range_to::Union{Nothing,Int}=nothing,
@@ -562,66 +482,115 @@ function update_dataframe_plot(state, outputs, df_name, cols;
     (; show_modal, modal_type) = state.dialogs
     (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
+    (; source_type) = state.data_selection
     plot_observable = outputs.plot
     table_observable = outputs.table
     
+    if !isnothing(range_from) && !isnothing(range_to) && range_from > range_to
+        state.file_saving.save_status_message[] = "Range Error: 'Range from' must be less than or equal to 'Range to'"
+        state.dialogs.modal_type[] = :error
+        state.dialogs.show_modal[] = true
+        return false
+    end
+
     try
-        # Get DataFrame - either from Main or from opened file
         local df
-        local display_name  # Name used for table info and plot title
+        local display_name
+        local valid_cols
         
-        if df_name == "__opened_file__"
-            # Use DataFrame loaded from file (already has strings normalized)
-            df = state.file_opening.opened_file_df[]
-            display_name = state.file_opening.opened_file_name[]
-            if isnothing(df)
-                plot_observable[] = DOM.div("Error: No file has been opened. Use the Open tab to load a file.")
+        is_array_mode = source_type[] == "X, Y Arrays"
+        
+        if is_array_mode
+            x = state.data_selection.selected_x[]
+            y = state.data_selection.selected_y[]
+            if isnothing(x) || x == "" || isnothing(y) || y == ""
                 return false
             end
+            
+            x_data = getfield(Main, Symbol(x))
+            y_data = getfield(Main, Symbol(y))
+            
+            if y_data isa AbstractVector
+                y_data = reshape(y_data, :, 1)
+            end
+            
+            n_cols = size(y_data, 2)
+            ys = ["y_name_$n" for n in 1:n_cols]
+            valid_cols = vcat("x", ys)
+            m = hcat(x_data, y_data)
+            df = DataFrame(m, valid_cols)
+            display_name = "$(x) vs $(y)"
         else
-            # Get DataFrame from Main module
-            df = getfield(Main, Symbol(df_name))
-            display_name = df_name
+            cols = state.data_selection.selected_columns[]
+            df_name = state.data_selection.selected_dataframe[]
+            if isnothing(df_name) || df_name == "" || length(cols) < 2
+                return false
+            end
+            
+            if df_name == "__opened_file__"
+                df = state.file_opening.opened_file_df[]
+                display_name = state.file_opening.opened_file_name[]
+                if isnothing(df)
+                    plot_observable[] = DOM.div("Error: No file has been opened. Use the Open tab to load a file.")
+                    return false
+                end
+            else
+                df = getfield(Main, Symbol(df_name))
+                display_name = df_name
+            end
+            
+            available_columns = names(df)
+            valid_cols = filter(col -> col in available_columns, cols)
+            
+            if length(valid_cols) < 2
+                plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))")
+                return false
+            end
         end
         
-        # Validate that all requested columns exist in the DataFrame
-        available_columns = names(df)
-        valid_cols = filter(col -> col in available_columns, cols)
+        # Check cache validity
+        cache = state.misc
+        bypass_cache = is_new_data || reset_semipersistent || isnothing(cache.cached_cleaned_df[]) || cache.cached_cols[] != valid_cols
         
-        # If we don't have at least 2 valid columns after filtering, abort
-        if length(valid_cols) < 2
-            plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))")
-            return false
+        local df_selected
+        local xcol_name
+        local y_names
+        
+        if bypass_cache
+            # Use select to get selected columns
+            df_selected = select(df, valid_cols)
+            
+            # Apply range slicing if provided
+            n_rows = nrow(df_selected)
+            from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
+            to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
+            
+            df_selected = df_selected[from_idx:to_idx, :]
+            
+            # Clean data for plotting
+            df_selected = clean_plot_data!(df_selected, valid_cols, state)
+            
+            # First column is X, rest are Y
+            xcol_name = valid_cols[1]
+            if is_array_mode
+                y_names = state.data_selection.selected_y[]
+            else
+                y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
+            end
+            
+            # Update cache
+            cache.cached_cleaned_df[] = df_selected
+            cache.cached_cols[] = copy(valid_cols)
+            cache.cached_xcol_name[] = xcol_name
+            cache.cached_y_names[] = y_names
+        else
+            df_selected = cache.cached_cleaned_df[]
+            xcol_name = cache.cached_xcol_name[]
+            y_names = cache.cached_y_names[]
         end
-        
-        # Use select to get selected columns
-        df_selected = select(df, valid_cols)
-        
-        # Apply range slicing if provided
-        n_rows = nrow(df_selected)
-        from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
-        to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
-        
-        # Ensure from <= to
-        if from_idx > to_idx
-            from_idx, to_idx = to_idx, from_idx
-        end
-        
-        # Slice the DataFrame
-        df_selected = df_selected[from_idx:to_idx, :]
-        
-        # Clean data for plotting (normalizes numerics, unifies units, and handles warnings)
-        df_selected = clean_plot_data!(df_selected, valid_cols, state)
-        
-        # First column is X, rest are Y
-        xcol_name = valid_cols[1]
-        # Use display name as y_name when multiple Y columns
-        y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
         
         plottype = selected_plottype[] |> Symbol |> eval
         
-        # Use unified replot function
-        # Include current axis limits unless we're resetting them
         base_format = (;
             plottype = plottype,
             show_legend = is_new_data ? nothing : show_legend[],
@@ -643,25 +612,34 @@ function update_dataframe_plot(state, outputs, df_name, cols;
         
         # Update table if requested (only for new plot data)
         if update_table
-            # Build table info with range info
-            if from_idx == 1 && to_idx == n_rows
-                info_text = display_name
+            if is_array_mode
+                x = state.data_selection.selected_x[]
+                y = state.data_selection.selected_y[]
+                table_observable[] = create_data_table(x, y; range_from=range_from, range_to=range_to)
             else
-                info_text = "$display_name [$(from_idx):$(to_idx)]"
+                n_rows = nrow(df)
+                from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
+                to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
+                
+                if from_idx == 1 && to_idx == n_rows
+                    info_text = display_name
+                else
+                    info_text = "$display_name [$(from_idx):$(to_idx)]"
+                end
+                
+                df_with_index = select(df, valid_cols)
+                df_with_index = df_with_index[from_idx:to_idx, :]
+                insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
+                
+                table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text; has_generated_index=true)
             end
-            
-            # Add Index column to df_selected for display
-            df_with_index = copy(df_selected)
-            insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
-            
-            table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text)
         end
         
-        return true  # Success
+        return true
     catch e
-        @warn "Error creating/updating DataFrame plot" exception=e
+        @warn "Error creating/updating plot" exception=e
         plot_observable[] = DOM.div("Error creating plot: $(e)")
-        return false  # Failure
+        return false
     end
 end
 
@@ -770,78 +748,13 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Detect if this is a NEW data source (DataFrame changed)
         is_new_source = (df_name != state.misc.last_plotted_dataframe[])
         
-        update_dataframe_plot(state, outputs, df_name, cols; 
+        update_unified_plot!(state, outputs; 
                               is_new_data=is_new_source, update_table=true,
                               range_from=from_val, range_to=to_val,
                               reset_semipersistent=true) # Requirement 16: Reset on (Re-)Plot
         
         # Update last plotted source
         state.misc.last_plotted_dataframe[] = df_name
-    end
-    
-    # === Plot Type Change Handler for DataFrame mode ===
-    on(selected_plottype) do plottype_str
-        state.misc.block_format_update[] && return
-        source_type[] != "DataFrame" && return
-        
-        cols = selected_columns[]
-        df_name = selected_dataframe[]
-        (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
-        
-        # Mark as non-default if different from DEFAULT_PLOT_TYPE
-        plottype_sym = Symbol(plottype_str)
-        if plottype_sym != DEFAULT_PLOT_TYPE
-            state.misc.format_is_default[:plottype] = false
-        end
-        
-        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
-        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
-        update_dataframe_plot(state, outputs, df_name, cols; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
-    end
-
-    # === Legend Visibility Change Handler for DataFrame mode ===
-    on(show_legend) do legend_bool
-        state.misc.block_format_update[] && return
-        source_type[] != "DataFrame" && return
-        
-        cols = selected_columns[]
-        df_name = selected_dataframe[]
-        (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
-        
-        # Mark as non-default
-        state.misc.format_is_default[:show_legend] = false
-        
-        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
-        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
-        update_dataframe_plot(state, outputs, df_name, cols; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
-    end
-
-    # === Legend Title Change Handler for DataFrame mode ===
-    on(legend_title_text) do leg_title
-        state.misc.block_format_update[] && return
-        source_type[] != "DataFrame" && return
-        
-        cols = selected_columns[]
-        df_name = selected_dataframe[]
-        (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
-        
-        # Mark as non-default if not empty
-        if !isempty(leg_title)
-            state.misc.format_is_default[:legend_title] = false
-        end
-        
-        # Skip replot if legend is not shown - title is saved for when legend becomes visible
-        show_legend[] || return
-        
-        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
-        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
-        update_dataframe_plot(state, outputs, df_name, cols; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
     end
 end
 
@@ -1042,29 +955,12 @@ function setup_axis_limits_callbacks(state, outputs)
     function trigger_axis_replot()
         state.misc.block_format_update[] && return
         
-        if source_type[] == "X, Y Arrays"
-            x = outputs.current_x[]
-            y = outputs.current_y[]
-            (isnothing(x) || isnothing(y)) && return
-            
-            from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
-            to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
-            
-            do_replot(state, outputs;
-                data = (; x_name = x, y_name = y, range_from = from_val, range_to = to_val),
-                plot_format = get_current_plot_format(),
-            )
-        elseif source_type[] == "DataFrame"
-            df_name = selected_dataframe[]
-            cols = selected_columns[]
-            (isnothing(df_name) || df_name == "" || length(cols) < 2) && return
-            
-            from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
-            to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
-            update_dataframe_plot(state, outputs, df_name, cols; 
-                                  is_new_data=false, update_table=false,
-                                  range_from=from_val, range_to=to_val)
-        end
+        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
+        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
+        
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
     end
     
     # === Axis Limit Change Handlers ===

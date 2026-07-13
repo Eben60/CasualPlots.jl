@@ -10,6 +10,18 @@ window.CasualPlots.updateObservableValue = (event, observable) => {
 }
 
 /**
+ * Toggles visibility of source mode containers (Array vs DataFrame).
+ * Used to avoid Bonito reactive DOM patching for source type switching.
+ * @param {string} sourceType - The selected source type ("X, Y Arrays" or "DataFrame")
+ */
+window.CasualPlots.toggleSourceMode = (sourceType) => {
+    const arrayMode = document.getElementById('source-array-mode');
+    const dfMode = document.getElementById('source-dataframe-mode');
+    if (arrayMode) arrayMode.style.display = sourceType === 'X, Y Arrays' ? 'flex' : 'none';
+    if (dfMode) dfMode.style.display = sourceType === 'DataFrame' ? 'flex' : 'none';
+}
+
+/**
  * Updates an observable with the checked state from an event (for checkbox).
  * @param {Event} event - The DOM event
  * @param {Observable} observable - The observable to update
@@ -464,4 +476,35 @@ window.CasualPlots.clearAxisLimitInputs = () => {
     const yRevCheckbox = document.getElementById('axis-y-reversed-checkbox');
     if (xRevCheckbox) xRevCheckbox.checked = false;
     if (yRevCheckbox) yRevCheckbox.checked = false;
+}
+
+/**
+ * Switches the active tab in a tabs container.
+ * @param {Event} event - The click event
+ * @param {number} activeIdx - The 1-based index of the tab to activate
+ * @param {string} containerId - The ID of the tabs container
+ */
+window.CasualPlots.switchTab = (event, activeIdx, containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Update buttons
+    const buttons = container.querySelectorAll('.tab-buttons > .tab-button');
+    buttons.forEach((btn, i) => {
+        if (i + 1 === activeIdx) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Update panels
+    const panels = container.querySelectorAll('.tab-content > .tab-panel');
+    panels.forEach((panel, i) => {
+        if (i + 1 === activeIdx) {
+            panel.classList.add('active');
+        } else {
+            panel.classList.remove('active');
+        }
+    });
 }

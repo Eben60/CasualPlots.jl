@@ -89,19 +89,21 @@ flowchart TD
     
     RefreshPlot --> FormatControls
     
-    %% Save Flow
-    DisplayPlot --> SaveTab[Save Tab Available]
+    %% Save & Code Flow
+    DisplayPlot --> SaveTab[Save / Code Tab Available]
     DisplayDFPlot --> SaveTab
-    SaveTab --> SaveAction{User Save Action}
+    SaveTab --> SaveAction{User Action}
     SaveAction -->|File Dialog Button| FileDialog[Open OS File Dialog]
     FileDialog --> PathSelected[Path Selected]
     SaveAction -->|Type Path| TypePath[Type Path in Textarea]
-    PathSelected --> SaveButton[Click Save Button]
-    TypePath --> SaveButton
-    SaveButton --> ValidatePath{Path Valid?}
+    PathSelected --> ValidateAction[User Clicks Save/Generate Button]
+    TypePath --> ValidateAction
+    SaveAction -->|Save Plot Button| ValidateAction
+    SaveAction -->|Create Script Button| ValidateAction
+    ValidateAction --> ValidatePath{Path Valid?}
     ValidatePath -->|No| ShowPathError[Show Error Modal]
     ValidatePath -->|Yes| CheckExists{File Exists?}
-    CheckExists -->|No| DoSave[Save Plot via CairoMakie]
+    CheckExists -->|No| DoSave[Save Plot or Script to File]
     CheckExists -->|Yes| ConfirmOverwrite{Show Confirm Modal}
     ConfirmOverwrite -->|Cancel| SaveTab
     ConfirmOverwrite -->|Overwrite| DoSave

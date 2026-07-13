@@ -10,15 +10,40 @@ Wrap table content with a source info line displayed above it.
 # Returns
 DOM.div with vertically divided pane: info line on top, table below
 """
-function create_table_with_info(table_content, info_text)
+function create_table_with_info(table_content, info_text; has_generated_index=false)
     # Info line with light blue background, 10px font
     info_line = DOM.div(
         info_text;
         class="info-line"
     )
     
+    # Generate dynamic header CSS based on column types
+    df = table_content.table
+    css_rules = String[]
+    for (i, col) in enumerate(names(df))
+        el_type = eltype(df[!, col])
+        base_type = nonmissingtype(el_type)
+        
+        # Determine background color
+        if has_generated_index && i == 1
+            bg_color = "#f5f5f5" # Light Gray
+        elseif base_type <: Real || base_type <: Bool
+            bg_color = "#e8f5e9" # Light Green
+        elseif base_type <: Unitful.Quantity
+            bg_color = "#e3f2fd" # Light Blue
+        else
+            bg_color = "#fff9c4" # Light Yellow
+        end
+        
+        # Note: nth-child is 1-based index
+        push!(css_rules, ".table-pane-container .table-header:nth-child($i) { background-color: $bg_color !important; }")
+    end
+    
+    dynamic_style = DOM.style(join(css_rules, "\n"))
+    
     # Container: vertical layout with info on top, table below
     DOM.div(
+        dynamic_style,
         info_line,
         DOM.div(table_content; class="table-scroll-wrapper");
         class="table-pane-container"
@@ -94,6 +119,6 @@ function create_data_table(x::AbstractString, y::AbstractString; range_from=noth
         info_text = "$x vs $y [$(from_idx):$(to_idx)]"
     end
     
-    return create_table_with_info(Bonito.Table(df), info_text)
+    return create_table_with_info(Bonito.Table(df), info_text; has_generated_index=true)
 end
 

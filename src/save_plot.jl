@@ -5,30 +5,37 @@ const SUPPORTED_SAVE_FORMATS = ["png", "svg", "pdf"]
 
 
 """
-    validate_save_path(path::AbstractString) -> (valid::Bool, error_message::String)
+    validate_save_path(path::AbstractString) -> NamedTuple
 
 Validate that the save path has a supported file extension.
-Returns a tuple of (is_valid, error_message).
+Returns `(; valid::Bool, error_message::String, path::String)`.
+The returned path will have its extension converted to lowercase if necessary.
 """
 function validate_save_path(path::AbstractString)
     path = strip(path)
     
     if isempty(path)
-        return (false, "Please specify a file path")
+        return (; valid=false, error_message="Please specify a file path", path="")
     end
     
-    ext = lowercase(splitext(path)[2])
+    base_name, orig_ext = splitext(path)
+    ext = lowercase(orig_ext)
     
     if isempty(ext)
-        return (false, "File must have an extension (.png, .svg, or .pdf)")
+        return (; valid=false, error_message="File must have an extension (.png, .svg, or .pdf)", path)
     end
 
     clean_ext = lstrip(ext, '.') 
     if clean_ext ∉ SUPPORTED_SAVE_FORMATS
-        return (false, "Unsupported format '$ext'. Use .png, .svg, or .pdf")
+        return (; valid=false, error_message="Unsupported format '$(orig_ext)'. Use .png, .svg, or .pdf", path)
     end
     
-    return (true, "")
+    normalized_path = base_name * ext
+    if orig_ext != ext
+        @warn "Makie (FileIO) requires lowercase extensions. The file will be saved as $(basename(normalized_path)) instead."
+    end
+    
+    return (; valid=true, error_message="", path=normalized_path)
 end
 
 """
@@ -46,11 +53,13 @@ Tuple of (success::Bool, message::String) indicating result and any error messag
 """
 function save_current_plot(path::AbstractString, figure::Figure)
     # Validate path first
-    (valid, err_msg) = validate_save_path(path)
-    if !valid
-        @warn "Save validation failed: $err_msg"
-        return (false, err_msg)
+    val = validate_save_path(path)
+    if !val.valid
+        @warn "Save validation failed: $(val.error_message)"
+        return (false, val.error_message)
     end
+    
+    path = val.path
     
     # Ensure directory exists
     dir = dirname(path)

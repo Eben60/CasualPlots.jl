@@ -177,8 +177,8 @@ Encapsulates all data cleaning operations for plotting:
 4. Safely manages warning messages and popups.
 """
 function clean_plot_data!(df_selected, valid_cols, state=nothing)
-    # 1. Check internal unit consistency for all selected columns (X and Y)
-    check_internal_unit_compatibility!(df_selected, valid_cols)
+    # 1. Check internal unit consistency and unify differing compatible units within columns
+    unify_internal_column_units!(df_selected, valid_cols)
     
     # 2. Normalize numeric columns for plotting and track any columns with data issues
     df_selected, dirty_cols = normalize_numeric_columns!(df_selected, valid_cols)

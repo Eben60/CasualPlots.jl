@@ -6,7 +6,7 @@ Create UI elements for the control panel (data source and format controls).
 
 Returns a NamedTuple with:
 - `source_type_selector`: Radio buttons for source type selection
-- `source_content`: Dynamic content area that changes based on source type
+- `source_content`: Static content area containing both source modes with CSS visibility toggling
 - `plot_kind`: Plot type selection UI
 - `theme_selector`: Theme selection UI
 - `group_by_selector`: Group differentiation style selector UI
@@ -41,31 +41,35 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     array_dropdowns = create_array_mode_content(x_node, y_node, trigger_update)
     
     # DataFrame mode: dropdown row + column controls (buttons and checkboxes)
-    dataframe_dropdown_row = create_dataframe_dropdown_row(dataframe_node)
+    dataframe_dropdown_row = create_dataframe_dropdown_row(dataframe_node, trigger_update)
     dataframe_column_controls = create_dataframe_column_controls(
         selected_dataframe, selected_columns, opened_file_df
     )
     
-    # Dynamic source content that switches based on source_type
-    # Layout: [mode-specific dropdowns] -> [range row with plot button] -> [DataFrame controls if applicable]
-    source_content = map(source_type) do st
-        if st == "DataFrame"
-            # DataFrame mode: dropdown + range row + column controls
-            DOM.div(
-                dataframe_dropdown_row,
-                range_input_row,
-                dataframe_column_controls;
-                class="flex-col"
-            )
-        else
-            # Array mode: X/Y dropdowns + range row
-            DOM.div(
-                array_dropdowns,
-                range_input_row;
-                class="flex-col"
-            )
-        end
-    end
+    # Static source content — both modes rendered, visibility toggled via CSS/JS.
+    # This avoids Bonito reactive DOM patching which can misplace nodes on reload.
+    array_mode_container = DOM.div(
+        array_dropdowns;
+        class="flex-col",
+        id="source-array-mode",
+        style=(source_type[] == "X, Y Arrays" ? "display: flex;" : "display: none;")
+    )
+    
+    dataframe_mode_container = DOM.div(
+        dataframe_dropdown_row,
+        dataframe_column_controls;
+        class="flex-col",
+        id="source-dataframe-mode",
+        style=(source_type[] == "DataFrame" ? "display: flex;" : "display: none;")
+    )
+    
+    # range_input_row is shared between both modes, placed outside the toggled containers
+    source_content = DOM.div(
+        array_mode_container,
+        dataframe_mode_container,
+        range_input_row;
+        class="flex-col"
+    )
     
     plot_kind = create_plot_kind_selector(plottype_node)
     theme_selector = create_theme_selector(theme_node)

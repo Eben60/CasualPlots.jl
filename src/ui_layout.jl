@@ -8,7 +8,7 @@ Assemble the final application layout with all panes and grids.
 - `help_visibility`: Observable controlling help section visibility
 - `plot_observable`: Observable containing plot display
 - `table_observable`: Observable containing table display
-- `state`: Application state NamedTuple (for modal dialog)
+- `state`: Application state struct `CasualPlotsState` (for modal dialog)
 - `overwrite_trigger`: Observable for overwrite button clicks
 - `cancel_trigger`: Observable for cancel button clicks
 

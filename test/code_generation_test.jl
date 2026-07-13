@@ -7,14 +7,17 @@ using Test
     state.data_selection.selected_x[] = "xx100"
     state.data_selection.selected_y[] = "yy100"
     
-    code = CasualPlots.generate_julia_code(state)
+    code = CasualPlots.generate_julia_code(state).code
     
-    @test occursin("function cp_load_data(; xx100, yy100)", code)
+    @test occursin("function cp_load_data(; xx100, yy100,", code)
     @test occursin("data = cp_load_data(; xx100, yy100)", code)
     @test occursin("cp_create_plot(data)", code)
     
-    # Should not include CasualPlots import if not needed
-    @test !occursin("using CasualPlots", code)
+    @test occursin("df = DataFrame(m, valid_cols)", code)
+    @test occursin("CasualPlots.clean_plot_data!(df_selected, valid_cols)", code)
+    
+    # Arrays mode now uses CasualPlots.clean_plot_data!
+    @test occursin("using CasualPlots", code)
 end
 
 @testset "Code Generation String Verification - DataFrame Mode" begin
@@ -23,9 +26,9 @@ end
     state.data_selection.selected_dataframe[] = "my_df"
     state.data_selection.selected_columns[] = ["col_A", "col_B"]
     
-    code = CasualPlots.generate_julia_code(state)
+    code = CasualPlots.generate_julia_code(state).code
     
-    @test occursin("function cp_load_data(; my_df)", code)
+    @test occursin("function cp_load_data(; my_df,", code)
     @test occursin("data = cp_load_data(; my_df)", code)
     @test occursin("CasualPlots.clean_plot_data!(df_selected, [\"col_A\", \"col_B\"])", code)
     # Uses CasualPlots here
@@ -39,9 +42,9 @@ end
     state.file_opening.opened_file_path[] = "test_data.csv"
     state.data_selection.selected_columns[] = ["a", "b"]
     
-    code = CasualPlots.generate_julia_code(state)
+    code = CasualPlots.generate_julia_code(state).code
     
-    @test occursin("function cp_load_data()", code)
+    @test occursin("function cp_load_data(; file", code)
     @test occursin("data = cp_load_data()", code)
     @test occursin("using CSV", code)
     @test occursin("CSV.read", code)
@@ -56,7 +59,7 @@ end
     state.data_selection.selected_columns[] = ["a", "b"]
     state.file_opening.skip_after_header[] = 2
     
-    code = CasualPlots.generate_julia_code(state)
+    code = CasualPlots.generate_julia_code(state).code
     @test occursin("CasualPlots.skip_rows!(", code)
     @test occursin("using CasualPlots", code)
 end
@@ -81,7 +84,7 @@ end
     # Theme
     state.plotting.format.selected_theme[] = "theme_dark"
     
-    code = CasualPlots.generate_julia_code(state)
+    code = CasualPlots.generate_julia_code(state).code
     
     @test occursin("\"My Custom Title\"", code)
     @test occursin("\"X Axis\"", code)
@@ -98,12 +101,82 @@ end
     state.plotting.format.selected_group_by[] = "Geometry"
     state.plotting.format.selected_plottype[] = "Lines"
     
-    code = CasualPlots.generate_julia_code(state)
+    code = CasualPlots.generate_julia_code(state).code
     @test occursin("group_mapping = (; linestyle = group_col =>", code)
     
     state.plotting.format.selected_plottype[] = "Scatter"
-    code_scatter = CasualPlots.generate_julia_code(state)
+    code_scatter = CasualPlots.generate_julia_code(state).code
     @test occursin("group_mapping = (; marker = group_col =>", code_scatter)
+end
+
+@testset "Code Generation - Rows Kwarg (Partial and Full Ranges)" begin
+    state = CasualPlots.initialize_app_state()
+    state.data_selection.source_type[] = "DataFrame"
+    state.data_selection.selected_dataframe[] = "my_df"
+    state.data_selection.selected_columns[] = ["col_A", "col_B"]
+    
+    # Set data bounds
+    state.data_selection.data_bounds_from[] = 1
+    state.data_selection.data_bounds_to[] = 100
+    
+    # 1. Full range (defaults, should not include `rows` kwarg in call)
+    state.data_selection.range_from[] = nothing
+    state.data_selection.range_to[] = nothing
+    code1 = CasualPlots.generate_julia_code(state).code
+    @test occursin("data = cp_load_data(; my_df)\n", code1)
+    
+    # 1b. Full range (bounds matched explicitly, should also omit `rows` kwarg in call)
+    state.data_selection.range_from[] = 1
+    state.data_selection.range_to[] = 100
+    code1b = CasualPlots.generate_julia_code(state).code
+    @test occursin("data = cp_load_data(; my_df)\n", code1b)
+
+    # 2. Start to a specific end
+    state.data_selection.range_from[] = 1
+    state.data_selection.range_to[] = 50
+    code2 = CasualPlots.generate_julia_code(state).code
+    @test occursin("rows = (:begin, 50)", code2)
+    
+    # 3. Specific start to the end
+    state.data_selection.range_from[] = 10
+    state.data_selection.range_to[] = 100
+    code3 = CasualPlots.generate_julia_code(state).code
+    @test occursin("rows = (10, :end)", code3)
+    
+    # 4. Specific range
+    state.data_selection.range_from[] = 10
+    state.data_selection.range_to[] = 50
+    code4 = CasualPlots.generate_julia_code(state).code
+    @test occursin("rows = (10, 50)", code4)
+end
+
+@testset "validate_script_path" begin
+    # Valid missing extension
+    valid, p, err = CasualPlots.validate_script_path("testpath")
+    @test valid == true
+    @test p == "testpath.jl"
+    @test err == ""
+    
+    # Valid existing extension (case insensitive)
+    valid, p, err = CasualPlots.validate_script_path("testpath.jl")
+    @test valid == true
+    @test p == "testpath.jl"
+    
+    valid, p, err = CasualPlots.validate_script_path("testpath.JL")
+    @test valid == true
+    @test p == "testpath.JL"
+    
+    # Invalid extension
+    valid, p, err = CasualPlots.validate_script_path("testpath.txt")
+    @test valid == false
+    @test p == ""
+    @test occursin(".jl extension", err)
+    
+    # Empty path
+    valid, p, err = CasualPlots.validate_script_path("  ")
+    @test valid == false
+    @test p == ""
+    @test occursin("specify a file path", err)
 end
 
 @testset "generate_julia_code file suffix logic" begin
@@ -117,18 +190,29 @@ end
         filepath_no_ext = joinpath(tmpdir, "my_plot")
         filepath_expected = filepath_no_ext * ".jl"
         
-        CasualPlots.generate_julia_code(state; file=filepath_no_ext)
+        res1 = CasualPlots.generate_julia_code(state; file=filepath_no_ext)
+        @test res1.success == true
+        @test res1.path == filepath_expected
         @test !isfile(filepath_no_ext)
         @test isfile(filepath_expected)
         
         # Verify content matches what String version gives
-        code_str = CasualPlots.generate_julia_code(state)
+        code_str = CasualPlots.generate_julia_code(state).code
         @test read(filepath_expected, String) == code_str
         
         # File with existing suffix
         filepath_with_ext = joinpath(tmpdir, "my_plot_2.jl")
-        CasualPlots.generate_julia_code(state; file=filepath_with_ext)
+        res2 = CasualPlots.generate_julia_code(state; file=filepath_with_ext)
+        @test res2.success == true
+        @test res2.path == filepath_with_ext
         @test isfile(filepath_with_ext)
         @test !isfile(filepath_with_ext * ".jl")
+        
+        # File with wrong suffix
+        filepath_wrong_ext = joinpath(tmpdir, "my_plot_3.txt")
+        res3 = CasualPlots.generate_julia_code(state; file=filepath_wrong_ext)
+        @test res3.success == false
+        @test isnothing(res3.path)
+        @test !isfile(filepath_wrong_ext)
     end
 end
