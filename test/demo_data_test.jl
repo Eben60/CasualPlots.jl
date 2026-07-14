@@ -1,4 +1,5 @@
 using CasualPlots
+using CasualPlots: make_y, create_data_matrix
 using Test
 
 @testset "create_data_matrix" begin

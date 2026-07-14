@@ -1,9 +1,11 @@
-# @usingany CSV, XLSX
+# using ShareAdd; @usingany CSV, XLSX
 
-include("casualplots_test_setup.jl") # populate Main and do imports
+using CasualPlots
+
+CasualPlots.@populate ;  # populate Main by sample variables
 
 
-app = casualplots_app()
+app = casualplots_app() ;
 
 Ele.serve_app(app);
 

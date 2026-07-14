@@ -1,1 +1,1 @@
-public skip_rows!, normalize_numeric_columns!, generate_julia_code
+public skip_rows!, normalize_numeric_columns!, generate_julia_code, @populate
