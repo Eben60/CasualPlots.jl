@@ -12,8 +12,9 @@ updates:
   - package-ecosystem: "julia"
     directories:
       - "/"
-      - "/docs"
-      - "/test"
+    exclude-paths:
+      - "docs/"
+      - "test/"
     schedule:
       interval: "weekly"
     groups:
