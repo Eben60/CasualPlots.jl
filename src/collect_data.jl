@@ -127,7 +127,7 @@ Returns empty vector if DataFrame doesn't exist or has no columns.
 function get_dataframe_columns(df_name::AbstractString)
     try
         df = getfield(Main, Symbol(df_name))
-        if isdefined(Main, :DataFrame) && isa(df, getfield(Main, :DataFrame))
+        if isa(df, AbstractDataFrame)
             return names(df)
         end
     catch e
@@ -155,7 +155,7 @@ function get_dataframe_bounds(df_name::AbstractString, opened_file_df=nothing)
             return (1, nrow(opened_file_df))
         else
             df = getfield(Main, Symbol(df_name))
-            if isdefined(Main, :DataFrame) && isa(df, getfield(Main, :DataFrame))
+            if isa(df, AbstractDataFrame)
                 return (1, nrow(df))
             end
         end
