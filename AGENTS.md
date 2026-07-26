@@ -208,7 +208,7 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 **Key Functions:**
 - `do_replot(state, outputs; data, plot_format, is_new_data)`: **Unified entry point** for all plotting
   - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames
-  - `plot_format`: `(; plottype, show_legend, legend_title, group_by)` + axis limits
+  - `plot_format`: `(; plottype, show_legend, legend_title, group_by)` + axis limits + BarPlot options (`bar_direction`, `bar_mode`)
   - `is_new_data`: If true, initializes text fields from plot defaults
 - `check_data_create_plot(x_name, y_name; plot_format)`: Fetch from Main, delegate to create_plot
 - `create_plot(x_data::AbstractVector, y_data, ...)`: Arrays → DataFrame → AoG pipeline
@@ -222,10 +222,14 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 # Group differentiation based on group_by setting:
 group_mapping = if group_by == "Geometry" && plottype != BarPlot
     plottype == Lines ? (; linestyle = group_col => legend_title) : (; marker = group_col => legend_title)
+elseif plottype == BarPlot
+    bar_kw = bar_mode == "Stacked" ? (; stack = group_col => legend_title) : (; dodge = group_col => legend_title)
+    merge((; color = group_col => legend_title), bar_kw)
 else
     (; color = group_col => legend_title)
 end
-plt = data(df) * mapping(x_col => x_name, y_col => y_name; group_mapping...) * visual(plottype)
+vis = plottype == BarPlot ? visual(BarPlot; direction = bar_direction == "Horizontal" ? :x : :y) : visual(plottype)
+plt = data(df) * mapping(x_col => x_name, y_col => y_name; group_mapping...) * vis
 fg = draw(plt; figure=(; size=(800, 600)), legend=(show=show_legend,), axis=(; title))
 fig = fg.figure
 axis = fg.grid[1, 1].axis  # Extract Axis from FigureGrid
@@ -247,7 +251,7 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
 
-#### Planned Enhancements (as of v0.5.0)
+#### Planned Enhancements (as of v0.7.0)
 
 - ~~Axis limits~~ ✓ Implemented (configurable min/max, reversal, pan/zoom sync)
 - ~~Themes~~ ✓ Implemented (Makie default, AoG, theme_black/dark/ggplot2/light/minimal)
@@ -319,6 +323,9 @@ export Ele                  # Displaying Bonito `app` in Electron window
 ### Plot Formatting
 **Format Pane:**
 ![Format Pane](AGENTS_more_info/ScreenShots/Format%20pane%20for%20DataFrames%20source.png)
+
+**BarPlot Format Pane:**
+![BarPlot Format Pane](AGENTS_more_info/ScreenShots/format_tab_barplot.png)
 
 ## Development Status
 **Status**: Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.

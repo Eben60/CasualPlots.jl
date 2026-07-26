@@ -27,6 +27,12 @@ const DEFAULT_THEME = "Makie default"
 const GROUP_BY_OPTIONS = ["Color", "Geometry"]
 const DEFAULT_GROUP_BY = "Color"
 
+const BAR_DIRECTION_OPTIONS = ["Vertical", "Horizontal"]
+const DEFAULT_BAR_DIRECTION = "Vertical"
+
+const BAR_MODE_OPTIONS = ["Dodged", "Stacked"]
+const DEFAULT_BAR_MODE = "Dodged"
+
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
 
 const AXES_LIMITS_OPTIONS = [:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed]
@@ -48,7 +54,7 @@ Maps reset trigger names to the set of format options that should be reset.
 
 **Result:**
 ```
-"never"  => Set([:plottype])
+"never"  => Set([:plottype, :theme, :bar_direction, :bar_mode])
 "range"  => Set([:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed])
 "source" => Set([:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed, 
                  :title, :xlabel, :ylabel, :show_legend, :legend_title])
@@ -56,7 +62,7 @@ Maps reset trigger names to the set of format options that should be reset.
 """
 const RESET_FORMAT_OPTION = let
     rfo = Dict(
-        ["never"] => m2s([:plottype, :theme]),
+        ["never"] => m2s([:plottype, :theme, :bar_direction, :bar_mode]),
         ["source", "range"] => m2s(AXES_LIMITS_OPTIONS),
         ["source"] => m2s(PLOT_LABELS_OPTIONS, PLOT_LEGEND_OPTIONS),
     )

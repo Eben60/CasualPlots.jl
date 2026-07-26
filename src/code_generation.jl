@@ -176,6 +176,8 @@ function generate_plot_function(state::CasualPlotsState)
     plottype = format.selected_plottype[]
     theme = format.selected_theme[]
     group_by = format.selected_group_by[]
+    bar_direction = format.selected_bar_direction[]
+    bar_mode = format.selected_bar_mode[]
     show_legend = format.show_legend[]
     
     title = handles.title_text[]
@@ -225,13 +227,26 @@ function cp_create_plot(data)
         else
             code *= "    group_mapping = (; marker = group_col => $(repr(legend_title)))\n"
         end
+    elseif plottype == "BarPlot"
+        if bar_mode == "Stacked"
+            code *= "    group_mapping = (; color = group_col => $(repr(legend_title)), stack = group_col => $(repr(legend_title)))\n"
+        else
+            code *= "    group_mapping = (; color = group_col => $(repr(legend_title)), dodge = group_col => $(repr(legend_title)))\n"
+        end
     else
         code *= "    group_mapping = (; color = group_col => $(repr(legend_title)))\n"
     end
     
+    vis_code = if plottype == "BarPlot"
+        dir_val = bar_direction == "Horizontal" ? :x : :y
+        "visual(BarPlot; direction = $(repr(dir_val)))"
+    else
+        "visual($(plottype))"
+    end
+    
     # Plotting code
     code *= """
-    plt = AlgebraOfGraphics.data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * visual($(plottype))
+    plt = AlgebraOfGraphics.data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * $(vis_code)
     
     limits = ($(repr(x_min)), $(repr(x_max)), $(repr(y_min)), $(repr(y_max)))
     
@@ -295,7 +310,11 @@ using AlgebraOfGraphics
     code *= "#\n"
     code *= "# uncomment and run the corresponding lines to generate, display, and/or save the plot\n"
     code *= "#\n"
-    code *= "# # --- taking exactly the same data already existing in the Main --\n"
+    if source_type == "DataFrame" && state.data_selection.selected_dataframe[] == "__opened_file__"
+        code *= "# # --- reading data from file on disk --\n"
+    else
+        code *= "# # --- taking exactly the same data already existing in the Main --\n"
+    end
     code *= "#\n"
     
     filename_base = if source_type == "X, Y Arrays"

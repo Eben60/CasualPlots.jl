@@ -8,6 +8,7 @@ Returns a NamedTuple with:
 - `source_type_selector`: Radio buttons for source type selection
 - `source_content`: Static content area containing both source modes with CSS visibility toggling
 - `plot_kind`: Plot type selection UI
+- `barplot_options`: BarPlot options UI section (direction and mode)
 - `theme_selector`: Theme selection UI
 - `group_by_selector`: Group differentiation style selector UI
 - `legend_control`: Legend visibility checkbox UI
@@ -75,6 +76,10 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     theme_selector = create_theme_selector(theme_node)
     group_by_selector = create_group_by_selector(group_by_node)
     
+    bar_direction_node = create_bar_direction_dropdown(state.plotting.format.selected_bar_direction)
+    bar_mode_node = create_bar_mode_dropdown(state.plotting.format.selected_bar_mode)
+    barplot_options = create_barplot_options_section(bar_direction_node, bar_mode_node, state.plotting.format.selected_plottype)
+    
     legend_control = create_legend_control(show_legend, legend_title_text)
     
     # Text input fields for plot labels
@@ -85,7 +90,7 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     # Axis limits section
     axis_limits_section = create_axis_limits_section(format)
     
-    return (; source_type_selector, source_content, plot_kind, theme_selector, group_by_selector, legend_control,
+    return (; source_type_selector, source_content, plot_kind, barplot_options, theme_selector, group_by_selector, legend_control,
               xlabel_input, ylabel_input, title_input, axis_limits_section, plot_trigger)
 end
 

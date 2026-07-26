@@ -81,6 +81,7 @@ function create_tab_content(control_panel, state, outputs)
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(
         control_panel.plot_kind,
+        control_panel.barplot_options,
         control_panel.theme_selector,
         control_panel.group_by_selector,
         control_panel.legend_control,

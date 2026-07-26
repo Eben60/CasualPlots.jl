@@ -160,7 +160,7 @@ In short, it is WIP, however, the main goals are already implemented and the pac
     - [✅] Range selection, DataFrame columns selection.
 - [✅] Data sources: CSV and XLSX files.
     - [✅] Support for CSV/XLSX file reading options (kwargs).
-- [✅] Plotting: Lines and Scatter plots.
+- [✅] Plotting: Lines, Scatter, and Bar plots.
     - [🚧] More plot formatting options being added.
 - [✅] Saving plot to a file.
 - [✅] Exporting the Figure object.
@@ -175,4 +175,5 @@ In short, it is WIP, however, the main goals are already implemented and the pac
 - [X, Y Source Selection, Scatter Plot](AGENTS_more_info/ScreenShots/xy_source_selection.png)
 - [DataFrame Source Selection](AGENTS_more_info/ScreenShots/dataframe_source_selection.png)
 - [Format Tab, Lines Plot](AGENTS_more_info/ScreenShots/format_tab.png)
+- [Format Tab, Bar Plot](AGENTS_more_info/ScreenShots/format_tab_barplot.png)
 - [Save Tab](AGENTS_more_info/ScreenShots/save_tab.png)

@@ -392,7 +392,7 @@ Handle format changes for X,Y Array mode: plottype, show_legend, legend_title_te
 All changes trigger a full replot using the unified do_replot function.
 """
 function setup_format_change_callbacks(state, outputs)
-    (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
+    (; selected_plottype, selected_group_by, selected_bar_direction, selected_bar_mode, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     (; range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     
@@ -455,6 +455,34 @@ function setup_format_change_callbacks(state, outputs)
                               is_new_data=false, update_table=false,
                               range_from=from_val, range_to=to_val)
     end
+    
+    # === Bar Direction Change Handler ===
+    on(selected_bar_direction) do bar_dir
+        state.misc.block_format_update[] && return
+        
+        if bar_dir != DEFAULT_BAR_DIRECTION
+            state.misc.format_is_default[:bar_direction] = false
+        end
+        
+        from_val, to_val = get_range_values()
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
+    end
+    
+    # === Bar Mode Change Handler ===
+    on(selected_bar_mode) do bar_mode
+        state.misc.block_format_update[] && return
+        
+        if bar_mode != DEFAULT_BAR_MODE
+            state.misc.format_is_default[:bar_mode] = false
+        end
+        
+        from_val, to_val = get_range_values()
+        update_unified_plot!(state, outputs; 
+                              is_new_data=false, update_table=false,
+                              range_from=from_val, range_to=to_val)
+    end
 end
 
 
@@ -480,7 +508,7 @@ function update_unified_plot!(state, outputs;
                                range_to::Union{Nothing,Int}=nothing,
                                reset_semipersistent::Bool=false)
     (; show_modal, modal_type) = state.dialogs
-    (; selected_plottype, selected_group_by, show_legend) = state.plotting.format
+    (; selected_plottype, selected_group_by, selected_bar_direction, selected_bar_mode, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     (; source_type) = state.data_selection
     plot_observable = outputs.plot
@@ -596,6 +624,8 @@ function update_unified_plot!(state, outputs;
             show_legend = is_new_data ? nothing : show_legend[],
             legend_title = is_new_data ? "" : legend_title_text[],
             group_by = selected_group_by[],
+            bar_direction = selected_bar_direction[],
+            bar_mode = selected_bar_mode[],
         )
         plot_format = if is_new_data || reset_semipersistent
             base_format
@@ -929,7 +959,7 @@ Set up callbacks for axis limit and reversal changes.
 Changes are applied immediately without needing a Replot button.
 """
 function setup_axis_limits_callbacks(state, outputs)
-    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, selected_group_by, show_legend) = state.plotting.format
+    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, selected_group_by, selected_bar_direction, selected_bar_mode, show_legend) = state.plotting.format
     (; current_axis, current_figure, legend_title_text) = state.plotting.handles
     (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
@@ -942,6 +972,8 @@ function setup_axis_limits_callbacks(state, outputs)
             show_legend = show_legend[],
             legend_title = legend_title_text[],
             group_by = selected_group_by[],
+            bar_direction = selected_bar_direction[],
+            bar_mode = selected_bar_mode[],
             x_min = x_min[],
             x_max = x_max[],
             y_min = y_min[],

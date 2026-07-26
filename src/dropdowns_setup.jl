@@ -87,7 +87,7 @@ Create a generic dropdown menu.
 # Returns
 DOM.select element
 """
-function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=nothing; placeholder=nothing, disabled=false, id=nothing)
+function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=nothing; placeholder=nothing, disabled=false, id=nothing, onchange=nothing)
     
     final_options = []
     current_val = isnothing(selected_val_obs) ? nothing : selected_val_obs[]
@@ -123,7 +123,9 @@ function create_dropdown(options, selected_val_obs::Union{Observable, Nothing}=n
         attributes[:id] = id
     end
     
-    if !isnothing(selected_val_obs)
+    if !isnothing(onchange)
+        attributes[:onchange] = onchange
+    elseif !isnothing(selected_val_obs)
         attributes[:onchange] = js"event => window.CasualPlots.updateObservableValue(event, $(selected_val_obs))"
     end
     

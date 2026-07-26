@@ -73,6 +73,9 @@ Base.@kwdef struct PlotFormat
     # Axis reversal
     xreversed::Observable{Bool}
     yreversed::Observable{Bool}
+    # BarPlot options
+    selected_bar_direction::Observable{String} # "Vertical" or "Horizontal"
+    selected_bar_mode::Observable{String}      # "Dodged" or "Stacked"
 end
 
 Base.@kwdef struct PlotHandles

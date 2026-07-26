@@ -12,7 +12,11 @@ Observable containing the dropdown DOM element
 """
 function create_plottype_dropdown(supported_plot_types, selected_plottype)
     # create_dropdown is available from dropdowns_setup.jl (module scope)
-    return Observable(create_dropdown(supported_plot_types, selected_plottype; id="dropdown-plottype"))
+    return Observable(create_dropdown(
+        supported_plot_types, selected_plottype; 
+        id="dropdown-plottype",
+        onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(selected_plottype)); window.CasualPlots.toggleBarplotOptions(event.target.value); }"
+    ))
 end
 
 """
@@ -118,6 +122,42 @@ DOM.div containing group-by dropdown with label
 function create_group_by_selector(group_by_node)
     DOM.div(
         "Show group by:", group_by_node;
+        class="flex-row align-center gap-1 mb-1"
+    )
+end
+
+"""
+    create_bar_direction_dropdown(selected_bar_direction)
+
+Create the dropdown for selecting BarPlot direction (Vertical/Horizontal).
+"""
+function create_bar_direction_dropdown(selected_bar_direction)
+    return Observable(create_dropdown(BAR_DIRECTION_OPTIONS, selected_bar_direction; id="dropdown-bar-direction"))
+end
+
+"""
+    create_bar_mode_dropdown(selected_bar_mode)
+
+Create the dropdown for selecting BarPlot mode (Dodged/Stacked).
+"""
+function create_bar_mode_dropdown(selected_bar_mode)
+    return Observable(create_dropdown(BAR_MODE_OPTIONS, selected_bar_mode; id="dropdown-bar-mode"))
+end
+
+"""
+    create_barplot_options_section(direction_node, mode_node, selected_plottype)
+
+Create BarPlot options UI section containing direction and mode dropdowns.
+Only visible when selected_plottype is "BarPlot".
+"""
+function create_barplot_options_section(direction_node, mode_node, selected_plottype)
+    initial_style = selected_plottype[] == "BarPlot" ? "display: flex;" : "display: none;"
+
+    DOM.div(
+        "Bar direction:", direction_node,
+        "Mode:", mode_node;
+        id="barplot-options-section",
+        style=initial_style,
         class="flex-row align-center gap-1 mb-1"
     )
 end

@@ -18,6 +18,8 @@ using Test
     
     # Arrays mode now uses CasualPlots.clean_plot_data!
     @test occursin("using CasualPlots", code)
+    @test occursin("taking exactly the same data already existing in the Main", code)
+    @test !occursin("reading data from file on disk", code)
 end
 
 @testset "Code Generation String Verification - DataFrame Mode" begin
@@ -33,6 +35,7 @@ end
     @test occursin("CasualPlots.clean_plot_data!(df_selected, [\"col_A\", \"col_B\"])", code)
     # Uses CasualPlots here
     @test occursin("using CasualPlots", code)
+    @test occursin("taking exactly the same data already existing in the Main", code)
 end
 
 @testset "Code Generation String Verification - Opened File Mode" begin
@@ -49,6 +52,8 @@ end
     @test occursin("using CSV", code)
     @test occursin("CSV.read", code)
     @test occursin("using CasualPlots", code)
+    @test occursin("reading data from file on disk", code)
+    @test !occursin("taking exactly the same data already existing in the Main", code)
 end
 
 @testset "Code Generation String Verification - Opened File Mode with options" begin
@@ -107,6 +112,26 @@ end
     state.plotting.format.selected_plottype[] = "Scatter"
     code_scatter = CasualPlots.generate_julia_code(state).code
     @test occursin("group_mapping = (; marker = group_col =>", code_scatter)
+end
+
+@testset "Code Generation String Verification - BarPlot Options" begin
+    state = CasualPlots.initialize_app_state()
+    state.data_selection.source_type[] = "X, Y Arrays"
+    state.data_selection.selected_x[] = "xx"
+    state.data_selection.selected_y[] = "yy"
+    state.plotting.format.selected_plottype[] = "BarPlot"
+
+    # Default Dodged + Vertical
+    code_dodged_vert = CasualPlots.generate_julia_code(state).code
+    @test occursin("group_mapping = (; color = group_col => \"\", dodge = group_col => \"\")", code_dodged_vert)
+    @test occursin("visual(BarPlot; direction = :y)", code_dodged_vert)
+
+    # Stacked + Horizontal
+    state.plotting.format.selected_bar_mode[] = "Stacked"
+    state.plotting.format.selected_bar_direction[] = "Horizontal"
+    code_stacked_horiz = CasualPlots.generate_julia_code(state).code
+    @test occursin("group_mapping = (; color = group_col => \"\", stack = group_col => \"\")", code_stacked_horiz)
+    @test occursin("visual(BarPlot; direction = :x)", code_stacked_horiz)
 end
 
 @testset "Code Generation - Rows Kwarg (Partial and Full Ranges)" begin

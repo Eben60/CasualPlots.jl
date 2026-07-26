@@ -53,12 +53,26 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
         else  # Scatter
             (; marker = group_col => legend_title)
         end
+    elseif plottype == BarPlot
+        bar_mode = get(plot_format, :bar_mode, "Dodged")
+        if bar_mode == "Stacked"
+            (; color = group_col => legend_title, stack = group_col => legend_title)
+        else
+            (; color = group_col => legend_title, dodge = group_col => legend_title)
+        end
     else
         # Default to color (also fallback for BarPlot with Geometry)
         (; color = group_col => legend_title)
     end
     
-    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * visual(plottype)
+    vis = if plottype == BarPlot
+        dir_val = get(plot_format, :bar_direction, "Vertical") == "Horizontal" ? :x : :y
+        visual(BarPlot; direction = dir_val)
+    else
+        visual(plottype)
+    end
+    
+    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * vis
     
     # Use custom title if provided, otherwise generate default
     title = if !isnothing(custom_title) && custom_title != ""

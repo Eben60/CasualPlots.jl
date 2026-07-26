@@ -22,6 +22,8 @@ using Observables
     @test state.plotting.format.x_min[] === nothing
     @test state.plotting.format.show_legend[] == true
     @test state.plotting.format.xreversed[] == false
+    @test state.plotting.format.selected_bar_direction[] == "Vertical"
+    @test state.plotting.format.selected_bar_mode[] == "Dodged"
     @test state.misc.block_format_update[] == false
 end
 
