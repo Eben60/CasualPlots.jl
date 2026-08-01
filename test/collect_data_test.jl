@@ -1,6 +1,7 @@
 using CasualPlots
 using Test
 using DataFrames
+using Unitful
 
 # Ensure DataFrames is available in Main for the tests that need it
 if !isdefined(Main, :DataFrames)
@@ -8,12 +9,14 @@ if !isdefined(Main, :DataFrames)
 end
 
 @testset "get_dims_of_arrays" begin
+    using CasualPlots: get_dims_of_arrays
+
     # Create test data in Main module using eval
     Main.eval(:(test_vec = [1, 2, 3]))
     Main.eval(:(test_mat = [1 2; 3 4; 5 6]))
     Main.eval(:(test_scalar = 42))
     
-    dims_dict = CasualPlots.get_dims_of_arrays()
+    dims_dict = get_dims_of_arrays()
     
     @test haskey(dims_dict, :test_vec)
     @test dims_dict[:test_vec] == (3,)
@@ -26,6 +29,8 @@ end
 end
 
 @testset "get_congruent_y_names" begin
+    using CasualPlots: get_congruent_y_names
+
     # Setup test data
     dims_dict = Dict{Symbol, Tuple}(
         :x1 => (10,),
@@ -36,7 +41,7 @@ end
     )
     
     # Find all variables with first dimension = 10
-    result = CasualPlots.get_congruent_y_names("x1", dims_dict)
+    result = get_congruent_y_names("x1", dims_dict)
     @test "y1" in result
     @test "y2" in result
     @test !("z1" in result)
@@ -44,30 +49,32 @@ end
     @test !("x1" in result)  # Should exclude self
     
     # Find all variables with first dimension = 5
-    result = CasualPlots.get_congruent_y_names("z1", dims_dict)
+    result = get_congruent_y_names("z1", dims_dict)
     @test "z2" in result
     @test !("x1" in result)
     @test !("y1" in result)
     
     # Empty or nothing input
-    result = CasualPlots.get_congruent_y_names("", dims_dict)
+    result = get_congruent_y_names("", dims_dict)
     @test isempty(result)
     
-    result = CasualPlots.get_congruent_y_names(nothing, dims_dict)
+    result = get_congruent_y_names(nothing, dims_dict)
     @test isempty(result)
     
     # Non-existent variable
-    result = CasualPlots.get_congruent_y_names("nonexistent", dims_dict)
+    result = get_congruent_y_names("nonexistent", dims_dict)
     @test isempty(result)
 end
 
 @testset "collect_dataframes_from_main" begin
+    using CasualPlots: collect_dataframes_from_main
+
     # Create test DataFrames in Main using eval
     Main.eval(:(test_df1 = DataFrame(a = 1:3, b = 4:6)))
     Main.eval(:(test_df2 = DataFrame(x = [" a", "b"], y = [1.0, 2.0])))
     Main.eval(:(test_not_df = [1, 2, 3]))
     
-    df_names = CasualPlots.collect_dataframes_from_main()
+    df_names = collect_dataframes_from_main()
     
     @test :test_df1 in df_names
     @test :test_df2 in df_names
@@ -75,20 +82,24 @@ end
 end
 
 @testset "get_dataframe_columns" begin
+    using CasualPlots: get_dataframe_columns
+
     # Create test DataFrame in Main using eval
     Main.eval(:(test_df = DataFrame(col1 = 1:3, col2 = 4:6, col3 = 7:9)))
     
-    columns = CasualPlots.get_dataframe_columns("test_df")
+    columns = get_dataframe_columns("test_df")
     @test columns == ["col1", "col2", "col3"]
     
     # Non-existent DataFrame should return empty and log a warning
     @test_logs (:warn, r"Could not get columns for DataFrame `nonexistent_df`") begin
-        columns = CasualPlots.get_dataframe_columns("nonexistent_df")
+        columns = get_dataframe_columns("nonexistent_df")
         @test isempty(columns)
     end
 end
 
 @testset "extract_x_candidates" begin
+    using CasualPlots: extract_x_candidates
+
     # Test 1: Mixed dimensions - should only return 1D arrays
     dims_dict = Dict{Symbol, Tuple}(
         :vec1 => (10,),
@@ -98,7 +109,7 @@ end
         :tensor => (3, 4, 5)
     )
     
-    result = CasualPlots.extract_x_candidates(dims_dict)
+    result = extract_x_candidates(dims_dict)
     @test length(result) == 2
     @test "vec1" in result
     @test "vec2" in result
@@ -111,7 +122,7 @@ end
     
     # Test 3: Empty dictionary
     empty_dict = Dict{Symbol, Tuple}()
-    result = CasualPlots.extract_x_candidates(empty_dict)
+    result = extract_x_candidates(empty_dict)
     @test isempty(result)
     
     # Test 4: All matrices (no vectors)
@@ -119,7 +130,7 @@ end
         :mat1 => (10, 3),
         :mat2 => (5, 2)
     )
-    result = CasualPlots.extract_x_candidates(no_vectors)
+    result = extract_x_candidates(no_vectors)
     @test isempty(result)
     
     # Test 5: All vectors
@@ -128,7 +139,28 @@ end
         :b => (20,),
         :c => (5,)
     )
-    result = CasualPlots.extract_x_candidates(all_vectors)
+    result = extract_x_candidates(all_vectors)
     @test length(result) == 3
     @test result == ["a", "b", "c"]  # sorted
 end
+
+@testset "is_main_numeric_iterable" begin
+    using CasualPlots: is_main_numeric_iterable
+
+    unitful_arr = [1 * u"m", 2 * u"m"]
+    @test is_main_numeric_iterable(unitful_arr)
+
+    mixed_arr = [1 * u"m", 2 * u"m", 3]
+    @test is_main_numeric_iterable(mixed_arr)
+
+    complex_unitful_arr =  [(1 + 3im) * u"m", (2 - 3im) * u"m"]
+    @test !is_main_numeric_iterable(complex_unitful_arr)
+
+    complex_arr = [1 + 3im, 2 - 3im]
+    @test !is_main_numeric_iterable(complex_arr)
+
+    any_arr = [1 * u"m", 2 * u"m", 3.0-2im, "5"]
+    @test !is_main_numeric_iterable(any_arr)
+end
+
+

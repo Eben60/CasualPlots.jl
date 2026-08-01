@@ -2,7 +2,7 @@
 # State Component Types
 # ==========================================
 
-Base.@kwdef struct FileOpening
+@kwdef struct FileOpening
     opened_file_df::Observable{Union{Nothing, DataFrame}} = Observable{Union{Nothing, DataFrame}}(nothing)
     opened_file_name::Observable{String} = Observable("")
     opened_file_path::Observable{String} = Observable("")
@@ -14,19 +14,19 @@ Base.@kwdef struct FileOpening
     decimal_separator::Observable{String} = Observable("Dot")
 end
 
-Base.@kwdef struct FileSaving
+@kwdef struct FileSaving
     save_file_path::Observable{String} = Observable("")
     save_status_message::Observable{String} = Observable("")
     save_status_type::Observable{Symbol} = Observable(:none)
     show_overwrite_confirm::Observable{Bool} = Observable(false)
 end
 
-Base.@kwdef struct Dialogs
+@kwdef struct Dialogs
     show_modal::Observable{Bool} = Observable(false)
     modal_type::Observable{Symbol} = Observable(:none)
 end
 
-Base.@kwdef struct DataSelection
+@kwdef struct DataSelection
     source_type::Observable{String} = Observable("X, Y Arrays")
     dims_dict_obs::Observable{Dict} = Observable(Dict())
     dataframes_dict_obs::Observable{Vector} = Observable([])
@@ -40,7 +40,7 @@ Base.@kwdef struct DataSelection
     data_bounds_to::Observable{Union{Nothing, Int}} = Observable{Union{Nothing, Int}}(nothing)
 end
 
-Base.@kwdef struct PlotFormat
+@kwdef struct PlotFormat
     selected_plottype::Observable{String} = Observable("Scatter")
     selected_theme::Observable{String} = Observable(DEFAULT_THEME)
     selected_group_by::Observable{String} = Observable(DEFAULT_GROUP_BY)
@@ -59,7 +59,7 @@ Base.@kwdef struct PlotFormat
     yreversed::Observable{Bool} = Observable(false)
 end
 
-Base.@kwdef struct PlotHandles
+@kwdef struct PlotHandles
     xlabel_text::Observable{String} = Observable("")
     ylabel_text::Observable{String} = Observable("")
     title_text::Observable{String} = Observable("")
@@ -68,12 +68,12 @@ Base.@kwdef struct PlotHandles
     current_axis::Observable{Union{Nothing, Axis}} = Observable{Union{Nothing, Axis}}(nothing)
 end
 
-Base.@kwdef struct Plotting
+@kwdef struct Plotting
     format::PlotFormat = PlotFormat()
     handles::PlotHandles = PlotHandles()
 end
 
-Base.@kwdef struct Misc
+@kwdef struct Misc
     trigger_update::Observable{Bool} = Observable(true)
     last_update::Ref{Float64} = Ref(0.0)
     block_format_update::Observable{Bool} = Observable(false)
@@ -91,7 +91,7 @@ end
 # Top-Level State Type
 # ==========================================
 
-Base.@kwdef struct CasualPlotsState
+@kwdef struct CasualPlotsState
     file_opening::FileOpening = FileOpening()
     file_saving::FileSaving = FileSaving()
     dialogs::Dialogs = Dialogs()
@@ -104,7 +104,7 @@ end
 # Outputs Type
 # ==========================================
 
-Base.@kwdef struct OutputObservables
+@kwdef struct OutputObservables
     plot::Observable{Any} = Observable{Any}(DOM.div("Plot Pane"))
     table::Observable{Any} = Observable{Any}(DOM.div("Table Pane"))
     current_x::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)

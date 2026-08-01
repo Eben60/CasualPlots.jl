@@ -36,10 +36,7 @@ end
 Check if `var` is an array or iterable with `Real` or `Unitful.Quantity` elements.
 """
 function is_main_numeric_iterable(var)
-    allowed_types = Any[Real]
-    if isdefined(Main, :Unitful)
-        push!(allowed_types, Main.Unitful.Quantity)
-    end
+    allowed_types = (Real, Unitful.Quantity{<:Real})
 
     if !(var isa Real) &&
        (isa(var, AbstractArray) || hasmethod(iterate, (typeof(var),)))

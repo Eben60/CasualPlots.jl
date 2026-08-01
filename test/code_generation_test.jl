@@ -2,12 +2,14 @@ using CasualPlots
 using Test
 
 @testset "Code Generation String Verification - Arrays Mode" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "xx100"
     state.data_selection.selected_y[] = "yy100"
     
-    code = CasualPlots.generate_julia_code(state).code
+    code = generate_julia_code(state).code
     
     @test occursin("function cp_load_data(; xx100, yy100,", code)
     @test occursin("data = cp_load_data(; xx100, yy100)", code)
@@ -23,12 +25,14 @@ using Test
 end
 
 @testset "Code Generation String Verification - DataFrame Mode" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "DataFrame"
     state.data_selection.selected_dataframe[] = "my_df"
     state.data_selection.selected_columns[] = ["col_A", "col_B"]
     
-    code = CasualPlots.generate_julia_code(state).code
+    code = generate_julia_code(state).code
     
     @test occursin("function cp_load_data(; my_df,", code)
     @test occursin("data = cp_load_data(; my_df)", code)
@@ -39,13 +43,15 @@ end
 end
 
 @testset "Code Generation String Verification - Opened File Mode" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "DataFrame"
     state.data_selection.selected_dataframe[] = "__opened_file__"
     state.file_opening.opened_file_path[] = "test_data.csv"
     state.data_selection.selected_columns[] = ["a", "b"]
     
-    code = CasualPlots.generate_julia_code(state).code
+    code = generate_julia_code(state).code
     
     @test occursin("function cp_load_data(; file", code)
     @test occursin("data = cp_load_data()", code)
@@ -57,20 +63,24 @@ end
 end
 
 @testset "Code Generation String Verification - Opened File Mode with options" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "DataFrame"
     state.data_selection.selected_dataframe[] = "__opened_file__"
     state.file_opening.opened_file_path[] = "test_data.csv"
     state.data_selection.selected_columns[] = ["a", "b"]
     state.file_opening.skip_after_header[] = 2
     
-    code = CasualPlots.generate_julia_code(state).code
+    code = generate_julia_code(state).code
     @test occursin("CasualPlots.skip_rows!(", code)
     @test occursin("using CasualPlots", code)
 end
 
 @testset "Code Generation String Verification - Format Options" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "xx"
     state.data_selection.selected_y[] = "yy"
@@ -89,7 +99,7 @@ end
     # Theme
     state.plotting.format.selected_theme[] = "theme_dark"
     
-    code = CasualPlots.generate_julia_code(state).code
+    code = generate_julia_code(state).code
     
     @test occursin("\"My Custom Title\"", code)
     @test occursin("\"X Axis\"", code)
@@ -99,43 +109,49 @@ end
 end
 
 @testset "Code Generation String Verification - Group-by Geometry" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "xx"
     state.data_selection.selected_y[] = "yy"
     state.plotting.format.selected_group_by[] = "Geometry"
     state.plotting.format.selected_plottype[] = "Lines"
     
-    code = CasualPlots.generate_julia_code(state).code
+    code = generate_julia_code(state).code
     @test occursin("group_mapping = (; linestyle = group_col =>", code)
     
     state.plotting.format.selected_plottype[] = "Scatter"
-    code_scatter = CasualPlots.generate_julia_code(state).code
+    code_scatter = generate_julia_code(state).code
     @test occursin("group_mapping = (; marker = group_col =>", code_scatter)
 end
 
 @testset "Code Generation String Verification - BarPlot Options" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "xx"
     state.data_selection.selected_y[] = "yy"
     state.plotting.format.selected_plottype[] = "BarPlot"
 
     # Default Dodged + Vertical
-    code_dodged_vert = CasualPlots.generate_julia_code(state).code
+    code_dodged_vert = generate_julia_code(state).code
     @test occursin("group_mapping = (; color = group_col => \"\", dodge = group_col => \"\")", code_dodged_vert)
     @test occursin("visual(BarPlot; direction = :y)", code_dodged_vert)
 
     # Stacked + Horizontal
     state.plotting.format.selected_bar_mode[] = "Stacked"
     state.plotting.format.selected_bar_direction[] = "Horizontal"
-    code_stacked_horiz = CasualPlots.generate_julia_code(state).code
+    code_stacked_horiz = generate_julia_code(state).code
     @test occursin("group_mapping = (; color = group_col => \"\", stack = group_col => \"\")", code_stacked_horiz)
     @test occursin("visual(BarPlot; direction = :x)", code_stacked_horiz)
 end
 
 @testset "Code Generation - Rows Kwarg (Partial and Full Ranges)" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "DataFrame"
     state.data_selection.selected_dataframe[] = "my_df"
     state.data_selection.selected_columns[] = ["col_A", "col_B"]
@@ -147,65 +163,69 @@ end
     # 1. Full range (defaults, should not include `rows` kwarg in call)
     state.data_selection.range_from[] = nothing
     state.data_selection.range_to[] = nothing
-    code1 = CasualPlots.generate_julia_code(state).code
+    code1 = generate_julia_code(state).code
     @test occursin("data = cp_load_data(; my_df)\n", code1)
     
     # 1b. Full range (bounds matched explicitly, should also omit `rows` kwarg in call)
     state.data_selection.range_from[] = 1
     state.data_selection.range_to[] = 100
-    code1b = CasualPlots.generate_julia_code(state).code
+    code1b = generate_julia_code(state).code
     @test occursin("data = cp_load_data(; my_df)\n", code1b)
 
     # 2. Start to a specific end
     state.data_selection.range_from[] = 1
     state.data_selection.range_to[] = 50
-    code2 = CasualPlots.generate_julia_code(state).code
+    code2 = generate_julia_code(state).code
     @test occursin("rows = (:begin, 50)", code2)
     
     # 3. Specific start to the end
     state.data_selection.range_from[] = 10
     state.data_selection.range_to[] = 100
-    code3 = CasualPlots.generate_julia_code(state).code
+    code3 = generate_julia_code(state).code
     @test occursin("rows = (10, :end)", code3)
     
     # 4. Specific range
     state.data_selection.range_from[] = 10
     state.data_selection.range_to[] = 50
-    code4 = CasualPlots.generate_julia_code(state).code
+    code4 = generate_julia_code(state).code
     @test occursin("rows = (10, 50)", code4)
 end
 
 @testset "validate_script_path" begin
+    using CasualPlots: validate_script_path
+
     # Valid missing extension
-    valid, p, err = CasualPlots.validate_script_path("testpath")
+    valid, p, err = validate_script_path("testpath")
     @test valid == true
     @test p == "testpath.jl"
     @test err == ""
     
     # Valid existing extension (case insensitive)
-    valid, p, err = CasualPlots.validate_script_path("testpath.jl")
+    valid, p, err = validate_script_path("testpath.jl")
     @test valid == true
     @test p == "testpath.jl"
     
-    valid, p, err = CasualPlots.validate_script_path("testpath.JL")
+    valid, p, err = validate_script_path("testpath.JL")
     @test valid == true
     @test p == "testpath.JL"
     
     # Invalid extension
-    valid, p, err = CasualPlots.validate_script_path("testpath.txt")
+    valid, p, err = validate_script_path("testpath.txt")
     @test valid == false
     @test p == ""
     @test occursin(".jl extension", err)
     
     # Empty path
-    valid, p, err = CasualPlots.validate_script_path("  ")
+    valid, p, err = validate_script_path("  ")
     @test valid == false
     @test p == ""
     @test occursin("specify a file path", err)
 end
 
 @testset "generate_julia_code file suffix logic" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "xx"
     state.data_selection.selected_y[] = "yy"
@@ -215,19 +235,19 @@ end
         filepath_no_ext = joinpath(tmpdir, "my_plot")
         filepath_expected = filepath_no_ext * ".jl"
         
-        res1 = CasualPlots.generate_julia_code(state; file=filepath_no_ext)
+        res1 = generate_julia_code(state; file=filepath_no_ext)
         @test res1.success == true
         @test res1.path == filepath_expected
         @test !isfile(filepath_no_ext)
         @test isfile(filepath_expected)
         
         # Verify content matches what String version gives
-        code_str = CasualPlots.generate_julia_code(state).code
+        code_str = generate_julia_code(state).code
         @test read(filepath_expected, String) == code_str
         
         # File with existing suffix
         filepath_with_ext = joinpath(tmpdir, "my_plot_2.jl")
-        res2 = CasualPlots.generate_julia_code(state; file=filepath_with_ext)
+        res2 = generate_julia_code(state; file=filepath_with_ext)
         @test res2.success == true
         @test res2.path == filepath_with_ext
         @test isfile(filepath_with_ext)
@@ -235,7 +255,7 @@ end
         
         # File with wrong suffix
         filepath_wrong_ext = joinpath(tmpdir, "my_plot_3.txt")
-        res3 = CasualPlots.generate_julia_code(state; file=filepath_wrong_ext)
+        res3 = generate_julia_code(state; file=filepath_wrong_ext)
         @test res3.success == false
         @test isnothing(res3.path)
         @test !isfile(filepath_wrong_ext)

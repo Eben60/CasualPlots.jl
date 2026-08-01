@@ -4,18 +4,21 @@ using DataStructures: DefaultDict
 using Bonito
 using DataFrames
 using Observables
+
 @testset "CasualPlotsState Default Construction" begin
-    state = CasualPlots.CasualPlotsState()
+    using CasualPlots: CasualPlotsState, FileOpening, FileSaving, Dialogs, DataSelection, Plotting, PlotFormat, PlotHandles, Misc
+
+    state = CasualPlotsState()
     
     # Check that basic nested fields are correctly initialized
-    @test state.file_opening isa CasualPlots.FileOpening
-    @test state.file_saving isa CasualPlots.FileSaving
-    @test state.dialogs isa CasualPlots.Dialogs
-    @test state.data_selection isa CasualPlots.DataSelection
-    @test state.plotting isa CasualPlots.Plotting
-    @test state.plotting.format isa CasualPlots.PlotFormat
-    @test state.plotting.handles isa CasualPlots.PlotHandles
-    @test state.misc isa CasualPlots.Misc
+    @test state.file_opening isa FileOpening
+    @test state.file_saving isa FileSaving
+    @test state.dialogs isa Dialogs
+    @test state.data_selection isa DataSelection
+    @test state.plotting isa Plotting
+    @test state.plotting.format isa PlotFormat
+    @test state.plotting.handles isa PlotHandles
+    @test state.misc isa Misc
     
     # Check some default observable values
     @test state.data_selection.source_type[] == "X, Y Arrays"
@@ -28,7 +31,9 @@ using Observables
 end
 
 @testset "CasualPlotsState Observable Mutation" begin
-    state = CasualPlots.CasualPlotsState()
+    using CasualPlots: CasualPlotsState
+
+    state = CasualPlotsState()
     
     # Verify we can mutate observables within the immutable struct
     state.data_selection.source_type[] = "DataFrame"
@@ -43,7 +48,9 @@ end
 end
 
 @testset "CasualPlotsState Field Type Assertions" begin
-    state = CasualPlots.CasualPlotsState()
+    using CasualPlots: CasualPlotsState
+
+    state = CasualPlotsState()
     
     @test state.misc.format_is_default isa DefaultDict{Symbol, Bool}
     @test state.plotting.format.x_min isa Observable{Union{Nothing, Float64}}
@@ -52,7 +59,9 @@ end
 end
 
 @testset "OutputObservables Construction" begin
-    outputs = CasualPlots.OutputObservables()
+    using CasualPlots: OutputObservables
+
+    outputs = OutputObservables()
     
     @test outputs.plot[] isa Bonito.Node
     @test outputs.table[] isa Bonito.Node

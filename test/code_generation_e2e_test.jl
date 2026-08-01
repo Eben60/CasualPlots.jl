@@ -11,7 +11,9 @@ using CairoMakie
 @eval Main _casualplots_e2e_df = Main.DataFrame(a=Main._casualplots_e2e_test_x, b=Main._casualplots_e2e_test_y)
 
 @testset "Arrays + Lines" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "_casualplots_e2e_test_x"
     state.data_selection.selected_y[] = "_casualplots_e2e_test_y"
@@ -19,7 +21,7 @@ using CairoMakie
     state.plotting.format.selected_plottype[] = "Lines"
 
     mktempdir() do dir
-        code = CasualPlots.generate_julia_code(state).code
+        code = generate_julia_code(state).code
         
         png_path = joinpath(dir, "plot1.png")
         svg_path = joinpath(dir, "plot1.svg")
@@ -53,7 +55,9 @@ using CairoMakie
 end
 
 @testset "DataFrame + Custom Limits" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "DataFrame"
     state.data_selection.selected_dataframe[] = "_casualplots_e2e_df"
     state.data_selection.selected_columns[] = ["a", "b"]
@@ -62,7 +66,7 @@ end
     state.plotting.format.x_max[] = 8.0
 
     mktempdir() do dir
-        code = CasualPlots.generate_julia_code(state).code
+        code = generate_julia_code(state).code
         
         png_path = joinpath(dir, "plot2.png")
         
@@ -83,7 +87,9 @@ end
 end
 
 @testset "E2E Script File Execution" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
     state.data_selection.source_type[] = "DataFrame"
     state.data_selection.selected_dataframe[] = "_casualplots_e2e_df"
     state.data_selection.selected_columns[] = ["a", "b"]
@@ -93,7 +99,7 @@ end
         script_path = joinpath(dir, "my_test_script.jl")
         
         # 1. Generate and save the script using the full pipeline
-        CasualPlots.generate_julia_code(state; file=script_path)
+        generate_julia_code(state; file=script_path)
         @test isfile(script_path)
         
         # 2. Read, uncomment execution lines, and rewrite

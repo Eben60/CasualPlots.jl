@@ -3,28 +3,34 @@ using Test
 using Bonito
 
 @testset "initialize_app_state" begin
-    state = CasualPlots.initialize_app_state()
-    @test state isa CasualPlots.CasualPlotsState
+    using CasualPlots: initialize_app_state, CasualPlotsState, FileOpening, DataSelection, PlotFormat, PlotHandles
+
+    state = initialize_app_state()
+    @test state isa CasualPlotsState
     @test state.data_selection.source_type[] == "X, Y Arrays"
     
     # Test destructuring
     (; file_opening, data_selection) = state
     (; format, handles) = state.plotting
     
-    @test file_opening isa CasualPlots.FileOpening
-    @test data_selection isa CasualPlots.DataSelection
-    @test format isa CasualPlots.PlotFormat
-    @test handles isa CasualPlots.PlotHandles
+    @test file_opening isa FileOpening
+    @test data_selection isa DataSelection
+    @test format isa PlotFormat
+    @test handles isa PlotHandles
 end
 
 @testset "initialize_output_observables" begin
-    outputs = CasualPlots.initialize_output_observables()
-    @test outputs isa CasualPlots.OutputObservables
+    using CasualPlots: initialize_output_observables, OutputObservables
+
+    outputs = initialize_output_observables()
+    @test outputs isa OutputObservables
     @test outputs.current_x[] === nothing
 end
 
 @testset "CasualPlotApp Wrapper Fallbacks" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state
+
+    state = initialize_app_state()
     # Create a dummy Bonito app (it needs a handler function)
     app = Bonito.App(session -> DOM.div("Test"))
     
@@ -38,7 +44,9 @@ end
 end
 
 @testset "Format Defaults Reset Logic" begin
-    state = CasualPlots.initialize_app_state()
+    using CasualPlots: initialize_app_state, reset_semipersistent_format_options!, reset_format_defaults!
+
+    state = initialize_app_state()
     
     # Mutate some format options
     state.plotting.format.x_min[] = 10.0
@@ -48,7 +56,7 @@ end
     state.misc.format_is_default[:title] = false
     
     # Test semipersistent reset
-    CasualPlots.reset_semipersistent_format_options!(state)
+    reset_semipersistent_format_options!(state)
     
     @test state.plotting.format.x_min[] === nothing
     @test state.misc.format_is_default[:x_min] == true
@@ -59,6 +67,6 @@ end
     # Test full format reset
     # Note: reset_format_defaults! only clears the format_is_default tracking dictionary.
     # It does not mutate the observable values themselves, which is handled elsewhere.
-    CasualPlots.reset_format_defaults!(state.misc.format_is_default)
+    reset_format_defaults!(state.misc.format_is_default)
     @test state.misc.format_is_default[:title] == true
 end
