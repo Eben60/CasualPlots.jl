@@ -126,7 +126,7 @@ Also stores the DataFrame in state for use in DataFrame mode.
 function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothing)
     (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
     try
-        df = readtable_xlsx(filepath, sheet; infer_eltypes=true, stop_in_empty_row=false, kwargs...)
+        df = readtable_xlsx(filepath, sheet; infer_eltypes=true, kwargs...)
         skip_rows!(df, skip_subheaders, skip_empty_rows)
         # Store sheet name for code generation
         if !isnothing(state)

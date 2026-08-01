@@ -36,7 +36,7 @@ Wrapper around `XLSX.readtable` that reads an Excel sheet into a DataFrame.
 - `DataFrame`: The parsed data from the specified sheet
 """
 function readtable_xlsx(filepath, sheet; kwargs...)
-    return XLSX.readtable(filepath, sheet; kwargs...) |> DataFrame
+    return XLSX.readtable(filepath, sheet; stop_in_empty_row=false, kwargs...) |> DataFrame
 end
 
 """

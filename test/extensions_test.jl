@@ -73,20 +73,6 @@ end
 
 
 # XLSX Extension Tests
-@testset "readtable_xlsx basic functionality" begin
-    using CasualPlots: readtable_xlsx
-
-    xlsx_path = joinpath(ASSETS_DIR, "sample_data.xlsx")
-    df = readtable_xlsx(xlsx_path, "TestData")
-    
-    @test df isa DataFrame
-    @test size(df, 1) == 3  # 3 data rows
-    @test size(df, 2) == 3  # 3 columns
-    @test "id" in names(df)
-    @test "name" in names(df)
-    @test "value" in names(df)
-end
-
 @testset "open_xlsx functionality" begin
     xlsx_path = joinpath(ASSETS_DIR, "sample_data.xlsx")
     # Test that open_xlsx returns a valid XLSX file object
@@ -100,50 +86,41 @@ end
     using CasualPlots: sheetnames_xlsx
 
     xlsx_multisheet = joinpath(ASSETS_DIR, "sample_data-multisheet.xlsx")
-    if isfile(xlsx_multisheet)
-        sheets = sheetnames_xlsx(xlsx_multisheet)
-        @test sheets isa Vector{String}
-        @test length(sheets) >= 1
-    end
+    sheets = sheetnames_xlsx(xlsx_multisheet)
+    @test sheets isa Vector{String}
+    @test length(sheets) >= 1
 end
 
-# Note: Some tests below are marked @test_broken due to XLSX.jl bug
-# See: https://github.com/felipenoris/XLSX.jl/pull/339
-# The first_row parameter works for reading, but row counting with empty rows has issues
-@testset "readtable_xlsx with row 2 header" begin
+@testset "readtable_xlsx" begin
     using CasualPlots: readtable_xlsx
+
+    xlsx_simple = joinpath(ASSETS_DIR, "sample_data.xlsx")
+    df = readtable_xlsx(xlsx_simple, "TestData")
+    @test df isa DataFrame
+    @test size(df) == (3, 3)
+    @test names(df) == ["id", "name", "value"]
+    @test eltype(df.id) == Int64
+    @test eltype(df.name) == String
+    @test eltype(df.value) == Float64
 
     xlsx_header2 = joinpath(ASSETS_DIR, "row2-header_sample.xlsx")
-    if isfile(xlsx_header2)
-        df = readtable_xlsx(xlsx_header2, "Sheet1"; first_row=2)
-        @test nrow(df) >= 1
-    end
-end
-
-@testset "readtable_xlsx skip empty rows (broken due to XLSX.jl bug)" begin
-    using CasualPlots: readtable_xlsx
+    df1 = readtable_xlsx(xlsx_header2, "Sheet1"; first_row=2)
+    @test nrow(df1) == 4
 
     xlsx_empty = joinpath(ASSETS_DIR, "empty_rows_sample.xlsx")
-    if isfile(xlsx_empty)
-        # Reading with keep_empty_rows=false should skip empty rows
-        # This is currently broken in XLSX.jl
-        df = readtable_xlsx(xlsx_empty, "Sheet1"; 
-            first_row=2, keep_empty_rows=false)
-        # Expected: should have fewer rows than with keep_empty_rows=true
-        @test_broken nrow(df) == 4
-    end
-end
-
-@testset "readtable_xlsx with empty rows at top and header (broken)" begin
-    using CasualPlots: readtable_xlsx
+    # Reading with keep_empty_rows=false should skip empty rows
+    df2 = readtable_xlsx(xlsx_empty, "Sheet1"; 
+        first_row=2, keep_empty_rows=false)
+    @test nrow(df2) == 4
+    df3 = readtable_xlsx(xlsx_empty, "Sheet1"; 
+        first_row=2, keep_empty_rows=true)
+    @test nrow(df3) == 7
 
     xlsx_top_header = joinpath(ASSETS_DIR, "empty_rows_top-header_sample.xlsx")
-    if isfile(xlsx_top_header)
-        # File has empty row, then header, then data with some empty rows
-        df = readtable_xlsx(xlsx_top_header, "Sheet1"; 
-            first_row=2, keep_empty_rows=false)
-        @test_broken nrow(df) == 4
-    end
+    # File has empty row, then header, then data with some empty rows
+    df4 = readtable_xlsx(xlsx_top_header, "Sheet1"; 
+        keep_empty_rows=false)
+    @test nrow(df4) == 4
 end
 
 # Utility function tests

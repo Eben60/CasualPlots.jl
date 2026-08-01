@@ -137,7 +137,7 @@ function generate_dataframe_code(state::CasualPlotsState)
             end
             code *= _generate_rows_kwarg_and_assert()
             
-            code *= "    df = CasualPlots.readtable_xlsx(file, sheet; infer_eltypes=true, stop_in_empty_row=false"
+            code *= "    df = CasualPlots.readtable_xlsx(file, sheet; infer_eltypes=true"
             if !isempty(kwargs_call)
                 code *= ", $kwargs_call"
             end
