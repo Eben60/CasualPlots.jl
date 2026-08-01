@@ -238,7 +238,7 @@ axis = fg.grid[1, 1].axis  # Extract Axis from FigureGrid
 **Exports to Main:**
 ```julia
 global cp_figure = fig      # Figure object
-global cp_figure_ax = axis  # Axis object for fine-tuning
+global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage, do not use in app logic)
 ```
 
 ### Known Issues 
@@ -284,15 +284,16 @@ global cp_figure_ax = axis  # Axis object for fine-tuning
 - Verify callback execution order in REPL output
 
 ### Testing
+- Review the **Testing Guidelines** Knowledge Item (KI) before running or modifying tests.
 - Manual testing via `src/scripts/casualplots_test.jl`
     - see also [extended manual testing protocol](AGENTS_more_info/specific_issues/manual_testing_plan.md)
-- GUI agentic testing was not successfull. See attempts and more info in Branch `v0.6.0-refactoring`
+- GUI agentic testing was not successful. See attempts and more info in Branch `v0.6.0-refactoring`
 - Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more
 
 ### Precompilation
 
-See [Precompilation](AGENTS_more_info/specific_issues.md/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
+See [Precompilation](AGENTS_more_info/specific_issues/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
 
 
 ### Exports
