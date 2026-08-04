@@ -113,57 +113,6 @@
     font-size: 12px;
 }
 
-/* Tabs Component */
-.tabs-container {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-}
-
-.tab-buttons {
-    display: flex;
-    gap: 2px;
-    background-color: #e0e0e0;
-    padding: 5px 5px 0 5px;
-    border-bottom: 2px solid #999;
-}
-
-.tab-button {
-    padding: 8px 16px;
-    background-color: #d0d0d0;
-    border: 1px solid #999;
-    border-bottom: none;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.2s;
-    border-radius: 4px 4px 0 0;
-}
-
-.tab-button:hover {
-    background-color: #e8e8e8;
-}
-
-.tab-button.active {
-    background-color: whitesmoke;
-    font-weight: bold;
-    border-bottom: 2px solid whitesmoke;
-    margin-bottom: -2px;
-}
-
-.tab-content {
-    flex: 1;
-    padding: 10px;
-    overflow: auto;
-}
-
-.tab-panel {
-    display: none;
-}
-
-.tab-panel.active {
-    display: block;
-}
 
 /* Help Section */
 .help-title {
@@ -225,18 +174,6 @@
     overflow: auto;
 }
 
-.pane-card {
-    padding: 5px;
-}
-/* Note: background-color support in Bonito Card might need style attribute if class not supported on Card directly? 
-   No, usually Card accepts class. But background-color might be via style in original code.
-   I'll try using class. If Card is a component wrapping a div, it should pass class.
-   However, Card(..., style=...) usage suggests it supports style.
-   I'll define classes with background colors. 
-*/
-.pane-card-ctrl { background-color: whitesmoke; }
-.pane-card-table { background-color: silver; }
-.pane-card-plot { background-color: lightgray; }
 
 .main-layout-container {
     padding: 5px;

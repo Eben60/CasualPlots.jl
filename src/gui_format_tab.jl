@@ -253,10 +253,7 @@ function create_axis_limits_section(format)
             step="any",
             id="axis-x-min-input",
             class="axis-limits-input",
-            placeholder="",
-            onchange=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(x_min), $(x_max), 'min')",
-            onblur=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(x_min), $(x_max), 'min')",
-            onkeydown=js"event => window.CasualPlots.handleAxisLimitEnterKey(event, $(x_min), $(x_max), 'min')",
+            placeholder=""
         ),
         DOM.label("to:"; class="axis-limits-label-small"),
         DOM.input(
@@ -264,17 +261,13 @@ function create_axis_limits_section(format)
             step="any",
             id="axis-x-max-input",
             class="axis-limits-input",
-            placeholder="",
-            onchange=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(x_max), $(x_min), 'max')",
-            onblur=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(x_max), $(x_min), 'max')",
-            onkeydown=js"event => window.CasualPlots.handleAxisLimitEnterKey(event, $(x_max), $(x_min), 'max')",
+            placeholder=""
         ),
         DOM.label("rev.:"; class="axis-limits-label-small"),
         DOM.input(
             type="checkbox",
             id="axis-x-reversed-checkbox",
             checked=xreversed,
-            onchange=js"event => window.CasualPlots.updateObservableChecked(event, $(xreversed))",
             class="axis-limits-checkbox",
         );
         class="axis-limits-row"
@@ -288,10 +281,7 @@ function create_axis_limits_section(format)
             step="any",
             id="axis-y-min-input",
             class="axis-limits-input",
-            placeholder="",
-            onchange=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(y_min), $(y_max), 'min')",
-            onblur=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(y_min), $(y_max), 'min')",
-            onkeydown=js"event => window.CasualPlots.handleAxisLimitEnterKey(event, $(y_min), $(y_max), 'min')",
+            placeholder=""
         ),
         DOM.label("to:"; class="axis-limits-label-small"),
         DOM.input(
@@ -299,17 +289,13 @@ function create_axis_limits_section(format)
             step="any",
             id="axis-y-max-input",
             class="axis-limits-input",
-            placeholder="",
-            onchange=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(y_max), $(y_min), 'max')",
-            onblur=js"event => window.CasualPlots.updateAxisLimitObservable(event, $(y_max), $(y_min), 'max')",
-            onkeydown=js"event => window.CasualPlots.handleAxisLimitEnterKey(event, $(y_max), $(y_min), 'max')",
+            placeholder=""
         ),
         DOM.label("rev.:"; class="axis-limits-label-small"),
         DOM.input(
             type="checkbox",
             id="axis-y-reversed-checkbox",
             checked=yreversed,
-            onchange=js"event => window.CasualPlots.updateObservableChecked(event, $(yreversed))",
             class="axis-limits-checkbox",
         );
         class="axis-limits-row"

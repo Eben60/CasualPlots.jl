@@ -12,6 +12,7 @@
 
 ### Technology Stack
 *   **[Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)**: Web-based reactive GUI framework
+*   **[BonitoWidgets.jl](https://github.com/SimonDanisch/BonitoWidgets.jl)**: Advanced layout system (Workspace, Panels, Tabs)
 *   **[WGLMakie](https://github.com/MakieOrg/Makie.jl)**: WebGL-based plotting backend
 *   **[AlgebraOfGraphics.jl](https://github.com/MakieOrg/AlgebraOfGraphics.jl)**: Declarative plot specification (all plots built using AoG)
 *   **[DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)**: Data handling
@@ -23,7 +24,7 @@
 
 ```
 CasualPlots.jl                  # Main module, exports casualplots_app()
-CasualPlotApp.jl                # Wrapper struct to expose reactive state and avoid memory leaks
+struct_CasualPlotApp.jl         # Wrapper struct to expose reactive state and avoid memory leaks
 app.jl                          # Main app entry point (casualplots_app function)
 app_state.jl                    # Application state initialization (Observables)
 app_types.jl                    # Type definitions used across the application
@@ -37,18 +38,18 @@ setup_callbacks.jl              # Core reactive callbacks (do_replot, source, fo
 label_update_callbacks.jl       # Label text field callbacks
 dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
 code_generation.jl              # Automatic Julia code generation from GUI state
-unitful_integration.jl          # Unitful.jl support for plotting quantities with units
+integrations_unitful.jl         # Unitful.jl support for plotting quantities with units
 
-# UI Components (ui_*.jl)
-ui_tabs.jl                      # Tab component + create_tab_content wiring
-ui_layout.jl                    # assemble_layout - main pane grid construction
-ui_table.jl                     # Table display with info header and dynamic column type coloring
-ui_help_section.jl              # Mouse controls help text
-ui_source_tab.jl                # Source selection UI (Array/DataFrame modes)
-ui_format_tab.jl                # Format controls UI (plot type, legend, labels)
-ui_open_tab.jl                  # File open tab UI
-ui_save_tab.jl                  # Save tab UI
-ui_modal_dialog.jl              # Modal dialog component
+# UI Components (gui_*.jl)
+gui_tabs.jl                     # Tab component + create_tab_content wiring
+gui_layout.jl                   # assemble_layout - Workspace grid construction
+gui_table.jl                    # Table display with info header and dynamic column type coloring
+gui_help_section.jl             # Mouse controls help text
+gui_source_tab.jl               # Source selection UI (Array/DataFrame modes)
+gui_format_tab.jl               # Format controls UI (plot type, legend, labels)
+gui_open_tab.jl                 # File open tab UI
+gui_save_tab.jl                 # Save tab UI
+gui_modal_dialog.jl             # Modal dialog component
 
 # Control Panel
 create_control_panel_ui.jl      # Control panel UI construction (static layout w/ CSS toggling)
@@ -56,8 +57,8 @@ create_control_panel_ui.jl      # Control panel UI construction (static layout w
 # Data Handling
 collect_data.jl                 # Data collection from Main module
 preprocess_dataframes.jl        # Data frame normalization and validation
-read_from_file.jl               # File reading logic (CSV/XLSX) and loading callbacks
-file_reading_options.jl         # Options processing for file reading
+load_from_file.jl               # File reading logic (CSV/XLSX) and loading callbacks
+options_file_reading.jl         # Options processing for file reading
 create_demo_data.jl             # Demo data generation
 
 # Save/Export
@@ -269,8 +270,8 @@ global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage
 
 #### Modifying UI Components:
 1. **Control panel**: Edit `create_control_panel_ui.jl`
-2. **Tabs**: Modify `ui_tabs.jl`
-3. **Layout**: Adjust `assemble_layout` in `ui_layout.jl`
+2. **Tabs**: Modify `gui_tabs.jl`
+3. **Layout**: Adjust `assemble_layout` in `gui_layout.jl`
 4. **Styles**: Edit `css_styles.css` (prefer CSS classes over inline styles)
 
 #### Adding New Observables:

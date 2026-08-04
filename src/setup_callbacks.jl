@@ -1040,8 +1040,60 @@ When defaults change, updates placeholder text.
 When current_axis is set (new plot), syncs defaults as placeholders.
 """
 function setup_axis_limits_ui_sync(session, state)
-    (; x_min_default, x_max_default, y_min_default, y_max_default) = state.plotting.format
+    (; x_min_default, x_max_default, y_min_default, y_max_default, x_min, x_max, y_min, y_max, xreversed, yreversed) = state.plotting.format
     (; current_axis) = state.plotting.handles
+    
+    # Workaround: manually attach JS event listeners to prevent REPL timeout spam 
+    # since BonitoWidgets strips them during its initialization sequence.
+    Bonito.evaljs(session, js"""
+        let attempts = 0;
+        const interval = setInterval(() => {
+            const xmin = document.getElementById('axis-x-min-input');
+            const xmax = document.getElementById('axis-x-max-input');
+            const ymin = document.getElementById('axis-y-min-input');
+            const ymax = document.getElementById('axis-y-max-input');
+            const xrev = document.getElementById('axis-x-reversed-checkbox');
+            const yrev = document.getElementById('axis-y-reversed-checkbox');
+            
+            if (xmin && xmax && ymin && ymax && xrev && yrev) {
+                clearInterval(interval);
+                
+                const cb_xmin = e => window.CasualPlots.updateAxisLimitObservable(e, $(x_min), $(x_max), 'min');
+                const kb_xmin = e => window.CasualPlots.handleAxisLimitEnterKey(e, $(x_min), $(x_max), 'min');
+                xmin.addEventListener('change', cb_xmin);
+                xmin.addEventListener('blur', cb_xmin);
+                xmin.addEventListener('keydown', kb_xmin);
+                
+                const cb_xmax = e => window.CasualPlots.updateAxisLimitObservable(e, $(x_max), $(x_min), 'max');
+                const kb_xmax = e => window.CasualPlots.handleAxisLimitEnterKey(e, $(x_max), $(x_min), 'max');
+                xmax.addEventListener('change', cb_xmax);
+                xmax.addEventListener('blur', cb_xmax);
+                xmax.addEventListener('keydown', kb_xmax);
+                
+                const cb_ymin = e => window.CasualPlots.updateAxisLimitObservable(e, $(y_min), $(y_max), 'min');
+                const kb_ymin = e => window.CasualPlots.handleAxisLimitEnterKey(e, $(y_min), $(y_max), 'min');
+                ymin.addEventListener('change', cb_ymin);
+                ymin.addEventListener('blur', cb_ymin);
+                ymin.addEventListener('keydown', kb_ymin);
+                
+                const cb_ymax = e => window.CasualPlots.updateAxisLimitObservable(e, $(y_max), $(y_min), 'max');
+                const kb_ymax = e => window.CasualPlots.handleAxisLimitEnterKey(e, $(y_max), $(y_min), 'max');
+                ymax.addEventListener('change', cb_ymax);
+                ymax.addEventListener('blur', cb_ymax);
+                ymax.addEventListener('keydown', kb_ymax);
+                
+                const cb_xrev = e => window.CasualPlots.updateObservableChecked(e, $(xreversed));
+                xrev.addEventListener('change', cb_xrev);
+                
+                const cb_yrev = e => window.CasualPlots.updateObservableChecked(e, $(yreversed));
+                yrev.addEventListener('change', cb_yrev);
+                
+            } else if (attempts > 50) {
+                clearInterval(interval);
+            }
+            attempts++;
+        }, 100);
+    """)
     
     # Sync placeholders when defaults change (new plot created)
     onany(x_min_default, x_max_default, y_min_default, y_max_default) do xmin, xmax, ymin, ymax

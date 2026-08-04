@@ -18,7 +18,7 @@ function create_modal_overlay_style(show_modal)
             "background-color" => "rgba(0, 0, 0, 0.5)",
             "justify-content" => "center",
             "align-items" => "center",
-            "z-index" => "1000"
+            "z-index" => "1100"
         )
     end
 end
