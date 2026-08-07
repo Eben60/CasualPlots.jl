@@ -54,7 +54,7 @@ function casualplots_app()
     js_content = read(joinpath(@__DIR__, "javascripts.js"), String)
     
     # Assemble and return final layout (with modal dialog)
-    layout = assemble_layout(tabs_result.tabs, help_visibility, outputs.plot, outputs.table, 
+    layout = assemble_layout(tabs_result.tabs, help_visibility, outputs.plot, outputs.table, outputs.table_title,
                            state, tabs_result.overwrite_trigger, tabs_result.cancel_trigger)
                            
     app = App() do session

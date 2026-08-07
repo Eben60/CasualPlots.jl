@@ -27,12 +27,12 @@ function build_file_filter()
 end
 
 """
-    handle_open_file_click(table_observable, state, current_xlsx_path, sheet_names, selected_sheet)
+    handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, selected_sheet)
 
 Handle the logic when the "Open File" button is clicked.
 Opens a file dialog, handles CSV loading immediately, or sets up XLSX sheet selection.
 """
-function handle_open_file_click(table_observable, state, current_xlsx_path, sheet_names, selected_sheet)
+function handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, selected_sheet)
     # Check if any extension is available
     csv_ok = is_extension_available(:CSV)
     xlsx_ok = is_extension_available(:XLSX)
@@ -59,7 +59,7 @@ function handle_open_file_click(table_observable, state, current_xlsx_path, shee
         current_xlsx_path[] = ""
         sheet_names[] = String[]
         selected_sheet[] = ""
-        load_csv_to_table(filepath, table_observable, state)
+        load_csv_to_table(filepath, outputs, state)
     elseif ext == ".xlsx"
         # XLSX: Populate sheet dropdown, wait for selection
         current_xlsx_path[] = filepath
@@ -75,7 +75,7 @@ function handle_open_file_click(table_observable, state, current_xlsx_path, shee
     end
 end
 """
-    store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix="") --> Nothing
+    store_and_display_dataframe!(df, filepath, outputs, state; info_suffix="") --> Nothing
 
 Common helper for processing a loaded DataFrame: normalize strings, store in state, 
 and update the table display.
@@ -83,11 +83,11 @@ and update the table display.
 # Arguments
 - `df`: The DataFrame to process
 - `filepath`: Path to the file to load
-- `table_observable::Observable`: Table display observable
+- `outputs`: The OutputObservables struct
 - `state::Union{Nothing, CasualPlotsState}`: Application state (optional, for storing opened file DataFrame)
 - `info_suffix`: Optional suffix to append to info text (e.g., ":SheetName" for XLSX)
 """
-function store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix="")
+function store_and_display_dataframe!(df, filepath, outputs, state; info_suffix="")
     # Normalize string columns for display compatibility
     normalize_strings!(df)
     # Store DataFrame in state if provided
@@ -106,13 +106,16 @@ function store_and_display_dataframe!(df, filepath, table_observable, state; inf
     # Build source info text with normalized absolute path (+ optional suffix)
     info_text = (abspath(filepath) |> normpath) * info_suffix
     
-    # Update table display with info line
-    table_observable[] = create_table_with_info(Bonito.Table(df), info_text)
+    # Update table title
+    outputs.table_title[] = "SOURCE: " * info_text
+    
+    # Update table display
+    outputs.table[] = create_table_with_info(Bonito.Table(df))
     return nothing
 end
 
 """
-    load_xlsx_sheet_to_table(filepath, sheet, table_observable, state) --> Nothing
+    load_xlsx_sheet_to_table(filepath, sheet, outputs, state) --> Nothing
 
 Load a specific sheet from an XLSX file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
@@ -120,10 +123,10 @@ Also stores the DataFrame in state for use in DataFrame mode.
 # Arguments
 - `filepath`: Path to the file to load
 - `sheet::AbstractString`: excel sheet
-- `table_observable::Observable`: Table display observable
+- `outputs`: OutputObservables struct
 - `state::Union{Nothing, CasualPlotsState}`: Application state (optional, for storing opened file DataFrame)
 """
-function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothing)
+function load_xlsx_sheet_to_table(filepath, sheet, outputs, state=nothing)
     (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
     try
         df = readtable_xlsx(filepath, sheet; infer_eltypes=true, kwargs...)
@@ -132,20 +135,20 @@ function load_xlsx_sheet_to_table(filepath, sheet, table_observable, state=nothi
         if !isnothing(state)
             state.file_opening.sheet_name[] = string(sheet)
         end
-        store_and_display_dataframe!(df, filepath, table_observable, state; info_suffix=":" * string(sheet))
+        store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=":" * string(sheet))
     catch e
         @warn "Error loading XLSX sheet: $e"
-        table_observable[] = DOM.div("Error loading sheet: $sheet")
+        outputs.table[] = DOM.div("Error loading sheet: $sheet")
     end
 end
 
 """
-    load_csv_to_table(filepath, table_observable, state) --> Nothing
+    load_csv_to_table(filepath, outputs, state) --> Nothing
 
 Load a CSV/TSV file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_csv_to_table(filepath, table_observable, state=nothing)
+function load_csv_to_table(filepath, outputs, state=nothing)
     if !is_extension_available(:CSV)
         @warn "CSV extension not available"
         return nothing
@@ -160,10 +163,10 @@ function load_csv_to_table(filepath, table_observable, state=nothing)
         if !isnothing(state)
             state.file_opening.sheet_name[] = ""
         end
-        store_and_display_dataframe!(df, filepath, table_observable, state)
+        store_and_display_dataframe!(df, filepath, outputs, state)
     catch e
         @warn "Error loading file: $e"
-        table_observable[] = DOM.div("Error loading file: $(basename(filepath))")
+        outputs.table[] = DOM.div("Error loading file: $(basename(filepath))")
     end
     return nothing
 end

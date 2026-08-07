@@ -151,6 +151,11 @@
     overflow: hidden !important;
 }
 
+/* Hide the close button on the floating window */
+.bw-float-close {
+    display: none !important;
+}
+
 .table-float-content {
     flex: 1;
     min-height: 0;
@@ -171,18 +176,6 @@
     z-index: 1;
 }
 
-/* Table Info Pane */
-.info-line {
-    font-size: 10px;
-    background-color: #E3F2FD;
-    padding: 4px 8px;
-    border-radius: 3px;
-    margin-bottom: 5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 0;
-}
 
 .table-pane-container {
     display: flex;

@@ -1,22 +1,15 @@
 """
-    create_table_with_info(table_content, info_text)
+    create_table_with_info(table_content)
 
-Wrap table content with a source info line displayed above it.
+Wrap table content with proper container styles.
 
 # Arguments
 - `table_content`: The table DOM element (e.g., Bonito.Table(df))
-- `info_text`: Text describing the data source (filepath, DataFrame name, or "x vs y")
 
 # Returns
-DOM.div with vertically divided pane: info line on top, table below
+DOM.div with table container
 """
-function create_table_with_info(table_content, info_text; has_generated_index=false)
-    # Info line with light blue background, 10px font
-    info_line = DOM.div(
-        info_text;
-        class="info-line"
-    )
-    
+function create_table_with_info(table_content; has_generated_index=false)
     # Generate dynamic header CSS based on column types
     df = table_content.table
     css_rules = String[]
@@ -41,11 +34,9 @@ function create_table_with_info(table_content, info_text; has_generated_index=fa
     
     dynamic_style = DOM.style(join(css_rules, "\n"))
     
-    # Container: vertical layout with info on top, table below
-    DOM.div(
+    return DOM.div(
         dynamic_style,
-        info_line,
-        DOM.div(table_content; class="table-scroll-wrapper");
+        DOM.div(table_content; class="table-scroll-wrapper"),
         class="table-pane-container"
     )
 end
@@ -119,6 +110,6 @@ function create_data_table(x::AbstractString, y::AbstractString; range_from=noth
         info_text = "$x vs $y [$(from_idx):$(to_idx)]"
     end
     
-    return create_table_with_info(Bonito.Table(df), info_text; has_generated_index=true)
+    return (; table = create_table_with_info(Bonito.Table(df); has_generated_index=true), info_text = info_text)
 end
 

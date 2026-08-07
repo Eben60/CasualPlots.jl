@@ -324,6 +324,7 @@ function setup_source_callback(state, outputs)
             current_plot_x[] = nothing
             current_plot_y[] = nothing
             plot_observable[] = DOM.div("Plot Pane")
+            outputs.table_title[] = "Data Table (No source selected)"
             table_observable[] = DOM.div("Table Pane")
             # Clear text fields, references, and format changed flags
             reset_format_defaults!(state.misc.format_is_default)
@@ -645,7 +646,9 @@ function update_unified_plot!(state, outputs;
             if is_array_mode
                 x = state.data_selection.selected_x[]
                 y = state.data_selection.selected_y[]
-                table_observable[] = create_data_table(x, y; range_from=range_from, range_to=range_to)
+                res = create_data_table(x, y; range_from=range_from, range_to=range_to)
+                outputs.table[] = res.table
+                outputs.table_title[] = "SOURCE: " * res.info_text
             else
                 n_rows = nrow(df)
                 from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
@@ -660,8 +663,8 @@ function update_unified_plot!(state, outputs;
                 df_with_index = select(df, valid_cols)
                 df_with_index = df_with_index[from_idx:to_idx, :]
                 insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
-                
-                table_observable[] = create_table_with_info(Bonito.Table(df_with_index), info_text; has_generated_index=true)
+                outputs.table_title[] = "SOURCE: " * info_text
+                outputs.table[] = create_table_with_info(Bonito.Table(df_with_index); has_generated_index=true)
             end
         end
         
@@ -711,6 +714,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         
         # Clear plot, table, and range bounds
         plot_observable[] = DOM.div("Plot Pane")
+        outputs.table_title[] = "Data Table (No source selected)"
         table_observable[] = DOM.div("Table Pane")
         # Clear format changed flags and text fields
         reset_format_defaults!(state.misc.format_is_default)
@@ -732,6 +736,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
     on(selected_dataframe) do df_name
         selected_columns[] = String[]
         plot_observable[] = DOM.div("Plot Pane")
+        outputs.table_title[] = "Data Table (No source selected)"
         table_observable[] = DOM.div("Table Pane")
         
         # Set data bounds for the DataFrame
@@ -761,6 +766,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         if isnothing(df_name) || df_name == "" || length(cols) < 2
             # Need at least 2 columns (X and Y)
             plot_observable[] = DOM.div("Select at least 2 columns (first = X, others = Y)")
+            outputs.table_title[] = "Data Table (No source selected)"
             table_observable[] = DOM.div("Table Pane")
             return
         end

@@ -11,7 +11,7 @@ NamedTuple with:
 """
 function create_tab_content(control_panel, state, outputs)
     # Open tab - shows extension availability status (reactive) with file loading
-    open_tab_content = create_open_tab_content(outputs.table, state)
+    open_tab_content = create_open_tab_content(outputs, state)
     
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
     t2_format_content = DOM.div(

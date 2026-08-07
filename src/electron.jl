@@ -49,7 +49,7 @@ function get_electron_window(; show::Bool=true)
 
     window = if isempty(windows(app))
         # x, y = CURRENT_DISPLAY[] isa ElectronDisp ? CURRENT_DISPLAY[].resolution : (1200, 800)
-        x,y = (1200, 900)
+        x,y = (1200, 960)
         opts = Dict(
             :width => x, 
             :height => y, 

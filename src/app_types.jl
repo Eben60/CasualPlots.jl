@@ -107,6 +107,7 @@ end
 @kwdef struct OutputObservables
     plot::Observable{Any} = Observable{Any}(DOM.div("Plot Pane"))
     table::Observable{Any} = Observable{Any}(DOM.div("Table Pane"))
+    table_title::Observable{String} = Observable{String}("Data Table (No source selected)")
     current_x::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)
     current_y::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)
 end

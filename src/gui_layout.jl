@@ -4,28 +4,15 @@
 Assemble the application layout using BonitoWidgets.Workspace.
 
 Default arrangement: Controls (left) + Plot (right) docked side-by-side.
-Data Table starts as a floating window (closable). A restore button in the
-controls pane brings it back if closed.
+Data Table starts as a floating window.
 
 # Returns
 Complete DOM structure for the application including modal overlay
 """
-function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, state, overwrite_trigger, cancel_trigger)
-    # --- Floating Table State ---
-    table_is_visible = Observable(true)
-    
-    # Dock/Show button to bring it back if closed
-    dock_btn = DOM.button("Show Data Table"; 
-        class="btn btn-primary",
-        onclick=js"() => { $(table_is_visible).notify(true) }"
-    )
-    
-    # Control pane: tabs on top, dock button + help section at bottom
+function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, table_title, state, overwrite_trigger, cancel_trigger)
+    # Control pane: tabs on top, help section at bottom
     ctrlpane_split = DOM.div(
         DOM.div(ctrlpane_content; class="ctrl-pane-content"),
-        DOM.div(dock_btn; style=Styles(
-            "padding" => "8px 10px", "text-align" => "center", "border-top" => "1px solid #ccc"
-        )),
         help_section(help_visibility);
         class="ctrl-pane-split"
     )
@@ -43,16 +30,10 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     
     fw = FloatingWindow(
         table_content;
-        title="Data Table",
+        title=table_title,
         # Positioned right below the 610px high grid (padding 5px + height 610px + gap 5px = 620px)
-        x=5, y=620, width=1190, height=270,
-        visible=table_is_visible,
-        close_trigger=Observable(false)
+        x=5, y=620, width=1165, height=305
     )
-    
-    on(fw.close_trigger) do _
-        table_is_visible[] = false
-    end
     
     # --- Modal dialog (must sit ABOVE BonitoWidgets floating layer) ---
     modal = create_modal_container(state, overwrite_trigger, cancel_trigger)

@@ -284,11 +284,11 @@ function render_open_tab_view(open_file_trigger, reload_trigger, reload_enabled,
 end
 
 """
-    create_open_tab_content(table_observable, state)
+    create_open_tab_content(outputs, state)
 
 Create reactive content for the Open tab.
 """
-function create_open_tab_content(table_observable, state)
+function create_open_tab_content(outputs, state)
     (; opened_file_name) = state.file_opening
     
     # Create trigger for Open File button clicks
@@ -309,13 +309,13 @@ function create_open_tab_content(table_observable, state)
     
     # Setup callbacks
     on(open_file_trigger) do _
-        handle_open_file_click(table_observable, state, current_xlsx_path, sheet_names, selected_sheet)
+        handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, selected_sheet)
     end
     
     on(selected_sheet) do sheet
         xlsx_path = current_xlsx_path[]
         if !isempty(sheet) && !isempty(xlsx_path)
-            load_xlsx_sheet_to_table(xlsx_path, sheet, table_observable, state)
+            load_xlsx_sheet_to_table(xlsx_path, sheet, outputs, state)
         end
     end
     
@@ -331,13 +331,13 @@ function create_open_tab_content(table_observable, state)
         
         if ext in [".csv", ".tsv"]
             # Reload CSV/TSV file
-            load_csv_to_table(filepath, table_observable, state)
+            load_csv_to_table(filepath, outputs, state)
             @info "Reloaded CSV file: $(basename(filepath))"
         elseif ext == ".xlsx"
             # Reload XLSX sheet (use currently selected sheet)
             sheet = selected_sheet[]
             if !isempty(sheet)
-                load_xlsx_sheet_to_table(filepath, sheet, table_observable, state)
+                load_xlsx_sheet_to_table(filepath, sheet, outputs, state)
                 @info "Reloaded XLSX sheet: $(basename(filepath)):$sheet"
             else
                 @warn "No sheet selected for XLSX reload"
