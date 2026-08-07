@@ -39,7 +39,7 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     
     # --- Floating Window ---
     # Wrap table_observable in a div with auto overflow to allow internal scrolling
-    table_content = DOM.div(table_observable; style=Styles("height"=>"100%", "width"=>"100%", "overflow"=>"auto"))
+    table_content = DOM.div(table_observable; class="table-float-content")
     
     fw = FloatingWindow(
         table_content;

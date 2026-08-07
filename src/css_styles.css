@@ -139,6 +139,38 @@
     flex-shrink: 0;
 }
 
+/* === FloatingWindow Table Scrolling Fix ===
+   Ensure flex height propagates from .bw-float down to .table-scroll-wrapper
+   so both scrollbars appear at the viewport edges, not at the content bottom.
+   Key: only .table-scroll-wrapper may have overflow:auto. */
+
+.bw-float-body {
+    flex: 1 1 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+.table-float-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Override Bonito.Table's own overflow to prevent nested scroll containers */
+.table-container {
+    overflow: visible !important;
+}
+
+/* Sticky headers: pin thead at the top of the scroll viewport */
+.table-scroll-wrapper .comparison-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
 /* Table Info Pane */
 .info-line {
     font-size: 10px;
@@ -149,17 +181,20 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
 }
 
 .table-pane-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 .table-scroll-wrapper {
     overflow: auto;
     flex: 1;
+    min-height: 0;
 }
 
 /* Layout Panes */

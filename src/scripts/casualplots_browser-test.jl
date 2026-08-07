@@ -1,4 +1,6 @@
-include("casualplots_test_setup.jl");
+using CasualPlots
+using Bonito
+CasualPlots.@populate ; 
 
 app = casualplots_app();
 # this opens the GUI in browser for debugging
