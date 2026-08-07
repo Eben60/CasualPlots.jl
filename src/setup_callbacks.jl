@@ -544,11 +544,14 @@ function update_unified_plot!(state, outputs;
             end
             
             n_cols = size(y_data, 2)
-            ys = ["y_name_$n" for n in 1:n_cols]
-            valid_cols = vcat("x", ys)
-            m = hcat(x_data, y_data)
-            df = DataFrame(m, valid_cols)
-            display_name = "$(x) vs $(y)"
+            ys = n_cols == 1 ? [y] : ["$(y)_$n" for n in 1:n_cols]
+            valid_cols = vcat(x, ys)
+            df = DataFrame()
+            df[!, x] = x_data
+            for i in 1:n_cols
+                df[!, ys[i]] = y_data[:, i]
+            end
+            display_name = "$(y) vs $(x)"
         else
             cols = state.data_selection.selected_columns[]
             df_name = state.data_selection.selected_dataframe[]

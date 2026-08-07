@@ -73,10 +73,13 @@ function generate_xy_arrays_code(state::CasualPlotsState)
     end
     
     n_cols = size(y_data, 2)
-    ys = ["y_name_\$n" for n in 1:n_cols]
-    valid_cols = vcat("x", ys)
-    m = hcat(x_data, y_data)
-    df = DataFrame(m, valid_cols)
+    ys = n_cols == 1 ? ["$(y_name)"] : ["$(y_name)_\$n" for n in 1:n_cols]
+    valid_cols = vcat("$(x_name)", ys)
+    df = DataFrame()
+    df[!, "$(x_name)"] = x_data
+    for i in 1:n_cols
+        df[!, ys[i]] = y_data[:, i]
+    end
     df_selected = select(df, valid_cols)
 """
     
@@ -320,12 +323,12 @@ using AlgebraOfGraphics
     filename_base = if source_type == "X, Y Arrays"
         x_name = state.data_selection.selected_x[]
         y_name = state.data_selection.selected_y[]
-        "$(x_name)-vs-$(y_name)"
+        "$(y_name)-vs-$(x_name)"
     else
         cols = state.data_selection.selected_columns[]
         x_col = !isempty(cols) ? cols[1] : "x"
         y_col = length(cols) > 1 ? cols[2] : "y"
-        "$(x_col)-vs-$(y_col)"
+        "$(y_col)-vs-$(x_col)"
     end
     
     code *= "# # For available kwargs (like `rows`), see the cp_load_data signature\n"

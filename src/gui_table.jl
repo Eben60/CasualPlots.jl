@@ -105,9 +105,9 @@ function create_data_table(x::AbstractString, y::AbstractString; range_from=noth
     
     # Build source info text with range info
     if from_idx == x_first && to_idx == x_last
-        info_text = "$x vs $y"
+        info_text = "$y vs $x"
     else
-        info_text = "$x vs $y [$(from_idx):$(to_idx)]"
+        info_text = "$y vs $x [$(from_idx):$(to_idx)]"
     end
     
     return (; table = create_table_with_info(Bonito.Table(df); has_generated_index=true), info_text = info_text)
