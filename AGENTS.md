@@ -81,7 +81,7 @@ The application uses a reactive `state` struct (`CasualPlotsState`) with `Observ
 To provide REPL read-access, the `Bonito.App` and the `state` are bundled in a `CasualPlotApp` struct returned by `casualplots_app()`.
 See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_state_architecture.md) for the full state structure and output observables documentation.
 
-**Window Management & Layout**: The Plot and Table panes are implemented as `BonitoWidgets.FloatingWindow`s. Custom JavaScript in `gui_layout.jl` injects window controls (Minimize, Restore, Maximize) and handles cross-window visibility toggling (e.g., maximizing the Plot pane hides the Table pane and Grid, while restoring resets the layout). A `ResizeObserver` monitors the Plot pane's dimensions and notifies a `plot_size` observable, which triggers an in-place `Makie.resize!` of the figure without re-rendering the plot.
+**Window Management & Layout**: The Plot and Table panes are implemented as `BonitoWidgets.FloatingWindow`s. Custom JavaScript in `gui_layout.jl` injects window controls (Minimize, Restore, Maximize) and handles cross-window visibility toggling (e.g., maximizing the Plot pane hides the Table pane and Grid, while restoring resets the layout). A `ResizeObserver` monitors the Plot pane's dimensions and notifies a `plot_size` observable, which triggers an in-place `Makie.resize!` of the figure without a full replot.
 
 ### Developer Diagrams
 
