@@ -34,29 +34,43 @@ function inject_window_controls(xObs, yObs, wObs, hObs; orig_x, orig_y, orig_w, 
         btnMin.style.fontSize = '18px';
         btnMin.style.paddingBottom = '4px';
         btnMin.onclick = () => {
+            fw.style.minHeight = '32px';
+            const body = fw.querySelector('.bw-float-body');
+            if (body) body.style.display = 'none';
+            $(wObs).notify(350);
             $(hObs).notify(32);
         };
         
-        // Maximize
+        // Maximize: hide other panes, fill viewport
         const btnMax = document.createElement('button');
         btnMax.className = 'bw-icon-btn';
         btnMax.innerHTML = '\u26f6';
         btnMax.title = 'Maximize';
         btnMax.style.fontSize = '14px';
         btnMax.onclick = () => {
+            fw.style.minHeight = '';
+            const body = fw.querySelector('.bw-float-body');
+            if (body) body.style.display = '';
+            const grid = document.querySelector('.cp-main-grid');
+            if (grid) grid.style.display = 'none';
             $(xObs).notify(0);
             $(yObs).notify(0);
-            $(wObs).notify(window.innerWidth);
-            $(hObs).notify(window.innerHeight);
+            $(wObs).notify(document.documentElement.clientWidth);
+            $(hObs).notify(document.documentElement.clientHeight);
         };
         
-        // Restore
+        // Restore: show other panes, restore original geometry
         const btnRes = document.createElement('button');
         btnRes.className = 'bw-icon-btn';
         btnRes.innerHTML = '\u21ba';
         btnRes.title = 'Restore';
         btnRes.style.fontSize = '16px';
         btnRes.onclick = () => {
+            fw.style.minHeight = '';
+            const body = fw.querySelector('.bw-float-body');
+            if (body) body.style.display = '';
+            const grid = document.querySelector('.cp-main-grid');
+            if (grid) grid.style.display = '';
             $(xObs).notify($(orig_x));
             $(yObs).notify($(orig_y));
             $(wObs).notify($(orig_w));
@@ -64,8 +78,8 @@ function inject_window_controls(xObs, yObs, wObs, hObs; orig_x, orig_y, orig_w, 
         };
         
         controls.appendChild(btnMin);
-        controls.appendChild(btnMax);
         controls.appendChild(btnRes);
+        controls.appendChild(btnMax);
         titleBar.insertBefore(controls, closeBtn);
     })();
     """
@@ -86,7 +100,8 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     pltpane = Card(plot_observable; class="pane-card pane-card-plot")
     
     # Grid layout (only top row needed)
-    container = Grid(ctrlpane, pltpane; columns="350px 810px", rows="610px", gap="5px", style=Styles("height"=>"610px"))
+    # cp-main-grid class is used by window controls to hide/show the grid on maximize/restore
+    container = Grid(ctrlpane, pltpane; columns="350px 810px", rows="610px", gap="5px", class="cp-main-grid", style=Styles("height"=>"610px"))
     
     # --- Floating Window ---
     # Create observables so we can pass them to the window controls script
