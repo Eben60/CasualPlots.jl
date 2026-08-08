@@ -46,6 +46,7 @@ function casualplots_app()
     
     # Setup axis limits callbacks
     setup_axis_limits_callbacks(state, outputs)
+    setup_plot_resize_callback(state)
     
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)

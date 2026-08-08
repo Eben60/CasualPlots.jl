@@ -65,7 +65,10 @@ function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_s
         x_col = names(dfw)[1] |> Symbol
         mappings = (; x_col, y_col=:y, group_col=:group)
         
-        fig = create_plot_df_long(df_long, x_name, y_name, plot_format; mappings)
+        raw_size = state.plotting.handles.plot_size[]
+        sz_tuple = (Int(raw_size[1]), Int(raw_size[2]))
+        
+        fig = create_plot_df_long(df_long, x_name, y_name, plot_format; mappings, plot_size=sz_tuple)
         
         if isnothing(fig)
             return nothing
@@ -1201,3 +1204,18 @@ function setup_axis_pan_zoom_sync(session, state)
     end
 end
 
+"""
+    setup_plot_resize_callback(state)
+
+Sets up a callback to resize the Makie Figure when the plot_size observable updates.
+"""
+function setup_plot_resize_callback(state)
+    on(state.plotting.handles.plot_size) do sz
+        if sz[1] > 0 && sz[2] > 0
+            fig = state.plotting.handles.current_figure[]
+            if !isnothing(fig)
+                Makie.resize!(fig, Int(sz[1]), Int(sz[2]))
+            end
+        end
+    end
+end

@@ -66,6 +66,7 @@ end
     legend_title_text::Observable{String} = Observable("")
     current_figure::Observable{Union{Nothing, Figure}} = Observable{Union{Nothing, Figure}}(nothing)
     current_axis::Observable{Union{Nothing, Axis}} = Observable{Union{Nothing, Axis}}(nothing)
+    plot_size::Observable{Any} = Observable{Any}((810, 610))
 end
 
 @kwdef struct Plotting

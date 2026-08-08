@@ -5,7 +5,7 @@ function var_to_string(t)
 end
 
 
-function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
+function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing, plot_size=(800, 600))
     WGLMakie.activate!()
     
     if isnothing(mappings) 
@@ -83,7 +83,7 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing)
     
     # Build axis kwargs with limits and reversal
     fg = draw(plt;
-        figure=(; size=(800, 600)), 
+        figure=(; size=plot_size), 
         legend=(show=show_legend, ),
         axis=(; title, limits=(x_min, x_max, y_min, y_max), xreversed, yreversed),
     )
