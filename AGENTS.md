@@ -12,7 +12,7 @@
 
 ### Technology Stack
 *   **[Bonito.jl](https://github.com/SimonDanisch/Bonito.jl)**: Web-based reactive GUI framework
-*   **[BonitoWidgets.jl](https://github.com/SimonDanisch/BonitoWidgets.jl)**: Advanced layout system (Workspace, Panels, Tabs)
+*   **[BonitoWidgets.jl](https://github.com/SimonDanisch/BonitoWidgets.jl)**: Advanced layout system (Workspace, Panels, Tabs, FloatingWindow)
 *   **[WGLMakie](https://github.com/MakieOrg/Makie.jl)**: WebGL-based plotting backend
 *   **[AlgebraOfGraphics.jl](https://github.com/MakieOrg/AlgebraOfGraphics.jl)**: Declarative plot specification (all plots built using AoG)
 *   **[DataFrames.jl](https://github.com/JuliaData/DataFrames.jl)**: Data handling
@@ -42,7 +42,7 @@ integrations_unitful.jl         # Unitful.jl support for plotting quantities wit
 
 # UI Components (gui_*.jl)
 gui_tabs.jl                     # Tab component + create_tab_content wiring
-gui_layout.jl                   # assemble_layout - Workspace grid construction
+gui_layout.jl                   # assemble_layout - Workspace grid construction, FloatingWindows with maximize/restore/resize
 gui_table.jl                    # Table display with info header and dynamic column type coloring
 gui_help_section.jl             # Mouse controls help text
 gui_source_tab.jl               # Source selection UI (Array/DataFrame modes)
@@ -80,6 +80,8 @@ scripts/                        # Example/demo scripts
 The application uses a reactive `state` struct (`CasualPlotsState`) with `Observables.jl` for all UI state management.
 To provide REPL read-access, the `Bonito.App` and the `state` are bundled in a `CasualPlotApp` struct returned by `casualplots_app()`.
 See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_state_architecture.md) for the full state structure and output observables documentation.
+
+**Window Management & Layout**: The Plot and Table panes are implemented as `BonitoWidgets.FloatingWindow`s. Custom JavaScript in `gui_layout.jl` injects window controls (Minimize, Restore, Maximize) and handles cross-window visibility toggling (e.g., maximizing the Plot pane hides the Table pane and Grid, while restoring resets the layout). A `ResizeObserver` monitors the Plot pane's dimensions and notifies a `plot_size` observable, which triggers an in-place `Makie.resize!` of the figure without re-rendering the plot.
 
 ### Developer Diagrams
 

@@ -197,6 +197,16 @@ sequenceDiagram
     Note over SaveCB: Modal popup displays success
     deactivate SaveCB
     
+    %% Resize Flow
+    Note over User,Plot: Window Management: User Resizes Plot
+    User->>UI: Drag Plot window border / Maximize
+    UI->>Obs: ResizeObserver triggers plot_size[] update
+    Obs->>FormatCB: Triggered (setup_plot_resize_callback)
+    activate FormatCB
+    FormatCB->>Plot: Makie.resize!(fig, w, h)
+    Note over FormatCB: In-place resize (no re-render)
+    deactivate FormatCB
+    
     %% Modal Dismissal
     User->>UI: Click "OK" in modal
     UI->>Obs: dismiss_trigger[] += 1
