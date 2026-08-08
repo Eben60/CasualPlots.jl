@@ -97,8 +97,8 @@ function variable_examples()
 
     caspl_df_exp = 
     let
-        xs = 0.0:10
-        n_cols = 40
+        xs = range(0.0, 10.0, length=100)
+        n_cols = 19
         m = hcat(xs, make_y(xs, n_cols))
         nms = vcat("x", ["y$n" for n in 1:n_cols])
         DataFrame(m, nms)

@@ -15,7 +15,7 @@ using Test
     @test occursin("data = cp_load_data(; xx100, yy100)", code)
     @test occursin("cp_create_plot(data)", code)
     
-    @test occursin("df = DataFrame(m, valid_cols)", code)
+    @test occursin("df[!, \"xx100\"] = x_data", code)
     @test occursin("CasualPlots.clean_plot_data!(df_selected, valid_cols)", code)
     
     # Arrays mode now uses CasualPlots.clean_plot_data!

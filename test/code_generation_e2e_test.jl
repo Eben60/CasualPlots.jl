@@ -125,7 +125,7 @@ end
         end
         
         # 4. Verify the SVG was generated
-        svg_file = joinpath(dir, "a-vs-b.svg")
+        svg_file = joinpath(dir, "b-vs-a.svg")
         @test isfile(svg_file)
         @test filesize(svg_file) > 1000
         
