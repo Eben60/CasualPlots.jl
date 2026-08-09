@@ -1,3 +1,8 @@
+"""
+    module Ele
+
+Provides functionality for displaying `CasualPlots` applications in standalone Electron windows.
+"""
 module Ele # code from NetworkDynamicsInspectorElectronExt
 
 using Electron: Electron, windows
@@ -20,6 +25,8 @@ function serve_app(app; show::Bool=true)
     display(disp, app)
     nothing
 end
+
+VERSION >= v"1.11" && eval(Meta.parse("public serve_app"))
 
 function close_display(; strict)
     if haswindow()

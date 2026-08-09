@@ -290,6 +290,10 @@ global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage
 - Review the **Testing Guidelines** Knowledge Item (KI) before running or modifying tests.
 - Manual testing via `src/scripts/casualplots_test.jl`
     - see also [extended manual testing protocol](AGENTS_more_info/specific_issues/manual_testing_plan.md)
+- **Interactive Agentic Workflow**: When capturing screenshots or testing specific UI states interactively with the user, follow this cooperative workflow:
+    1. **Launch**: Agent starts the GUI locally (e.g., using `Kaimon` `ex` tool to run `Bonito.Server(app, "127.0.0.1", 8000)`).
+    2. **Navigate**: User navigates to `http://localhost:8000` in their local browser and interacts with the GUI to reach the desired state.
+    3. **Capture/Read**: Agent uses `browser_subagent` to capture a screenshot of `http://localhost:8000` (without modifying the state) OR the agent reads the necessary backend variables.
 - GUI agentic testing was not successful. See attempts and more info in Branch `v0.6.0-refactoring`
 - Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more

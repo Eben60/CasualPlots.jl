@@ -1,17 +1,10 @@
-using CasualPlots
-using Documenter
+include("makedocs.jl")
+;
 
-DocMeta.setdocmeta!(CasualPlots, :DocTestSetup, :(using CasualPlots); recursive=true)
-
-makedocs(;
-    modules=[CasualPlots],
-    authors="Eben60 <nomail@nowhere.me>",
-    sitename="CasualPlots.jl",
-    format=Documenter.HTML(;
-        edit_link="main",
-        assets=String[],
-    ),
-    pages=[
-        "Home" => "index.md",
-    ],
+# deployment done on the server anyway
+# don't normally run deploydocs here
+deploydocs(
+    repo = "github.com/Eben60/CasualPlots.jl.git",
+    versions = nothing,
+    push_preview = true
 )
