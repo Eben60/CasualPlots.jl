@@ -110,7 +110,7 @@ function store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=
     outputs.table_title[] = "SOURCE: " * info_text
     
     # Update table display
-    outputs.table[] = create_table_with_info(Bonito.Table(df))
+    outputs.table[] = create_table_with_info(Bonito.Table(df; row_renderer=cp_render_value))
     return nothing
 end
 

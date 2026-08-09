@@ -18,6 +18,7 @@ module CasualPlots
 using Bonito, BonitoWidgets, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
 using Unitful
 using DataStructures: DefaultDict
+import Printf
 
 include("electron.jl")
 include("constants.jl")

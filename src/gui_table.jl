@@ -9,6 +9,14 @@ Wrap table content with proper container styles.
 # Returns
 DOM.div with table container
 """
+function cp_render_value(val)
+    ismissing(val) && return "n/a"
+    val isa Integer && return string(val)
+    val isa Unitful.Quantity && return Printf.@sprintf("%.5g %s", ustrip(val), unit(val))
+    val isa Real && return Printf.@sprintf("%.5g", Float64(val))
+    return string(val)
+end
+
 function create_table_with_info(table_content; has_generated_index=false)
     # Generate dynamic header CSS based on column types
     df = table_content.table
@@ -110,6 +118,6 @@ function create_data_table(x::AbstractString, y::AbstractString; range_from=noth
         info_text = "$y vs $x [$(from_idx):$(to_idx)]"
     end
     
-    return (; table = create_table_with_info(Bonito.Table(df); has_generated_index=true), info_text = info_text)
+    return (; table = create_table_with_info(Bonito.Table(df; row_renderer=cp_render_value); has_generated_index=true), info_text = info_text)
 end
 
