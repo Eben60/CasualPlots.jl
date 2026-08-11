@@ -295,7 +295,8 @@ global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage
     2. **Navigate**: User navigates to `http://localhost:8000` in their local browser and interacts with the GUI to reach the desired state.
     3. **Capture/Read**: Agent uses `browser_subagent` to capture a screenshot of `http://localhost:8000` (without modifying the state) OR the agent reads the necessary backend variables.
 - GUI agentic testing was not successful. See attempts and more info in Branch `v0.6.0-refactoring`
-- Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage
+- Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage.
+    - **Note for Documentation**: The JS hooks inside this package (e.g., `set_radio_value`, `click_button` in `gui_testing_utils.jl`) can be executed via `Bonito.evaljs` to visually drive the UI. This is highly useful for automating documentation screenshots.
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more
 
 ### Precompilation

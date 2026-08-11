@@ -2,12 +2,11 @@
 
 ### [0.8.0]
 
-_under development_
+_2026-08-11_
 
 - Migration to use [`BonitoWidgets.jl`](https://github.com/SimonDanisch/BonitoWidgets.jl).
 - Floating and resizable Plot and Table panes.
     - Pane controls for minimize, restore, and maximize actions.
-- Added [`Documenter.jl`](https://github.com/JuliaDocs/Documenter.jl) based documentation.
 
 
 ### [0.7.0]
