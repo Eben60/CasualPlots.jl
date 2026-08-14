@@ -86,11 +86,11 @@ Observable containing the dropdown DOM element that updates reactively
 function create_group_by_dropdown(selected_group_by, selected_plottype)
     # Create a reactive dropdown that updates when plottype changes
     dropdown_node = map(selected_plottype) do plottype
-        is_barplot = plottype == "BarPlot"
+        config = PLOT_TYPES[plottype]
         
-        # Build options with disabled attribute for Geometry when BarPlot
+        # Build options disabling unsupported grouping methods
         options = map(GROUP_BY_OPTIONS) do opt
-            if opt == "Geometry" && is_barplot
+            if !supports_grouping(config, opt)
                 DOM.option(opt; value=opt, disabled=true)
             else
                 DOM.option(opt; value=opt)

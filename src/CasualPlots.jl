@@ -17,11 +17,13 @@ module CasualPlots
 
 using Bonito, BonitoWidgets, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
 using Unitful
-using DataStructures: DefaultDict
+using DataStructures: DefaultDict, OrderedDict
 import Printf
 
 include("electron.jl")
 include("constants.jl")
+include("plot_types.jl")
+
 
 include("FileDialogWorkAround.jl")
 using .FileDialogWorkAround

@@ -11,8 +11,6 @@ This function assembles the complete interactive plotting application with:
 - Tabbed interface for organized controls
 """
 function casualplots_app()
-    supported_plot_types = ["Lines", "Scatter", "BarPlot"]
-
     # Initialize application state
     state = initialize_app_state()
    
@@ -20,7 +18,7 @@ function casualplots_app()
     x_node = create_x_dropdown(state)
     y_node = create_y_dropdown()
     dataframe_node = create_dataframe_dropdown(state)
-    plottype_node = create_plottype_dropdown(supported_plot_types, state.plotting.format.selected_plottype)
+    plottype_node = create_plottype_dropdown(collect(keys(PLOT_TYPES)), state.plotting.format.selected_plottype)
     theme_node = create_theme_dropdown(state.plotting.format.selected_theme)
     group_by_node = create_group_by_dropdown(state.plotting.format.selected_group_by, state.plotting.format.selected_plottype)
     

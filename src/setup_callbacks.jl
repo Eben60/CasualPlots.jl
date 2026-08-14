@@ -624,10 +624,10 @@ function update_unified_plot!(state, outputs;
             y_names = cache.cached_y_names[]
         end
         
-        plottype = selected_plottype[] |> Symbol |> eval
+        plottype_str = selected_plottype[]
         
         base_format = (;
-            plottype = plottype,
+            plottype = plottype_str,
             show_legend = is_new_data ? nothing : show_legend[],
             legend_title = is_new_data ? "" : legend_title_text[],
             group_by = selected_group_by[],
@@ -980,7 +980,7 @@ function setup_axis_limits_callbacks(state, outputs)
     # Helper to get current plot format
     function get_current_plot_format()
         return (;
-            plottype = selected_plottype[] |> Symbol |> eval,
+            plottype = selected_plottype[],
             show_legend = show_legend[],
             legend_title = legend_title_text[],
             group_by = selected_group_by[],
