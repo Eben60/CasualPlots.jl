@@ -21,14 +21,7 @@ window.CasualPlots.toggleSourceMode = (sourceType) => {
     if (dfMode) dfMode.style.display = sourceType === 'DataFrame' ? 'flex' : 'none';
 }
 
-/**
- * Toggles visibility of BarPlot options (direction and mode).
- * @param {string} plottype - The selected plot type ("BarPlot", "Scatter", etc.)
- */
-window.CasualPlots.toggleBarplotOptions = (plottype) => {
-    const section = document.getElementById('barplot-options-section');
-    if (section) section.style.display = plottype === 'BarPlot' ? 'flex' : 'none';
-}
+
 
 /**
  * Updates an observable with the checked state from an event (for checkbox).

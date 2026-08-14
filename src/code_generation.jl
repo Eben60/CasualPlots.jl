@@ -178,10 +178,12 @@ function generate_plot_function(state::CasualPlotsState)
     
     plottype = format.selected_plottype[]
     theme = format.selected_theme[]
-    group_by = format.selected_group_by[]
-    bar_direction = format.selected_bar_direction[]
-    bar_mode = format.selected_bar_mode[]
     show_legend = format.show_legend[]
+    dynamic_vals = Dict(k => v[] for (k, v) in format.dynamic_attributes)
+    nt_format = merge((;
+        plottype = plottype,
+        show_legend = show_legend,
+    ), NamedTuple(dynamic_vals))
     
     title = handles.title_text[]
     xlabel = handles.xlabel_text[]
@@ -223,33 +225,13 @@ function cp_create_plot(data)
     title = $(title == "" ? "\"$(plottype) Plot of \$final_y_name vs \$final_x_name\"" : repr(title))
 """
 
-    # Group Mapping
-    if group_by == "Geometry" && plottype != "BarPlot"
-        if plottype == "Lines"
-            code *= "    group_mapping = (; linestyle = group_col => $(repr(legend_title)))\n"
-        else
-            code *= "    group_mapping = (; marker = group_col => $(repr(legend_title)))\n"
-        end
-    elseif plottype == "BarPlot"
-        if bar_mode == "Stacked"
-            code *= "    group_mapping = (; color = group_col => $(repr(legend_title)), stack = group_col => $(repr(legend_title)))\n"
-        else
-            code *= "    group_mapping = (; color = group_col => $(repr(legend_title)), dodge = group_col => $(repr(legend_title)))\n"
-        end
-    else
-        code *= "    group_mapping = (; color = group_col => $(repr(legend_title)))\n"
-    end
-    
-    vis_code = if plottype == "BarPlot"
-        dir_val = bar_direction == "Horizontal" ? :x : :y
-        "visual(BarPlot; direction = $(repr(dir_val)))"
-    else
-        "visual($(plottype))"
-    end
+    # Build Layer
+    plot_config = get_plot_config(plottype)
+    layer_code = build_layer_code(plot_config, nt_format, "group_col", repr(legend_title))
     
     # Plotting code
     code *= """
-    plt = AlgebraOfGraphics.data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * $(vis_code)
+    plt = AlgebraOfGraphics.data(df) * mapping(x_col => final_x_name, y_col => final_y_name) * $(layer_code)
     
     limits = ($(repr(x_min)), $(repr(x_max)), $(repr(y_min)), $(repr(y_max)))
     

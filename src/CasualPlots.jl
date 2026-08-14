@@ -21,7 +21,9 @@ using DataStructures: DefaultDict
 import Printf
 
 include("electron.jl")
+include("plot_types.jl")
 include("constants.jl")
+
 
 include("FileDialogWorkAround.jl")
 using .FileDialogWorkAround

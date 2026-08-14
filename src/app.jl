@@ -11,8 +11,6 @@ This function assembles the complete interactive plotting application with:
 - Tabbed interface for organized controls
 """
 function casualplots_app()
-    supported_plot_types = ["Lines", "Scatter", "BarPlot"]
-
     # Initialize application state
     state = initialize_app_state()
    
@@ -20,9 +18,8 @@ function casualplots_app()
     x_node = create_x_dropdown(state)
     y_node = create_y_dropdown()
     dataframe_node = create_dataframe_dropdown(state)
-    plottype_node = create_plottype_dropdown(supported_plot_types, state.plotting.format.selected_plottype)
+    plottype_node = create_plottype_dropdown([c.name for c in PLOT_TYPES], state.plotting.format.selected_plottype)
     theme_node = create_theme_dropdown(state.plotting.format.selected_theme)
-    group_by_node = create_group_by_dropdown(state.plotting.format.selected_group_by, state.plotting.format.selected_plottype)
     
     # Initialize output observables
     outputs = initialize_output_observables()
@@ -32,13 +29,12 @@ function casualplots_app()
     setup_source_callback(state, outputs)
     setup_format_change_callbacks(state, outputs)
     setup_theme_callback(state, outputs)
-    setup_group_by_callback(state, outputs)
     
     # Setup label update callbacks for editable text fields
     setup_label_update_callbacks(state, outputs)
     
     # Create UI components
-    control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, theme_node, group_by_node, state)
+    control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, theme_node, state)
     
     # Setup plot trigger callbacks for both modes
     setup_array_plot_trigger_callback(state, outputs, control_panel.plot_trigger)  # Array mode callbacks

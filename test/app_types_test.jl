@@ -25,8 +25,7 @@ using Observables
     @test state.plotting.format.x_min[] === nothing
     @test state.plotting.format.show_legend[] == true
     @test state.plotting.format.xreversed[] == false
-    @test state.plotting.format.selected_bar_direction[] == "Vertical"
-    @test state.plotting.format.selected_bar_mode[] == "Dodged"
+    @test isempty(state.plotting.format.dynamic_attributes)
     @test state.misc.block_format_update[] == false
 end
 
@@ -67,4 +66,22 @@ end
     @test outputs.table[] isa Bonito.Node
     @test outputs.current_x[] === nothing
     @test outputs.current_y[] === nothing
+end
+
+@testset "Attribute Display Order" begin
+    for config in CasualPlots.PLOT_TYPES
+        for attr in CasualPlots.get_attributes(config)
+            @test attr.name in CasualPlots.ATTRIBUTE_DISPLAY_ORDER
+        end
+    end
+end
+
+@testset "SinglePlotConfig Interface" begin
+    using CasualPlots: SinglePlotConfig, GroupConfig
+    
+    @test hasfield(SinglePlotConfig, :group_config)
+    @test fieldtype(SinglePlotConfig, :group_config) == GroupConfig
+    
+    @test hasfield(SinglePlotConfig, :visual_type)
+    @test fieldtype(SinglePlotConfig, :visual_type) == Type
 end

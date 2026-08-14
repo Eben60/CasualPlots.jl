@@ -58,8 +58,8 @@ end
 Base.@kwdef struct PlotFormat
     selected_plottype::Observable{String}
     selected_theme::Observable{String}       # Makie theme (Makie default, AoG, theme_*)
-    selected_group_by::Observable{String}    # Group differentiation: "Color" or "Geometry"
     show_legend::Observable{Bool}
+    dynamic_attributes::Dict{Symbol, Observable{Any}} # Dynamically instantiated attributes based on current plot type
     # Axis limits (nothing = auto)
     x_min::Observable{Union{Nothing, Float64}}
     x_max::Observable{Union{Nothing, Float64}}
@@ -73,9 +73,6 @@ Base.@kwdef struct PlotFormat
     # Axis reversal
     xreversed::Observable{Bool}
     yreversed::Observable{Bool}
-    # BarPlot options
-    selected_bar_direction::Observable{String} # "Vertical" or "Horizontal"
-    selected_bar_mode::Observable{String}      # "Dodged" or "Stacked"
 end
 
 Base.@kwdef struct PlotHandles

@@ -1,13 +1,6 @@
 # Constants for CasualPlots module
 
-const REQUIRES_FULL_REPLOT = (; # TODO update and actually use it
-    plottype = true, 
-    show_legend = true,
-    legend_title = true,
-    title = false,
-    xlabel = false,
-    ylabel = false,
-)
+const ATTRIBUTE_DISPLAY_ORDER = [:group_by, :bar_mode, :bar_direction]
 
 const DEFAULT_PLOT_TYPE = :Scatter
 
@@ -24,14 +17,6 @@ const SUPPORTED_THEMES = [
 
 const DEFAULT_THEME = "Makie default"
 
-const GROUP_BY_OPTIONS = ["Color", "Geometry"]
-const DEFAULT_GROUP_BY = "Color"
-
-const BAR_DIRECTION_OPTIONS = ["Vertical", "Horizontal"]
-const DEFAULT_BAR_DIRECTION = "Vertical"
-
-const BAR_MODE_OPTIONS = ["Dodged", "Stacked"]
-const DEFAULT_BAR_MODE = "Dodged"
 
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
 
@@ -62,7 +47,7 @@ Maps reset trigger names to the set of format options that should be reset.
 """
 const RESET_FORMAT_OPTION = let
     rfo = Dict(
-        ["never"] => m2s([:plottype, :theme, :bar_direction, :bar_mode]),
+        ["never"] => m2s([:plottype, :theme]),
         ["source", "range"] => m2s(AXES_LIMITS_OPTIONS),
         ["source"] => m2s(PLOT_LABELS_OPTIONS, PLOT_LEGEND_OPTIONS),
     )
@@ -74,3 +59,56 @@ const RESET_FORMAT_OPTION = let
     end
     d
 end
+
+# --- Plot Types Registry ---
+
+const SCATTER_PLOT = SinglePlotConfig(
+    name = "Scatter",
+    visual_type = Scatter,
+    group_config = GroupConfig("Color" => :color, "Geometry" => :marker)
+)
+
+const LINES_PLOT = SinglePlotConfig(
+    name = "Lines",
+    visual_type = Lines,
+    group_config = GroupConfig("Color" => :color, "Geometry" => :linestyle)
+)
+
+const LINE_SYMBOL_PLOT = CompoundPlot(
+    "Line+Symbol",
+    [LINES_PLOT, SCATTER_PLOT]
+)
+
+const BAR_PLOT = SinglePlotConfig(
+    name = "BarPlot",
+    visual_type = BarPlot,
+    group_config = GroupConfig("Color" => :color),
+    extra_attributes = AbstractPlotAttribute[
+        EnumAttribute(
+            name = :bar_direction,
+            label = "Direction:",
+            options = ["Vertical", "Horizontal"],
+            default = "Vertical",
+            reset_policy = "never",
+            layout = :inline,
+            visual_map = :direction => Dict("Horizontal" => :x, "Vertical" => :y)
+        ),
+        EnumAttribute(
+            name = :bar_mode,
+            label = "Mode:",
+            options = ["Dodged", "Stacked"],
+            default = "Dodged",
+            reset_policy = "never",
+            layout = :inline,
+            mapping_map = Dict("Stacked" => :stack, "Dodged" => :dodge),
+            requires_group = false
+        )
+    ]
+)
+
+const PLOT_TYPES = (
+    SCATTER_PLOT,
+    LINES_PLOT,
+    LINE_SYMBOL_PLOT,
+    BAR_PLOT
+)

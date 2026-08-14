@@ -43,9 +43,7 @@ end
 @kwdef struct PlotFormat
     selected_plottype::Observable{String} = Observable("Scatter")
     selected_theme::Observable{String} = Observable(DEFAULT_THEME)
-    selected_group_by::Observable{String} = Observable(DEFAULT_GROUP_BY)
-    selected_bar_direction::Observable{String} = Observable(DEFAULT_BAR_DIRECTION)
-    selected_bar_mode::Observable{String} = Observable(DEFAULT_BAR_MODE)
+    dynamic_attributes::Dict{Symbol, Observable{Any}} = Dict{Symbol, Observable{Any}}()
     show_legend::Observable{Bool} = Observable(true)
     x_min::Observable{Union{Nothing, Float64}} = Observable{Union{Nothing, Float64}}(nothing)
     x_max::Observable{Union{Nothing, Float64}} = Observable{Union{Nothing, Float64}}(nothing)

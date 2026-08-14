@@ -42,43 +42,19 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing, 
         y_name
     end
 
-    # Determine group differentiation style (Color vs Geometry)
-    group_by = get(plot_format, :group_by, "Color")
+    plottype_str = plot_format.plottype
+    plot_config = get_plot_config(plottype_str)
     
-    # Build the appropriate group mapping based on group_by setting
-    group_mapping = if group_by == "Geometry" && plottype != BarPlot
-        # Use linestyle for Lines, marker for Scatter
-        if plottype == Lines
-            (; linestyle = group_col => legend_title)
-        else  # Scatter
-            (; marker = group_col => legend_title)
-        end
-    elseif plottype == BarPlot
-        bar_mode = get(plot_format, :bar_mode, "Dodged")
-        if bar_mode == "Stacked"
-            (; color = group_col => legend_title, stack = group_col => legend_title)
-        else
-            (; color = group_col => legend_title, dodge = group_col => legend_title)
-        end
-    else
-        # Default to color (also fallback for BarPlot with Geometry)
-        (; color = group_col => legend_title)
-    end
+    # Build the full layer (mapping * visual) for the chosen plot type
+    layer = build_layer(plot_config, plot_format, group_col, legend_title)
     
-    vis = if plottype == BarPlot
-        dir_val = get(plot_format, :bar_direction, "Vertical") == "Horizontal" ? :x : :y
-        visual(BarPlot; direction = dir_val)
-    else
-        visual(plottype)
-    end
-    
-    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name; group_mapping...) * vis
+    plt = data(df) * mapping(x_col => final_x_name, y_col => final_y_name) * layer
     
     # Use custom title if provided, otherwise generate default
     title = if !isnothing(custom_title) && custom_title != ""
         custom_title
     else
-        "$(var_to_string(plottype)) Plot of $final_y_name vs $final_x_name"
+        "$(plottype_str) Plot of $final_y_name vs $final_x_name"
     end
     
     # Build axis kwargs with limits and reversal
