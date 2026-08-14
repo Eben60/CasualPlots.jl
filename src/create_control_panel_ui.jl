@@ -17,7 +17,7 @@ Returns a NamedTuple with:
 - `title_input`: Plot title text field
 - `plot_trigger`: Observable for triggering (re-)plot
 """
-function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, theme_node, group_by_node, state)
+function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, theme_node, state)
     (; trigger_update) = state.misc
     (; format, handles) = state.plotting
     (; show_legend) = format
@@ -74,11 +74,10 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     
     plot_kind = create_plot_kind_selector(plottype_node)
     theme_selector = create_theme_selector(theme_node)
-    group_by_selector = create_group_by_selector(group_by_node)
     
-    bar_direction_node = create_bar_direction_dropdown(state.plotting.format.selected_bar_direction)
-    bar_mode_node = create_bar_mode_dropdown(state.plotting.format.selected_bar_mode)
-    barplot_options = create_barplot_options_section(bar_direction_node, bar_mode_node, state.plotting.format.selected_plottype)
+    bar_direction_node = nothing # Removed
+    bar_mode_node = nothing # Removed
+    dynamic_attributes_section = create_dynamic_attributes_section(state.plotting.format.selected_plottype, state.plotting.format.dynamic_attributes)
     
     legend_control = create_legend_control(show_legend, legend_title_text)
     
@@ -90,7 +89,7 @@ function create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, 
     # Axis limits section
     axis_limits_section = create_axis_limits_section(format)
     
-    return (; source_type_selector, source_content, plot_kind, barplot_options, theme_selector, group_by_selector, legend_control,
+    return (; source_type_selector, source_content, plot_kind, dynamic_attributes_section, theme_selector, legend_control,
               xlabel_input, ylabel_input, title_input, axis_limits_section, plot_trigger)
 end
 

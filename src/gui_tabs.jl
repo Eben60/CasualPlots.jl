@@ -14,17 +14,25 @@ function create_tab_content(control_panel, state, outputs)
     open_tab_content = create_open_tab_content(outputs, state)
     
     t1_source_content = DOM.div(control_panel.source_type_selector, control_panel.source_content)
-    t2_format_content = DOM.div(
-        control_panel.plot_kind,
-        control_panel.barplot_options,
+    permanent_controls = Card(DOM.div(
         control_panel.theme_selector,
-        control_panel.group_by_selector,
         control_panel.legend_control,
         control_panel.xlabel_input,
         control_panel.ylabel_input,
         control_panel.title_input,
-        control_panel.axis_limits_section,
+        control_panel.axis_limits_section;
+        class="flex-col"
+    ); class="pane-card")
+
+    t2_format_content = DOM.div(
+        DOM.div(
+            control_panel.plot_kind,
+            control_panel.dynamic_attributes_section
+        ),
+        permanent_controls;
+        style=Styles("display"=>"flex", "flex-direction"=>"column", "justify-content"=>"space-between", "height"=>"100%")
     )
+
     save_tab_result = create_save_tab_content(state)
     
     # Use BonitoWidgets.Tabs instead of custom create_tabs_component

@@ -22,6 +22,22 @@ function initialize_app_state()
         ),
     )
 
+    # Pre-populate the dynamic_attributes dictionary with all possible attributes
+    for config in values(PLOT_TYPES)
+        for attr in get_attributes(config)
+            if !haskey(state.plotting.format.dynamic_attributes, attr.name)
+                state.plotting.format.dynamic_attributes[attr.name] = Observable{Any}(attr.default)
+            end
+            
+            # Register in RESET_FORMAT_OPTION
+            if haskey(RESET_FORMAT_OPTION, attr.reset_policy)
+                push!(RESET_FORMAT_OPTION[attr.reset_policy], attr.name)
+            else
+                RESET_FORMAT_OPTION[attr.reset_policy] = Set([attr.name])
+            end
+        end
+    end
+
     # Setup auto-refresh callback
     on(state.misc.trigger_update) do val
         current_time = time()

@@ -153,12 +153,12 @@ The Open tab provides configurable file reading options before/after loading:
 Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
 
 **A. Format Callback Logic:**
-- **Triggered by**: `selected_plottype`, `selected_theme`, `selected_group_by`, `show_legend`, `legend_title_text`, axis limit observables.
+- **Triggered by**: `selected_plottype`, `selected_theme`, `show_legend`, `legend_title_text`, axis limit observables, and any dynamically registered attribute in `dynamic_attributes`.
 - **Implementations**:
     - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
     - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` → `do_replot`)
     - Theme: `setup_theme_callback` (applies theme globally, triggers replot)
-    - Group By: `setup_group_by_callback` (triggers replot with new group mapping)
+    - Dynamic Attributes: Callbacks automatically generated for all `AbstractPlotAttribute` configurations (triggers replot).
     - Axis Limits: `setup_axis_limits_callbacks` (triggers immediate replot with current limits)
 - **Shared Behavior**:
     - **All format changes trigger full replot** using the unified `do_replot` function.
@@ -171,11 +171,11 @@ Formatting changes (Plot Type, Legend, Labels) are handled differently to preser
 **B. Format Persistence Strategy (`format_is_default` and `RESET_FORMAT_OPTION`):**
 A `DefaultDict{Symbol, Bool}` tracks which format options are still at their default values.
 
-**Reset behavior is defined in `constants.jl` via `RESET_FORMAT_OPTION` Dict:**
+**Reset behavior is driven by `RESET_FORMAT_OPTION` Dict (dynamically populated at startup from `AbstractPlotAttribute` registries):**
 - `"never"` → Options that persist across all changes:
     - `:plottype`, `:theme`
 - `"source"` → Options reset when data source changes:
-    - `:title`, `:xlabel`, `:ylabel`, `:show_legend`, `:legend_title`
+    - `:title`, `:xlabel`, `:ylabel`, `:show_legend`, `:legend_title`, and any dynamic attributes (e.g. `:group_by`, `:bar_mode`) with `reset_policy="source"`.
     - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
 - `"range"` → Options reset when (Re-)Plot button is clicked:
     - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
@@ -211,7 +211,7 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 **Key Functions:**
 - `do_replot(state, outputs; data, plot_format, is_new_data)`: **Unified entry point** for all plotting
   - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames
-  - `plot_format`: `(; plottype, show_legend, legend_title, group_by)` + axis limits + BarPlot options (`bar_direction`, `bar_mode`)
+  - `plot_format`: `(; plottype, show_legend, legend_title)` + axis limits + all registered `dynamic_attributes` unpacked (e.g. `group_by`, `bar_direction`, `bar_mode`).
   - `is_new_data`: If true, initializes text fields from plot defaults
 - `check_data_create_plot(x_name, y_name; plot_format)`: Fetch from Main, delegate to create_plot
 - `create_plot(x_data::AbstractVector, y_data, ...)`: Arrays → DataFrame → AoG pipeline
@@ -222,17 +222,10 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 
 **AlgebraOfGraphics Pattern:**
 ```julia
-# Group differentiation based on group_by setting:
-group_mapping = if group_by == "Geometry" && plottype != BarPlot
-    plottype == Lines ? (; linestyle = group_col => legend_title) : (; marker = group_col => legend_title)
-elseif plottype == BarPlot
-    bar_kw = bar_mode == "Stacked" ? (; stack = group_col => legend_title) : (; dodge = group_col => legend_title)
-    merge((; color = group_col => legend_title), bar_kw)
-else
-    (; color = group_col => legend_title)
-end
-vis = plottype == BarPlot ? visual(BarPlot; direction = bar_direction == "Horizontal" ? :x : :y) : visual(plottype)
-plt = data(df) * mapping(x_col => x_name, y_col => y_name; group_mapping...) * vis
+# Group differentiation based on dynamically generated layer code:
+plot_config = PLOT_TYPES[plottype]
+layer_code = build_layer(plot_config, plot_format, group_col, legend_title)
+plt = AlgebraOfGraphics.data(df) * mapping(x_col => x_name, y_col => y_name) * layer_code
 fg = draw(plt; figure=(; size=(800, 600)), legend=(show=show_legend,), axis=(; title))
 fig = fg.figure
 axis = fg.grid[1, 1].axis  # Extract Axis from FigureGrid

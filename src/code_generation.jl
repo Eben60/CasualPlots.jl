@@ -178,10 +178,12 @@ function generate_plot_function(state::CasualPlotsState)
     
     plottype = format.selected_plottype[]
     theme = format.selected_theme[]
-    group_by = format.selected_group_by[]
-    bar_direction = format.selected_bar_direction[]
-    bar_mode = format.selected_bar_mode[]
     show_legend = format.show_legend[]
+    dynamic_vals = Dict(k => v[] for (k, v) in format.dynamic_attributes)
+    nt_format = merge((;
+        plottype = plottype,
+        show_legend = show_legend,
+    ), NamedTuple(dynamic_vals))
     
     title = handles.title_text[]
     xlabel = handles.xlabel_text[]
@@ -225,7 +227,7 @@ function cp_create_plot(data)
 
     # Build Layer
     plot_config = PLOT_TYPES[plottype]
-    layer_code = build_layer_code(plot_config, format, "group_col", repr(legend_title))
+    layer_code = build_layer_code(plot_config, nt_format, "group_col", repr(legend_title))
     
     # Plotting code
     code *= """

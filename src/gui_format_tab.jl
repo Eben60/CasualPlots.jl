@@ -15,7 +15,7 @@ function create_plottype_dropdown(supported_plot_types, selected_plottype)
     return Observable(create_dropdown(
         supported_plot_types, selected_plottype; 
         id="dropdown-plottype",
-        onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(selected_plottype)); window.CasualPlots.toggleBarplotOptions(event.target.value); }"
+        onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(selected_plottype)); }"
     ))
 end
 
@@ -71,95 +71,66 @@ function create_theme_selector(theme_node)
 end
 
 """
-    create_group_by_dropdown(selected_group_by, selected_plottype)
+    render_attribute(attr::Union{EnumAttribute, GroupByAttribute}, obs::Observable)
 
-Create a reactive dropdown for selecting how groups are visually differentiated.
-The "Geometry" option is disabled when BarPlot is selected.
-
-# Arguments
-- `selected_group_by`: Observable tracking the selected group style
-- `selected_plottype`: Observable tracking the selected plot type (to disable Geometry for BarPlot)
-
-# Returns
-Observable containing the dropdown DOM element that updates reactively
+Create a generic dropdown for a dynamic attribute.
 """
-function create_group_by_dropdown(selected_group_by, selected_plottype)
-    # Create a reactive dropdown that updates when plottype changes
-    dropdown_node = map(selected_plottype) do plottype
-        config = PLOT_TYPES[plottype]
+function render_attribute(attr::Union{EnumAttribute, GroupByAttribute}, obs::Observable)
+    dropdown_node = Observable(create_dropdown(attr.options, obs; id="dropdown-$(attr.name)"))
+    
+    return DOM.div(
+        attr.label, dropdown_node;
+        class="flex-row align-center gap-1 mb-1"
+    )
+end
+
+"""
+    create_dynamic_attributes_section(selected_plottype, dynamic_attributes)
+
+Create a reactive UI section that renders dynamic attribute controls based on the selected plot type.
+"""
+function create_dynamic_attributes_section(selected_plottype, dynamic_attributes)
+    return map(selected_plottype) do pt
+        config = PLOT_TYPES[pt]
+        attrs = get_attributes(config)
         
-        # Build options disabling unsupported grouping methods
-        options = map(GROUP_BY_OPTIONS) do opt
-            if !supports_grouping(config, opt)
-                DOM.option(opt; value=opt, disabled=true)
-            else
-                DOM.option(opt; value=opt)
-            end
+        nodes = []
+        
+        for attr in attrs
+            push!(nodes, (attr.name, attr.layout, render_attribute(attr, dynamic_attributes[attr.name])))
         end
         
-        DOM.select(
-            options...;
-            class="dropdown",
-            onchange=js"event => window.CasualPlots.updateObservableValue(event, $(selected_group_by))",
-            id="dropdown-groupby"
-        )
+        if isempty(nodes)
+            return DOM.div(style="display: none;")
+        end
+        
+        # Sort nodes according to ATTRIBUTE_DISPLAY_ORDER
+        sort!(nodes, by = x -> begin
+            idx = findfirst(==(x[1]), ATTRIBUTE_DISPLAY_ORDER)
+            idx === nothing ? 999 : idx
+        end)
+        
+        # Group inline elements
+        final_nodes = []
+        inline_group = []
+        
+        for (_, layout, node) in nodes
+            if layout == :inline
+                push!(inline_group, node)
+            else
+                if !isempty(inline_group)
+                    push!(final_nodes, DOM.div(inline_group...; class="flex-row gap-2 mb-1 flex-wrap"))
+                    empty!(inline_group)
+                end
+                push!(final_nodes, node)
+            end
+        end
+        if !isempty(inline_group)
+            push!(final_nodes, DOM.div(inline_group...; class="flex-row gap-2 mb-1 flex-wrap"))
+        end
+        
+        DOM.div(final_nodes...; class="flex-col")
     end
-    
-    return dropdown_node
-end
-
-"""
-    create_group_by_selector(group_by_node)
-
-Create group-by selection UI.
-
-# Arguments
-- `group_by_node`: The dropdown node for group-by selection
-
-# Returns
-DOM.div containing group-by dropdown with label
-"""
-function create_group_by_selector(group_by_node)
-    DOM.div(
-        "Show group by:", group_by_node;
-        class="flex-row align-center gap-1 mb-1"
-    )
-end
-
-"""
-    create_bar_direction_dropdown(selected_bar_direction)
-
-Create the dropdown for selecting BarPlot direction (Vertical/Horizontal).
-"""
-function create_bar_direction_dropdown(selected_bar_direction)
-    return Observable(create_dropdown(BAR_DIRECTION_OPTIONS, selected_bar_direction; id="dropdown-bar-direction"))
-end
-
-"""
-    create_bar_mode_dropdown(selected_bar_mode)
-
-Create the dropdown for selecting BarPlot mode (Dodged/Stacked).
-"""
-function create_bar_mode_dropdown(selected_bar_mode)
-    return Observable(create_dropdown(BAR_MODE_OPTIONS, selected_bar_mode; id="dropdown-bar-mode"))
-end
-
-"""
-    create_barplot_options_section(direction_node, mode_node, selected_plottype)
-
-Create BarPlot options UI section containing direction and mode dropdowns.
-Only visible when selected_plottype is "BarPlot".
-"""
-function create_barplot_options_section(direction_node, mode_node, selected_plottype)
-    initial_style = selected_plottype[] == "BarPlot" ? "display: flex;" : "display: none;"
-
-    DOM.div(
-        "Bar direction:", direction_node,
-        "Mode:", mode_node;
-        id="barplot-options-section",
-        style=initial_style,
-        class="flex-row align-center gap-1 mb-1"
-    )
 end
 
 """

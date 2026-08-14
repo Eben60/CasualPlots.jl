@@ -115,15 +115,15 @@ end
     state.data_selection.source_type[] = "X, Y Arrays"
     state.data_selection.selected_x[] = "xx"
     state.data_selection.selected_y[] = "yy"
-    state.plotting.format.selected_group_by[] = "Geometry"
+    state.plotting.format.dynamic_attributes[:group_by][] = "Geometry"
     state.plotting.format.selected_plottype[] = "Lines"
     
     code = generate_julia_code(state).code
-    @test occursin("group_mapping = (; linestyle = group_col =>", code)
+    @test occursin("mapping(; linestyle = group_col =>", code)
     
     state.plotting.format.selected_plottype[] = "Scatter"
     code_scatter = generate_julia_code(state).code
-    @test occursin("group_mapping = (; marker = group_col =>", code_scatter)
+    @test occursin("mapping(; marker = group_col =>", code_scatter)
 end
 
 @testset "Code Generation String Verification - BarPlot Options" begin
@@ -137,14 +137,14 @@ end
 
     # Default Dodged + Vertical
     code_dodged_vert = generate_julia_code(state).code
-    @test occursin("group_mapping = (; color = group_col => \"\", dodge = group_col => \"\")", code_dodged_vert)
+    @test occursin("mapping(; color = group_col => \"\", dodge = group_col => \"\")", code_dodged_vert)
     @test occursin("visual(BarPlot; direction = :y)", code_dodged_vert)
 
     # Stacked + Horizontal
-    state.plotting.format.selected_bar_mode[] = "Stacked"
-    state.plotting.format.selected_bar_direction[] = "Horizontal"
+    state.plotting.format.dynamic_attributes[:bar_mode][] = "Stacked"
+    state.plotting.format.dynamic_attributes[:bar_direction][] = "Horizontal"
     code_stacked_horiz = generate_julia_code(state).code
-    @test occursin("group_mapping = (; color = group_col => \"\", stack = group_col => \"\")", code_stacked_horiz)
+    @test occursin("mapping(; color = group_col => \"\", stack = group_col => \"\")", code_stacked_horiz)
     @test occursin("visual(BarPlot; direction = :x)", code_stacked_horiz)
 end
 

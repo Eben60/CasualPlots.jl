@@ -158,7 +158,7 @@ Note: This callback does NOT check for block_format_update since theme changes
 are considered independent from other format changes.
 """
 function setup_theme_callback(state, outputs)
-    (; selected_theme, selected_plottype, selected_group_by, show_legend) = state.plotting.format
+    (; selected_theme, selected_plottype, show_legend) = state.plotting.format
     (; legend_title_text, current_figure) = state.plotting.handles
     (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
@@ -197,50 +197,6 @@ function setup_theme_callback(state, outputs)
     end
 end
 
-"""
-    setup_group_by_callback(state, outputs)
-
-Set up callback for group-by selection changes. When the group_by style changes:
-1. Triggers replot with current data (if any plot exists)
-
-Group differentiation styles:
-- "Color": Groups distinguished by color palette (default)
-- "Geometry": Groups distinguished by linestyle (Lines) or marker (Scatter)
-  - Disabled for BarPlot (falls back to Color)
-"""
-function setup_group_by_callback(state, outputs)
-    (; selected_group_by, selected_plottype, show_legend) = state.plotting.format
-    (; legend_title_text, current_figure) = state.plotting.handles
-    (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
-       range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
-    current_plot_x = outputs.current_x
-    current_plot_y = outputs.current_y
-    
-    on(selected_group_by) do group_by
-        state.misc.block_format_update[] && return
-        
-        # If no plot exists, nothing to do
-        isnothing(current_figure[]) && return
-        
-        # Helper to get current range values
-        function get_range_values()
-            from_val = range_from[]
-            to_val = range_to[]
-            if isnothing(from_val)
-                from_val = data_bounds_from[]
-            end
-            if isnothing(to_val)
-                to_val = data_bounds_to[]
-            end
-            return (from_val, to_val)
-        end
-        
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
-    end
-end
 
 """
     setup_x_callback(dims_dict_obs, selected_x, selected_y, dropdown_y_node, plot_observable, table_observable)
@@ -396,7 +352,7 @@ Handle format changes for X,Y Array mode: plottype, show_legend, legend_title_te
 All changes trigger a full replot using the unified do_replot function.
 """
 function setup_format_change_callbacks(state, outputs)
-    (; selected_plottype, selected_group_by, selected_bar_direction, selected_bar_mode, show_legend) = state.plotting.format
+    (; selected_plottype, show_legend, dynamic_attributes) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     (; range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     
@@ -460,32 +416,18 @@ function setup_format_change_callbacks(state, outputs)
                               range_from=from_val, range_to=to_val)
     end
     
-    # === Bar Direction Change Handler ===
-    on(selected_bar_direction) do bar_dir
-        state.misc.block_format_update[] && return
-        
-        if bar_dir != DEFAULT_BAR_DIRECTION
-            state.misc.format_is_default[:bar_direction] = false
+    # === Dynamic Attributes Change Handlers ===
+    for (attr_name, obs) in dynamic_attributes
+        on(obs) do val
+            state.misc.block_format_update[] && return
+            
+            state.misc.format_is_default[attr_name] = false
+            
+            from_val, to_val = get_range_values()
+            update_unified_plot!(state, outputs; 
+                                  is_new_data=false, update_table=false,
+                                  range_from=from_val, range_to=to_val)
         end
-        
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
-    end
-    
-    # === Bar Mode Change Handler ===
-    on(selected_bar_mode) do bar_mode
-        state.misc.block_format_update[] && return
-        
-        if bar_mode != DEFAULT_BAR_MODE
-            state.misc.format_is_default[:bar_mode] = false
-        end
-        
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
     end
 end
 
@@ -512,7 +454,7 @@ function update_unified_plot!(state, outputs;
                                range_to::Union{Nothing,Int}=nothing,
                                reset_semipersistent::Bool=false)
     (; show_modal, modal_type) = state.dialogs
-    (; selected_plottype, selected_group_by, selected_bar_direction, selected_bar_mode, show_legend) = state.plotting.format
+    (; selected_plottype, show_legend) = state.plotting.format
     (; legend_title_text) = state.plotting.handles
     (; source_type) = state.data_selection
     plot_observable = outputs.plot
@@ -626,14 +568,12 @@ function update_unified_plot!(state, outputs;
         
         plottype_str = selected_plottype[]
         
-        base_format = (;
+        dynamic_vals = Dict(k => v[] for (k, v) in state.plotting.format.dynamic_attributes)
+        base_format = merge((;
             plottype = plottype_str,
             show_legend = is_new_data ? nothing : show_legend[],
             legend_title = is_new_data ? "" : legend_title_text[],
-            group_by = selected_group_by[],
-            bar_direction = selected_bar_direction[],
-            bar_mode = selected_bar_mode[],
-        )
+        ), NamedTuple(dynamic_vals))
         plot_format = if is_new_data || reset_semipersistent
             base_format
         else
@@ -971,7 +911,7 @@ Set up callbacks for axis limit and reversal changes.
 Changes are applied immediately without needing a Replot button.
 """
 function setup_axis_limits_callbacks(state, outputs)
-    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, selected_group_by, selected_bar_direction, selected_bar_mode, show_legend) = state.plotting.format
+    (; x_min, x_max, y_min, y_max, xreversed, yreversed, selected_plottype, show_legend, dynamic_attributes) = state.plotting.format
     (; current_axis, current_figure, legend_title_text) = state.plotting.handles
     (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
@@ -979,13 +919,11 @@ function setup_axis_limits_callbacks(state, outputs)
     
     # Helper to get current plot format
     function get_current_plot_format()
-        return (;
+        dynamic_vals = Dict(k => v[] for (k, v) in dynamic_attributes)
+        base_format = (;
             plottype = selected_plottype[],
             show_legend = show_legend[],
             legend_title = legend_title_text[],
-            group_by = selected_group_by[],
-            bar_direction = selected_bar_direction[],
-            bar_mode = selected_bar_mode[],
             x_min = x_min[],
             x_max = x_max[],
             y_min = y_min[],
@@ -993,6 +931,7 @@ function setup_axis_limits_callbacks(state, outputs)
             xreversed = xreversed[],
             yreversed = yreversed[],
         )
+        return merge(base_format, NamedTuple(dynamic_vals))
     end
     
     # Helper to trigger replot
