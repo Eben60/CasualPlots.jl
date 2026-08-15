@@ -29,6 +29,7 @@ WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 [weakdeps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
+XML = "72c71f33-b9b6-44de-8c94-c961784809e2"
 
 [extensions]
 ReadCSV_Ext = "CSV"
@@ -55,4 +56,5 @@ Printf = "<0.0.1, 1"
 Unitful = "1.25"
 WGLMakie = "0.13"
 XLSX = "0.10, 0.11, 0.12"
+XML = "0.4.0 - 0.4.4, 0.4.6" # remove XML entry after 0.4.6 is released
 julia = "1.10"
