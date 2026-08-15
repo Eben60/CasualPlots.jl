@@ -2,15 +2,6 @@
 
 const ATTRIBUTE_DISPLAY_ORDER = [:group_by, :bar_mode, :bar_direction]
 
-const REQUIRES_FULL_REPLOT = (; # TODO update and actually use it
-    plottype = true, 
-    show_legend = true,
-    legend_title = true,
-    title = false,
-    xlabel = false,
-    ylabel = false,
-)
-
 const DEFAULT_PLOT_TYPE = :Scatter
 
 const SUPPORTED_THEMES = [
@@ -25,9 +16,6 @@ const SUPPORTED_THEMES = [
 ]
 
 const DEFAULT_THEME = "Makie default"
-
-const GROUP_BY_OPTIONS = ["Color", "Geometry"]
-const DEFAULT_GROUP_BY = "Color"
 
 
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
@@ -81,9 +69,9 @@ const PLOT_TYPES = OrderedDict{String, AbstractPlotConfig}(
         SimplePlot(Lines, GroupConfig("Color" => :color, "Geometry" => :linestyle)),
         SimplePlot(Scatter, GroupConfig("Color" => :color, "Geometry" => :marker))
     ]),
-    "BarPlot" => BarPlotConfig(GroupConfig("Color" => :color)),
-    "Line+Bar" => CompoundPlot([
-        SimplePlot(Lines, GroupConfig("Color" => :color, "Geometry" => :linestyle)),
-        BarPlotConfig(GroupConfig("Color" => :color))
-    ])
+    "BarPlot" => BarPlotConfig(group_config = GroupConfig("Color" => :color)),
+    # "Line+Bar" => CompoundPlot([
+    #     SimplePlot(Lines, GroupConfig("Color" => :color, "Geometry" => :linestyle)),
+    #     BarPlotConfig(group_config = GroupConfig("Color" => :color))
+    # ]),
 )

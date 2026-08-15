@@ -379,6 +379,16 @@ function setup_format_change_callbacks(state, outputs)
             state.misc.format_is_default[:plottype] = false
         end
         
+        # Validate dynamic attributes against new plot type
+        config = PLOT_TYPES[plottype_str]
+        for attr in get_attributes(config)
+            current_val = dynamic_attributes[attr.name][]
+            if current_val ∉ attr.options
+                fallback = attr.name == :group_by ? "None" : attr.default
+                dynamic_attributes[attr.name][] = fallback
+            end
+        end
+        
         from_val, to_val = get_range_values()
         update_unified_plot!(state, outputs; 
                               is_new_data=false, update_table=false,

@@ -204,7 +204,19 @@ Centralized via `clean_plot_data!` (in `preprocess_dataframes.jl`) to ensure all
 - **Numeric Normalization**: Checks column types and contents (`normalize_numeric_columns!`). If an `Any` or `AbstractString` column has `> 90%` numeric values (i.e., less than 10% non-numerics), it replaces the invalid elements with `missing` so the rest of the data can be plotted. A warning popup is shown.
 - **Unitful Unification (Cross-Column)**: If multiple Y-columns contain `Unitful` quantities, it attempts to unify them to a common target unit (`unify_units!`). If dimensions are incompatible (e.g., `s` and `m`), it issues a warning and strips the units entirely to allow plotting on the same axis.
 
+### Plot Types Architecture (plot_types.jl)
+
+The application uses an object-oriented, declarative configuration system for defining plot types and their UI controls.
+
+- **`SinglePlotConfig`**: Abstract base type for all single-layer plots (e.g. `SimplePlot`, `BarPlotConfig`). Subtypes must provide a `visual_type` (e.g. `Makie.Scatter`) and a `group_config`.
+- **`CompoundPlot`**: Configuration for layered plots combining multiple child `AbstractPlotConfig`s (e.g., `Line+Symbol`). It automatically aggregates and merges UI attributes from all its children, and generates composite AlgebraOfGraphics layers using the `+` operator.
+- **Declarative Attribute Routing**: Plot configurations declare their UI controls by returning vectors of `AbstractPlotAttribute`. 
+  - `EnumAttribute`s specify `visual_map` or `mapping_map` (and `requires_group`) to declare exactly how their UI values map into the `visual()` or `mapping()` layers of the AoG pipeline.
+  - A generic fallback automatically iterates over these attributes to assemble the final plot parameters, drastically reducing the need for plot-specific overrides.
+- **Silent Grouping**: When `group_by == "None"` but multiple data columns are selected, the pipeline automatically injects a neutral `group` mapping. This ensures distinct lines remain separated (no zigzag loops) without altering their visual aesthetics.
+
 ### Plotting Implementation (plotting.jl)
+
 
 All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`Axis` calls in plotting logic).
 

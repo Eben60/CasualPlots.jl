@@ -107,7 +107,7 @@ function create_dynamic_attributes_section(selected_plottype, dynamic_attributes
         # Sort nodes according to ATTRIBUTE_DISPLAY_ORDER
         sort!(nodes, by = x -> begin
             idx = findfirst(==(x[1]), ATTRIBUTE_DISPLAY_ORDER)
-            idx === nothing ? 999 : idx
+            idx === nothing ? error("Attribute $(x[1]) is missing from ATTRIBUTE_DISPLAY_ORDER!") : idx
         end)
         
         # Group inline elements
