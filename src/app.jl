@@ -18,7 +18,7 @@ function casualplots_app()
     x_node = create_x_dropdown(state)
     y_node = create_y_dropdown()
     dataframe_node = create_dataframe_dropdown(state)
-    plottype_node = create_plottype_dropdown(collect(keys(PLOT_TYPES)), state.plotting.format.selected_plottype)
+    plottype_node = create_plottype_dropdown([c.name for c in PLOT_TYPES], state.plotting.format.selected_plottype)
     theme_node = create_theme_dropdown(state.plotting.format.selected_theme)
     
     # Initialize output observables

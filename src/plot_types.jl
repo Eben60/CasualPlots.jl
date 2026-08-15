@@ -9,15 +9,6 @@ generating AlgebraOfGraphics layers and UI attributes.
 abstract type AbstractPlotConfig end
 
 """
-    SinglePlotConfig <: AbstractPlotConfig
-
-Abstract type for single layer plots (e.g., Scatter, Lines, BarPlot). Subtypes 
-must implement the `visual_type` and `group_config` fields. Provides generic
-implementations for mapping and visual parameter extraction.
-"""
-abstract type SinglePlotConfig <: AbstractPlotConfig end
-
-"""
     AbstractPlotAttribute
 
 Base abstract type for dynamic plot attributes that generate UI controls in the
@@ -76,6 +67,23 @@ end
 
 GroupConfig(pairs::Pair...) = GroupConfig(Dict(pairs...))
 
+# --- Implementations ---
+
+# 1. Single Plot Config (Scatter, Lines, BarPlot, etc.)
+"""
+    SinglePlotConfig <: AbstractPlotConfig
+
+Concrete type for single layer plots (e.g., Scatter, Lines, BarPlot). 
+Defines the `visual_type` and `group_config` fields, along with any 
+`extra_attributes` used to generate dynamic UI controls.
+"""
+@kwdef struct SinglePlotConfig <: AbstractPlotConfig
+    name::String
+    visual_type::Type
+    group_config::GroupConfig
+    extra_attributes::Vector{AbstractPlotAttribute} = AbstractPlotAttribute[]
+end
+
 # --- Interfaces ---
 
 """
@@ -126,7 +134,20 @@ Defaults to empty vector.
 get_attributes(config::AbstractPlotConfig) = AbstractPlotAttribute[]
 
 function get_attributes(config::SinglePlotConfig)
-    return AbstractPlotAttribute[get_group_by_attribute(config)]
+    return AbstractPlotAttribute[get_group_by_attribute(config); config.extra_attributes]
+end
+
+"""
+    get_plot_config(name::String)
+
+Retrieves a plot configuration from the `PLOT_TYPES` vector by its name.
+"""
+function get_plot_config(name::String)
+    idx = findfirst(c -> c.name == name, PLOT_TYPES)
+    if isnothing(idx)
+        error("Plot type '$name' not found in PLOT_TYPES.")
+    end
+    return PLOT_TYPES[idx]
 end
 
 
@@ -222,62 +243,7 @@ function build_layer_code(config::SinglePlotConfig, format, group_col_str, legen
 end
 
 
-# --- Implementations ---
-
-# 1. Simple Plot (Scatter, Lines, etc.)
-"""
-    SimplePlot <: SinglePlotConfig
-
-Configuration for basic plot types like Scatter and Lines that only require
-standard grouping (color, marker, linestyle) without custom mapping logic.
-"""
-struct SimplePlot <: SinglePlotConfig
-    visual_type::Type
-    group_config::GroupConfig
-end
-
-
-
-# 2. Bar Plot
-"""
-    BarPlotConfig <: SinglePlotConfig
-
-Configuration for BarPlots. Includes specialized attributes for bar direction
-(horizontal vs vertical) and bar mode (stacked vs dodged).
-"""
-@kwdef struct BarPlotConfig <: SinglePlotConfig 
-    visual_type::Type = BarPlot
-    group_config::GroupConfig
-end
-
-
-
-function get_attributes(config::BarPlotConfig)
-    return AbstractPlotAttribute[
-        get_group_by_attribute(config),
-        EnumAttribute(
-            name = :bar_direction,
-            label = "Direction:",
-            options = ["Vertical", "Horizontal"],
-            default = "Vertical",
-            reset_policy = "never",
-            layout = :inline,
-            visual_map = :direction => Dict("Horizontal" => :x, "Vertical" => :y)
-        ),
-        EnumAttribute(
-            name = :bar_mode,
-            label = "Mode:",
-            options = ["Dodged", "Stacked"],
-            default = "Dodged",
-            reset_policy = "never",
-            layout = :inline,
-            mapping_map = Dict("Stacked" => :stack, "Dodged" => :dodge),
-            requires_group = false
-        )
-    ]
-end
-
-# 3. Compound Plot (Line+Symbol, etc.)
+# 2. Compound Plot (Line+Symbol, etc.)
 """
     CompoundPlot <: AbstractPlotConfig
 
@@ -286,10 +252,11 @@ composite plot (e.g., Line + Scatter). Collects attributes dynamically from
 its child configurations.
 """
 struct CompoundPlot <: AbstractPlotConfig
+    name::String
     configs::Vector{AbstractPlotConfig}
     extra_attributes::Vector{AbstractPlotAttribute}
 end
-CompoundPlot(configs) = CompoundPlot(configs, AbstractPlotAttribute[])
+CompoundPlot(name::String, configs) = CompoundPlot(name, configs, AbstractPlotAttribute[])
 
 function build_layer(config::CompoundPlot, format, group_col, legend_title)
     layers = [build_layer(c, format, group_col, legend_title) for c in config.configs]

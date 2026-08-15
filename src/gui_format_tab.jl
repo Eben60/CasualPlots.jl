@@ -91,7 +91,7 @@ Create a reactive UI section that renders dynamic attribute controls based on th
 """
 function create_dynamic_attributes_section(selected_plottype, dynamic_attributes)
     return map(selected_plottype) do pt
-        config = PLOT_TYPES[pt]
+        config = get_plot_config(pt)
         attrs = get_attributes(config)
         
         nodes = []

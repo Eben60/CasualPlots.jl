@@ -226,7 +226,7 @@ function cp_create_plot(data)
 """
 
     # Build Layer
-    plot_config = PLOT_TYPES[plottype]
+    plot_config = get_plot_config(plottype)
     layer_code = build_layer_code(plot_config, nt_format, "group_col", repr(legend_title))
     
     # Plotting code

@@ -62,16 +62,53 @@ end
 
 # --- Plot Types Registry ---
 
-const PLOT_TYPES = OrderedDict{String, AbstractPlotConfig}(
-    "Scatter" => SimplePlot(Scatter, GroupConfig("Color" => :color, "Geometry" => :marker)),
-    "Lines" => SimplePlot(Lines, GroupConfig("Color" => :color, "Geometry" => :linestyle)),
-    "Line+Symbol" => CompoundPlot([
-        SimplePlot(Lines, GroupConfig("Color" => :color, "Geometry" => :linestyle)),
-        SimplePlot(Scatter, GroupConfig("Color" => :color, "Geometry" => :marker))
-    ]),
-    "BarPlot" => BarPlotConfig(group_config = GroupConfig("Color" => :color)),
-    # "Line+Bar" => CompoundPlot([
-    #     SimplePlot(Lines, GroupConfig("Color" => :color, "Geometry" => :linestyle)),
-    #     BarPlotConfig(group_config = GroupConfig("Color" => :color))
-    # ]),
+const SCATTER_PLOT = SinglePlotConfig(
+    name = "Scatter",
+    visual_type = Scatter,
+    group_config = GroupConfig("Color" => :color, "Geometry" => :marker)
+)
+
+const LINES_PLOT = SinglePlotConfig(
+    name = "Lines",
+    visual_type = Lines,
+    group_config = GroupConfig("Color" => :color, "Geometry" => :linestyle)
+)
+
+const LINE_SYMBOL_PLOT = CompoundPlot(
+    "Line+Symbol",
+    [LINES_PLOT, SCATTER_PLOT]
+)
+
+const BAR_PLOT = SinglePlotConfig(
+    name = "BarPlot",
+    visual_type = BarPlot,
+    group_config = GroupConfig("Color" => :color),
+    extra_attributes = AbstractPlotAttribute[
+        EnumAttribute(
+            name = :bar_direction,
+            label = "Direction:",
+            options = ["Vertical", "Horizontal"],
+            default = "Vertical",
+            reset_policy = "never",
+            layout = :inline,
+            visual_map = :direction => Dict("Horizontal" => :x, "Vertical" => :y)
+        ),
+        EnumAttribute(
+            name = :bar_mode,
+            label = "Mode:",
+            options = ["Dodged", "Stacked"],
+            default = "Dodged",
+            reset_policy = "never",
+            layout = :inline,
+            mapping_map = Dict("Stacked" => :stack, "Dodged" => :dodge),
+            requires_group = false
+        )
+    ]
+)
+
+const PLOT_TYPES = (
+    SCATTER_PLOT,
+    LINES_PLOT,
+    LINE_SYMBOL_PLOT,
+    BAR_PLOT
 )

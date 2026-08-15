@@ -380,7 +380,7 @@ function setup_format_change_callbacks(state, outputs)
         end
         
         # Validate dynamic attributes against new plot type
-        config = PLOT_TYPES[plottype_str]
+        config = get_plot_config(plottype_str)
         for attr in get_attributes(config)
             current_val = dynamic_attributes[attr.name][]
             if current_val ∉ attr.options

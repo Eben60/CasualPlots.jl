@@ -23,7 +23,7 @@ function initialize_app_state()
     )
 
     # Pre-populate the dynamic_attributes dictionary with all possible attributes
-    for config in values(PLOT_TYPES)
+    for config in PLOT_TYPES
         for attr in get_attributes(config)
             if !haskey(state.plotting.format.dynamic_attributes, attr.name)
                 state.plotting.format.dynamic_attributes[attr.name] = Observable{Any}(attr.default)

@@ -43,7 +43,7 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing, 
     end
 
     plottype_str = plot_format.plottype
-    plot_config = PLOT_TYPES[plottype_str]
+    plot_config = get_plot_config(plottype_str)
     
     # Build the full layer (mapping * visual) for the chosen plot type
     layer = build_layer(plot_config, plot_format, group_col, legend_title)

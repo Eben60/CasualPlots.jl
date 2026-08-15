@@ -69,7 +69,7 @@ end
 end
 
 @testset "Attribute Display Order" begin
-    for (pt_name, config) in CasualPlots.PLOT_TYPES
+    for config in CasualPlots.PLOT_TYPES
         for attr in CasualPlots.get_attributes(config)
             @test attr.name in CasualPlots.ATTRIBUTE_DISPLAY_ORDER
         end
@@ -77,14 +77,11 @@ end
 end
 
 @testset "SinglePlotConfig Interface" begin
-    using InteractiveUtils: subtypes
     using CasualPlots: SinglePlotConfig, GroupConfig
     
-    for T in subtypes(SinglePlotConfig)
-        @test hasfield(T, :group_config)
-        @test fieldtype(T, :group_config) == GroupConfig
-        
-        @test hasfield(T, :visual_type)
-        @test fieldtype(T, :visual_type) == Type
-    end
+    @test hasfield(SinglePlotConfig, :group_config)
+    @test fieldtype(SinglePlotConfig, :group_config) == GroupConfig
+    
+    @test hasfield(SinglePlotConfig, :visual_type)
+    @test fieldtype(SinglePlotConfig, :visual_type) == Type
 end
