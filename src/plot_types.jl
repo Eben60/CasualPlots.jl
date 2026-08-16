@@ -265,7 +265,7 @@ end
 
 function build_layer_code(config::CompoundPlot, format, group_col_str, legend_title_str)
     codes = [build_layer_code(c, format, group_col_str, legend_title_str) for c in config.configs]
-    return join(["(" * c * ")" for c in codes], " + ")
+    return "(" * join(["(" * c * ")" for c in codes], " + ") * ")"
 end
 
 function supports_grouping(config::CompoundPlot, group_type::String)
