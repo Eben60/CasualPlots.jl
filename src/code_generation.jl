@@ -12,7 +12,7 @@ function generate_data_preview(var_name::String)
     end
 end
 function _generate_rows_kwarg_and_assert()
-    code = ",\n    # rows: rows range to plot. Examples: (:begin, :end) (all rows), (1, 100), (:begin, 10), (10, :end)\n"
+    code = ",\n    # rows: rows range to plot. Examples: (:begin, :end), (1, 100), (:begin, 10), (10, :end)\n"
     code *= "    rows = (:begin, :end),\n    )\n\n"
     
     code *= "    @assert length(rows) == 2 &&\n"
@@ -410,14 +410,12 @@ function generate_julia_code(state::CasualPlotsState; file=nothing)
     try
         write(file, code)
         msg = "Script saved to $(basename(file))"
-        @info msg
         return (; code=code, path=file, success=true, message=msg)
     catch e
         err_msg = "Error saving script: $(e)"
         if e isa ErrorException
              err_msg = e.msg
         end
-        @warn err_msg
         return (; code=code, path=nothing, success=false, message=err_msg)
     end
 end

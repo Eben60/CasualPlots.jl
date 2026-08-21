@@ -77,13 +77,11 @@ function unify_units!(df, cols, state=nothing)
     if !dimensions_match
         # 3. Units are not compatible. Issue warning and plot with stripped units.
         warning_msg = "Incompatible physical dimensions detected among Y columns: $(join(unitful_cols, ", ")). Stripping units to plot."
-        @warn warning_msg
         
         if !isnothing(state)
-            state.file_saving.save_status_message[] = warning_msg
-            state.file_saving.save_status_type[] = :warning
-            state.dialogs.modal_type[] = :warning
-            state.dialogs.show_modal[] = true
+            show_modal!(state, warning_msg; type=:warning)
+        else
+            @warn warning_msg
         end
         
         # Strip units for all unitful columns

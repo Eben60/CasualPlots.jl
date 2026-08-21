@@ -47,11 +47,11 @@ function create_sheet_selector(sheet_names, selected_sheet)
                 class="select-standard"
             )
         else
-            # XLSX file selected - show sheet options
-            options = [DOM.option("Select sheet"; value="", selected=true, disabled=true)]
-            for sheet in sheets
-                push!(options, DOM.option(sheet; value=sheet))
-            end
+            # XLSX file selected - show sheet options with first sheet selected by default
+            options = [
+                DOM.option(sheet; value=sheet, selected=(i == 1))
+                for (i, sheet) in enumerate(sheets)
+            ]
             DOM.select(
                 options...;
                 id="dropdown-sheet",
@@ -323,7 +323,9 @@ function create_open_tab_content(outputs, state)
     on(reload_trigger) do _
         filepath = state.file_opening.opened_file_path[]
         if isempty(filepath)
-            @warn "No file loaded to reload"
+            msg = "No file loaded to reload"
+            @warn msg
+            show_modal!(state, msg; type=:warning)
             return
         end
         
@@ -340,10 +342,14 @@ function create_open_tab_content(outputs, state)
                 load_xlsx_sheet_to_table(filepath, sheet, outputs, state)
                 @info "Reloaded XLSX sheet: $(basename(filepath)):$sheet"
             else
-                @warn "No sheet selected for XLSX reload"
+                msg = "No sheet selected for XLSX reload"
+                @warn msg
+                show_modal!(state, msg; type=:warning)
             end
         else
-            @warn "Unknown file type for reload: $ext"
+            msg = "Unknown file type for reload: $ext"
+            @warn msg
+            show_modal!(state, msg; type=:warning)
         end
     end
     

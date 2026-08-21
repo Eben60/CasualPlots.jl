@@ -1,5 +1,31 @@
 # Changelog
 
+### [0.9.1]
+
+_WIP_
+
+**Added**
+- Auto-select the first sheet by default when opening XLSX files.
+- Visual loading indicator in the Plot pane during heavy operations (e.g., initial JIT compilation).
+
+**Changed/Internal**
+- Centralized REPL logging into `show_modal!` to automatically mirror GUI popups to the REPL.
+- Various minor behavior fixes
+
+
+### [0.9.0]
+
+_2026-08-16_
+
+**Added**
+- `Line+Symbol` composite plot type support.
+
+**Changed**
+- Improved the Data Table view with reliable scrolling and cleaner number formatting.
+
+**Internal**
+- Complete overhaul of the plot type architecture. Adding new plot types or composite layers is now modular and straightforward.
+
 ### [0.8.0]
 
 _2026-08-11_

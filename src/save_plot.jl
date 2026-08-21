@@ -55,7 +55,6 @@ function save_current_plot(path::AbstractString, figure::Figure)
     # Validate path first
     val = validate_save_path(path)
     if !val.valid
-        @warn "Save validation failed: $(val.error_message)"
         return (false, val.error_message)
     end
     
@@ -68,7 +67,6 @@ function save_current_plot(path::AbstractString, figure::Figure)
             mkpath(dir)
         catch e
             err_msg = "Cannot create directory: $(e)"
-            @warn err_msg
             return (false, err_msg)
         end
     end
@@ -79,11 +77,9 @@ function save_current_plot(path::AbstractString, figure::Figure)
         # Use CairoMakie.save explicitly to avoid FileIO routing issues
         CairoMakie.save(String(path), figure)
         msg = "Plot saved to $(basename(path))"
-        @info msg
         return (true, msg)
     catch e
         err_msg = "Error saving plot: $(e)"
-        @warn err_msg
         return (false, err_msg)
     finally
         # Always switch back to WGLMakie for display

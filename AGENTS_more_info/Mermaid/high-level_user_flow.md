@@ -16,11 +16,16 @@ flowchart TD
     SelectFile --> HandleClick[handle_open_file_click]
     HandleClick --> FileType{File Type?}
     FileType -->|CSV/TSV| LoadCSV[load_csv_to_table]
-    FileType -->|XLSX| ShowSheets[Show Sheet Dropdown]
-    ShowSheets --> SelectSheet[User Selects Sheet]
-    SelectSheet --> LoadXLSX[load_xlsx_sheet_to_table]
-    LoadCSV --> SkipRows[skip_rows!]
-    LoadXLSX --> SkipRows
+    FileType -->|XLSX| ShowSheets[Auto-load First Sheet & Show Dropdown]
+    ShowSheets --> LoadXLSX[load_xlsx_sheet_to_table]
+    
+    LoadCSV --> ReadError{Read Error?}
+    LoadXLSX --> ReadError
+    HandleClick -->|File/Sheet Error| ReadError
+    ReadError -->|Yes| ErrorModal[Show Error Modal & REPL Warning]
+    ErrorModal --> OpenMode
+    
+    ReadError -->|No| SkipRows[skip_rows!]
     SkipRows --> NormalizeLoad[normalize_strings!]
     NormalizeLoad --> StoreDF[Store in opened_file_df + opened_file_path]
     StoreDF --> DFMode
@@ -119,6 +124,7 @@ flowchart TD
     style DisplayPlot fill:#d4edda
     style DisplayDFPlot fill:#d4edda
     style Error fill:#f8d7da
+    style ErrorModal fill:#f8d7da
     style ShowPathError fill:#f8d7da
     style ConfirmOverwrite fill:#fff3cd
     style GlobalVars fill:#fff3cd

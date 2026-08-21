@@ -38,7 +38,8 @@ function handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, 
     xlsx_ok = is_extension_available(:XLSX)
     
     if !csv_ok && !xlsx_ok
-        @warn "No file extensions available"
+        msg = "No file extensions available"
+        show_modal!(state, msg; type=:warning)
         return
     end
     
@@ -61,47 +62,42 @@ function handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, 
         selected_sheet[] = ""
         load_csv_to_table(filepath, outputs, state)
     elseif ext == ".xlsx"
-        # XLSX: Populate sheet dropdown, wait for selection
+        # XLSX: Populate sheet dropdown and load first sheet by default
         current_xlsx_path[] = filepath
         try
             sheets = sheetnames_xlsx(filepath)
+            selected_sheet[] = ""
             sheet_names[] = sheets
-            selected_sheet[] = ""  # Reset selection
+            selected_sheet[] = first(sheets)
         catch e
-            @warn "Error reading XLSX sheets: $e"
+            msg = "Error reading XLSX sheets: $e"
+            show_modal!(state, msg)
             current_xlsx_path[] = ""
             sheet_names[] = String[]
+            selected_sheet[] = ""
         end
     end
 end
 """
-    store_and_display_dataframe!(df, filepath, outputs, state; info_suffix="") --> Nothing
+    store_and_display_dataframe!(df, filepath, outputs, state; info_suffix::AbstractString="") -> Nothing
 
 Common helper for processing a loaded DataFrame: normalize strings, store in state, 
 and update the table display.
-
-# Arguments
-- `df`: The DataFrame to process
-- `filepath`: Path to the file to load
-- `outputs`: The OutputObservables struct
-- `state::Union{Nothing, CasualPlotsState}`: Application state (optional, for storing opened file DataFrame)
-- `info_suffix`: Optional suffix to append to info text (e.g., ":SheetName" for XLSX)
 """
 function store_and_display_dataframe!(df, filepath, outputs, state; info_suffix="")
     # Normalize string columns for display compatibility
     normalize_strings!(df)
-    # Store DataFrame in state if provided
-    if !isnothing(state)
-        # Reset selected_dataframe BEFORE setting opened_file_df
-        # This ensures the dropdown rebuild (triggered by opened_file_df change)
-        # sees selected_dataframe as nothing and shows placeholder, not "opened file"
-        state.data_selection.selected_dataframe[] = nothing
-        state.file_opening.opened_file_df[] = df
-        # Extract filename without path or extension
-        state.file_opening.opened_file_name[] = splitext(basename(filepath))[1]
-        # Store the full path for reload functionality
-        state.file_opening.opened_file_path[] = abspath(filepath) |> normpath
-    end
+    
+    # Reset selected_dataframe BEFORE setting opened_file_df
+    # This ensures the dropdown rebuild (triggered by opened_file_df change)
+    # sees selected_dataframe as nothing and shows placeholder, not "opened file"
+    state.data_selection.selected_dataframe[] = nothing
+    state.file_opening.opened_file_df[] = df
+    # Extract filename without path or extension
+    state.file_opening.opened_file_name[] = splitext(basename(filepath))[1]
+    # Store the full path for reload functionality
+    state.file_opening.opened_file_path[] = abspath(filepath) |> normpath
+
     
     # Build source info text with normalized absolute path (+ optional suffix)
     info_text = (abspath(filepath) |> normpath) * info_suffix
@@ -115,42 +111,36 @@ function store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=
 end
 
 """
-    load_xlsx_sheet_to_table(filepath, sheet, outputs, state) --> Nothing
+    load_xlsx_sheet_to_table(filepath::AbstractString, sheet::AbstractString, outputs::OutputObservables, state::CasualPlotsState) -> Nothing
 
 Load a specific sheet from an XLSX file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
-
-# Arguments
-- `filepath`: Path to the file to load
-- `sheet::AbstractString`: excel sheet
-- `outputs`: OutputObservables struct
-- `state::Union{Nothing, CasualPlotsState}`: Application state (optional, for storing opened file DataFrame)
 """
-function load_xlsx_sheet_to_table(filepath, sheet, outputs, state=nothing)
+function load_xlsx_sheet_to_table(filepath::AbstractString, sheet::AbstractString, outputs, state)
     (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
     try
         df = readtable_xlsx(filepath, sheet; infer_eltypes=true, kwargs...)
         skip_rows!(df, skip_subheaders, skip_empty_rows)
         # Store sheet name for code generation
-        if !isnothing(state)
-            state.file_opening.sheet_name[] = string(sheet)
-        end
+        state.file_opening.sheet_name[] = string(sheet)
         store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=":" * string(sheet))
     catch e
-        @warn "Error loading XLSX sheet: $e"
+        msg = "Error loading XLSX sheet: $e"
+        show_modal!(state, msg)
         outputs.table[] = DOM.div("Error loading sheet: $sheet")
     end
 end
 
 """
-    load_csv_to_table(filepath, outputs, state) --> Nothing
+    load_csv_to_table(filepath::AbstractString, outputs::OutputObservables, state::CasualPlotsState) -> Nothing
 
 Load a CSV/TSV file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_csv_to_table(filepath, outputs, state=nothing)
+function load_csv_to_table(filepath::AbstractString, outputs, state)
     if !is_extension_available(:CSV)
-        @warn "CSV extension not available"
+        msg = "CSV extension not available"
+        show_modal!(state, msg; type=:warning)
         return nothing
     end
 
@@ -160,12 +150,11 @@ function load_csv_to_table(filepath, outputs, state=nothing)
         df = read_csv(filepath; kwargs...)
         skip_rows!(df, 0, kwargs.ignoreemptyrows)
         # Clear sheet name (not an XLSX source)
-        if !isnothing(state)
-            state.file_opening.sheet_name[] = ""
-        end
+        state.file_opening.sheet_name[] = ""
         store_and_display_dataframe!(df, filepath, outputs, state)
     catch e
-        @warn "Error loading file: $e"
+        msg = "Error loading CSV file: $e"
+        show_modal!(state, msg)
         outputs.table[] = DOM.div("Error loading file: $(basename(filepath))")
     end
     return nothing

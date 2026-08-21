@@ -144,3 +144,27 @@ end
     # Unknown extension should throw
     @test_throws Exception is_extension_available(:Unknown)
 end
+
+@testset "load_xlsx_sheet_to_table with error states" begin
+    using CasualPlots: load_xlsx_sheet_to_table
+    
+    state = CasualPlots.CasualPlotsState()
+    outputs = CasualPlots.OutputObservables()
+    
+    xlsx_path = joinpath(ASSETS_DIR, "sample_data.xlsx")
+    
+    # Test valid load updates opened_file_df and table_title
+    load_xlsx_sheet_to_table(xlsx_path, "TestData", outputs, state)
+    @test state.file_opening.opened_file_df[] isa DataFrame
+    @test size(state.file_opening.opened_file_df[]) == (3, 3)
+    @test occursin("sample_data.xlsx", outputs.table_title[])
+    @test occursin("TestData", outputs.table_title[])
+    
+    # Test invalid sheet name triggers error pop-up states
+    state.dialogs.show_modal[] = false
+    load_xlsx_sheet_to_table(xlsx_path, "NonexistentSheet", outputs, state)
+    
+    @test state.dialogs.show_modal[] == true
+    @test state.dialogs.modal_type[] == :error
+    @test occursin("Error loading XLSX sheet", state.file_saving.save_status_message[])
+end

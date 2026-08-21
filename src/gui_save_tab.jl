@@ -106,26 +106,20 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigg
         
         # Check if there's a plot to save
         if isnothing(current_figure[])
-            save_status_message[] = "No plot to save. Create a plot first."
-            modal_type[] = :error
-            show_modal[] = true
+            show_modal!(state, "No plot to save. Create a plot first.")
             return
         end
         
         # Validate path
         val = validate_save_path(path)
         if !val.valid
-            save_status_message[] = val.error_message
-            modal_type[] = :error
-            show_modal[] = true
+            show_modal!(state, val.error_message)
             return
         end
         
         # Check if file exists - show confirmation modal
         if isfile(path)
-            save_status_message[] = "File already exists. Do you want to overwrite it?"
-            modal_type[] = :confirm
-            show_modal[] = true
+            show_modal!(state, "File already exists. Do you want to overwrite it?"; type=:confirm)
             return
         end
         
@@ -140,25 +134,19 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigg
         
         # Check if there's a plot to save script for
         if isnothing(current_figure[])
-            save_status_message[] = "No plot to create script for."
-            modal_type[] = :error
-            show_modal[] = true
+            show_modal!(state, "No plot to create script for.")
             return
         end
         
         # For overwrite check, we must know the final file path
         valid, path, err_msg = validate_script_path(path)
         if !valid
-            save_status_message[] = err_msg
-            modal_type[] = :error
-            show_modal[] = true
+            show_modal!(state, err_msg)
             return
         end
         
         if isfile(path)
-            save_status_message[] = "File already exists. Do you want to overwrite it?"
-            modal_type[] = :confirm
-            show_modal[] = true
+            show_modal!(state, "File already exists. Do you want to overwrite it?"; type=:confirm)
             return
         end
         
@@ -205,10 +193,8 @@ function do_save(path, state, type)
         message = res.message
     end
     
-    save_status_message[] = message
     save_status_type[] = success ? :success : :error
-    modal_type[] = success ? :success : :error
-    show_modal[] = true
+    show_modal!(state, message; type=(success ? :success : :error))
 end
 
 """

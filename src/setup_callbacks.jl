@@ -132,7 +132,7 @@ Apply the specified Makie theme globally.
 - `"AoG default"` - Sets the AlgebraOfGraphics theme using `set_aog_theme!()`
 - `"theme_*"` - Uses the corresponding Makie theme function (e.g., `theme_dark()`)
 """
-function apply_theme!(theme_name::String)
+function apply_theme!(state, theme_name)
     if theme_name == "Makie default"
         # Reset to Makie's default theme - use empty theme or merge
         set_theme!()
@@ -143,7 +143,9 @@ function apply_theme!(theme_name::String)
         theme_fn = theme_name |> Symbol |> eval
         set_theme!(theme_fn())
     else
-        @warn "Unknown theme: $theme_name"
+        msg = "Unknown theme: $theme_name"
+        @warn msg
+        show_modal!(state, msg; type=:warning)
     end
 end
 
@@ -167,7 +169,7 @@ function setup_theme_callback(state, outputs)
     
     on(selected_theme) do theme_name
         # Apply the new theme globally
-        apply_theme!(theme_name)
+        apply_theme!(state, theme_name)
         
         # Mark as non-default if different from DEFAULT_THEME
         if theme_name != DEFAULT_THEME
@@ -302,6 +304,21 @@ function setup_source_callback(state, outputs)
 end
 
 """
+    show_loading_indicator(outputs::Outputs) -> Nothing
+
+Displays a loading message with a time tag in the Plot pane and yields to the Bonito server.
+"""
+function show_loading_indicator(outputs)
+    time_tag = Dates.format(Dates.now(), "HH:MM:SS")
+    outputs.plot[] = DOM.div(
+        "[$time_tag] Your Plot is being processed. Please be patient...", 
+        style="display: flex; justify-content: center; align-items: center; height: 100%; font-size: 1.2rem; color: var(--text-color, #333);"
+    )
+    sleep(0.02)
+    return nothing
+end
+
+"""
     setup_array_plot_trigger_callback(state, outputs, plot_trigger)
 
 Handle (Re-)Plot button click for X,Y Array mode.
@@ -334,6 +351,9 @@ function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
         # Detect if this is a NEW data source (X or Y changed)
         is_new_source = (x != last_plotted_x[] || y != last_plotted_y[])
         
+        # Show loading indicator and yield
+        show_loading_indicator(outputs)
+
         update_unified_plot!(state, outputs; 
                               is_new_data=is_new_source, update_table=true,
                               range_from=from_val, range_to=to_val,
@@ -471,9 +491,7 @@ function update_unified_plot!(state, outputs;
     table_observable = outputs.table
     
     if !isnothing(range_from) && !isnothing(range_to) && range_from > range_to
-        state.file_saving.save_status_message[] = "Range Error: 'Range from' must be less than or equal to 'Range to'"
-        state.dialogs.modal_type[] = :error
-        state.dialogs.show_modal[] = true
+        show_modal!(state, "Range Error: 'Range from' must be less than or equal to 'Range to'")
         return false
     end
 
@@ -626,8 +644,9 @@ function update_unified_plot!(state, outputs;
         
         return true
     catch e
-        @warn "Error creating/updating plot" exception=e
-        plot_observable[] = DOM.div("Error creating plot: $(e)")
+        msg = "Error creating/updating plot: $e"
+        show_modal!(state, msg; type=:error)
+        plot_observable[] = DOM.div()
         return false
     end
 end
@@ -740,6 +759,9 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         # Detect if this is a NEW data source (DataFrame changed)
         is_new_source = (df_name != state.misc.last_plotted_dataframe[])
         
+        # Show loading indicator and yield
+        show_loading_indicator(outputs)
+
         update_unified_plot!(state, outputs; 
                               is_new_data=is_new_source, update_table=true,
                               range_from=from_val, range_to=to_val,

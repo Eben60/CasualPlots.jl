@@ -189,18 +189,17 @@ function clean_plot_data!(df_selected, valid_cols, state=nothing)
     # 4. Show warning if any columns had non-numeric values converted to missing
     if !isempty(dirty_cols)
         warning_msg = "Converted non-numeric values to missing in column(s): $(join(dirty_cols, ", "))"
-        @warn warning_msg
         
         if !isnothing(state)
             # Show popup warning, concatenating if a warning already exists (e.g. from unify_units!)
             if state.dialogs.show_modal[] && state.dialogs.modal_type[] == :warning
                 state.file_saving.save_status_message[] = state.file_saving.save_status_message[] * "\n" * warning_msg
+                @warn warning_msg
             else
-                state.file_saving.save_status_message[] = warning_msg
-                state.file_saving.save_status_type[] = :warning
-                state.dialogs.modal_type[] = :warning
-                state.dialogs.show_modal[] = true
+                show_modal!(state, warning_msg; type=:warning)
             end
+        else
+            @warn warning_msg
         end
     end
     

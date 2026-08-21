@@ -1,5 +1,24 @@
-# Modal dialog component for popup notifications and confirmations
 # Uses reactive CSS to control visibility
+"""
+    show_modal!(state::CasualPlotsState, msg::AbstractString; type::Symbol=:error) -> Nothing
+
+Trigger a modal dialog with the given message and type. Type can be `:error`, `:warning`, `:info`, `:success`, or `:confirm`. 
+
+Automatically logs the message to the REPL based on the `type`, except for 
+`:confirm` case, which is an interactive UI prompt in GUI only.
+"""
+function show_modal!(state, msg; type=:error)
+    if type == :error || type == :warning
+        @warn msg
+    elseif type == :success || type == :info
+        @info msg
+    end
+    
+    state.file_saving.save_status_message[] = msg
+    state.dialogs.modal_type[] = type
+    state.dialogs.show_modal[] = true
+    return nothing
+end
 
 """
     create_modal_overlay_style(show_modal)
