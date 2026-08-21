@@ -65,20 +65,16 @@ collect_dataframes_from_main() = _collect_variables_from_main(is_main_dataframe_
 
 Helper to retrieve a DataFrame from Main, or coerce a Matrix into a DataFrame.
 """
-function get_source_as_dataframe(source_name::AbstractString, opened_file_df=nothing)
+function get_source_as_dataframe(source_name, opened_file_df=nothing)
     if source_name == "__opened_file__" && !isnothing(opened_file_df)
         return opened_file_df
     end
-    try
-        var = getfield(Main, Symbol(source_name))
-        if isa(var, AbstractDataFrame)
-            return var
-        elseif isa(var, AbstractMatrix)
-            col_names = [Symbol("$(source_name)_$i") for i in 1:size(var, 2)]
-            return DataFrame(var, col_names)
-        end
-    catch e
-        @warn "Could not get data for source `$(source_name)`" exception=e
+    var = getfield(Main, Symbol(source_name))
+    if isa(var, AbstractDataFrame)
+        return var
+    elseif isa(var, AbstractMatrix)
+        col_names = [Symbol("$(source_name)_$i") for i in 1:size(var, 2)]
+        return DataFrame(var, col_names)
     end
     return nothing
 end
@@ -96,16 +92,11 @@ function get_dims_of_arrays()
     dims_dict = Dict{Symbol, Tuple}()
 
     for name in array_names
-        try
-            var = getfield(Main, name)
-            if hasmethod(size, (typeof(var),))
-                ndims(var) > 2 && continue # skip high-dimensional arrays
-                dims = size(var)
-                dims_dict[name] = dims
-            end
-        catch e
-            # Ignore errors if `getfield` fails for some reason, though it shouldn't for names from `collect_arrays_from_main`.
-            @warn "Could not get dimensions for variable `$(name)`" exception=e
+        var = getfield(Main, name)
+        if hasmethod(size, (typeof(var),))
+            ndims(var) > 2 && continue # skip high-dimensional arrays
+            dims = size(var)
+            dims_dict[name] = dims
         end
     end
     return dims_dict

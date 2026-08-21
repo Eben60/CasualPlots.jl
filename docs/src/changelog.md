@@ -1,17 +1,18 @@
 # Changelog
 
-### [0.9.1]
+### [0.10.0]
 
 _WIP_
 
 **Added**
-- Auto-select the first sheet by default when opening XLSX files.
+- Matrices can now be selected as source alongside with `DataFrame`s
+- Auto-select the first sheet by default when opening `XLSX` files.
 - Visual loading indicator in the Plot pane during heavy operations (e.g., initial JIT compilation).
+- [`CasualPlots.last_error`](@ref) to display error stack in REPL.
 
 **Changed/Internal**
 - Centralized REPL logging into `show_modal!` to automatically mirror GUI popups to the REPL.
 - Various minor behavior fixes
-
 
 ### [0.9.0]
 

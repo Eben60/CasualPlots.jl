@@ -18,6 +18,7 @@ Ele
 CasualPlots.generate_julia_code
 CasualPlots.skip_rows!
 CasualPlots.normalize_numeric_columns!
+CasualPlots.last_error
 CasualPlots.@populate
 Ele.serve_app
 ```

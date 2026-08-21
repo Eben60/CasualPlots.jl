@@ -1,15 +1,45 @@
 # Uses reactive CSS to control visibility
+
+const _LAST_ERROR_INFO = Ref{Any}(nothing)
+
 """
-    show_modal!(state::CasualPlotsState, msg::AbstractString; type::Symbol=:error) -> Nothing
+    last_error() -> Nothing
+
+Prints the full stacktrace of the most recent GUI error caught by the application.
+"""
+function last_error()
+    if isnothing(_LAST_ERROR_INFO[])
+        println("No recent GUI error recorded.")
+        return nothing
+    end
+    e, bt = _LAST_ERROR_INFO[]
+    showerror(stdout, e, bt)
+    return nothing
+end
+
+"""
+    show_modal!(state::CasualPlotsState, msg::AbstractString; type::Symbol=:error, exception=nothing) -> Nothing
 
 Trigger a modal dialog with the given message and type. Type can be `:error`, `:warning`, `:info`, `:success`, or `:confirm`. 
 
 Automatically logs the message to the REPL based on the `type`, except for 
 `:confirm` case, which is an interactive UI prompt in GUI only.
 """
-function show_modal!(state, msg; type=:error)
+function show_modal!(state, msg; type, exception=nothing)
+    if type == :error && isnothing(exception)
+        throw(ArgumentError("An exception must be provided when type is :error"))
+    end
+
+    if !isnothing(exception)
+        _LAST_ERROR_INFO[] = exception
+    end
+
     if type == :error || type == :warning
-        @warn msg
+        if type == :error && !isnothing(exception)
+            @warn msg * "\nTip: Run `CasualPlots.last_error()` to see the full stacktrace."
+        else
+            @warn msg
+        end
     elseif type == :success || type == :info
         @info msg
     end

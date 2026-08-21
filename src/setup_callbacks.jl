@@ -214,6 +214,7 @@ function setup_x_callback(state, dropdown_y_node, outputs)
     (; dims_dict_obs, selected_x, selected_y, data_bounds_from, data_bounds_to,
        range_from, range_to) = state.data_selection
     on(selected_x) do x
+        try
         # println("selected x: $x")
         selected_y[] = nothing
 
@@ -249,6 +250,10 @@ function setup_x_callback(state, dropdown_y_node, outputs)
             range_from[] = nothing
             range_to[] = nothing
         end
+        catch e
+            bt = catch_backtrace()
+            show_modal!(state, "Error in X selection: " * sprint(showerror, e); type=:error, exception=(e, bt))
+        end
     end
 end
 
@@ -273,6 +278,7 @@ function setup_source_callback(state, outputs)
     table_observable = outputs.table
     
     onany(selected_x, selected_y) do x, y
+        try
         is_valid = !isnothing(y) && y != "" && !isnothing(x) && x != ""
         
         if is_valid
@@ -299,6 +305,10 @@ function setup_source_callback(state, outputs)
             last_plotted_y[] = nothing
             # Clear axis limits
             clear_axis_limits(state)
+        end
+        catch e
+            bt = catch_backtrace()
+            show_modal!(state, "Error in source selection: " * sprint(showerror, e); type=:error, exception=(e, bt))
         end
     end
 end
@@ -330,8 +340,9 @@ function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
     (; last_plotted_x, last_plotted_y) = state.misc
     
     on(plot_trigger) do _
+        try
         # Skip if not in Array mode
-        source_type[] != "X, Y Arrays" && return
+        source_type[] != "X, Y Arrays" && return nothing
         
         x = selected_x[]
         y = selected_y[]
@@ -362,6 +373,13 @@ function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
         # Update last plotted source
         last_plotted_x[] = x
         last_plotted_y[] = y
+        catch e
+            bt = catch_backtrace()
+            show_modal!(state, "Error generating plot: " * sprint(showerror, e); type=:error, exception=(e, bt))
+            outputs.plot[] = DOM.div("")
+            outputs.table[] = DOM.div("")
+            outputs.table_title[] = "Data Table (Error)"
+        end
     end
 end
 
@@ -491,7 +509,7 @@ function update_unified_plot!(state, outputs;
     table_observable = outputs.table
     
     if !isnothing(range_from) && !isnothing(range_to) && range_from > range_to
-        show_modal!(state, "Range Error: 'Range from' must be less than or equal to 'Range to'")
+        show_modal!(state, "Range Error: 'Range from' must be less than or equal to 'Range to'"; type=:warning)
         return false
     end
 
@@ -642,8 +660,9 @@ function update_unified_plot!(state, outputs;
         
         return true
     catch e
+        bt = catch_backtrace()
         msg = "Error creating/updating plot: $e"
-        show_modal!(state, msg; type=:error)
+        show_modal!(state, msg; type=:error, exception=(e, bt))
         plot_observable[] = DOM.div()
         return false
     end
@@ -707,6 +726,7 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
     
     # When DataFrame selection changes, clear column selections and set bounds
     on(selected_dataframe) do df_name
+        try
         selected_columns[] = String[]
         plot_observable[] = DOM.div("Plot Pane")
         outputs.table_title[] = "Data Table (No source selected)"
@@ -725,13 +745,18 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             range_from[] = nothing
             range_to[] = nothing
         end
+        catch e
+            bt = catch_backtrace()
+            show_modal!(state, "Error in DataFrame selection: " * sprint(showerror, e); type=:error, exception=(e, bt))
+        end
     end
     
     # When Plot button is clicked, create plot if valid selection
     on(plot_trigger) do _
+        try
         # Skip if not in DataFrame mode
         if source_type[] != "DataFrame"
-            return
+            return nothing
         end
         
         cols = selected_columns[]
@@ -767,6 +792,13 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         
         # Update last plotted source
         state.misc.last_plotted_dataframe[] = df_name
+        catch e
+            bt = catch_backtrace()
+            show_modal!(state, "Error generating plot: " * sprint(showerror, e); type=:error, exception=(e, bt))
+            plot_observable[] = DOM.div("")
+            table_observable[] = DOM.div("")
+            outputs.table_title[] = "Data Table (Error)"
+        end
     end
 end
 

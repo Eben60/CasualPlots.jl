@@ -106,14 +106,14 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigg
         
         # Check if there's a plot to save
         if isnothing(current_figure[])
-            show_modal!(state, "No plot to save. Create a plot first.")
+            show_modal!(state, "No plot to save. Create a plot first."; type=:warning)
             return
         end
         
         # Validate path
         val = validate_save_path(path)
         if !val.valid
-            show_modal!(state, val.error_message)
+            show_modal!(state, val.error_message; type=:warning)
             return
         end
         
@@ -134,14 +134,14 @@ function setup_save_callbacks!(state, dialog_trigger, save_trigger, script_trigg
         
         # Check if there's a plot to save script for
         if isnothing(current_figure[])
-            show_modal!(state, "No plot to create script for.")
+            show_modal!(state, "No plot to create script for."; type=:warning)
             return
         end
         
         # For overwrite check, we must know the final file path
         valid, path, err_msg = validate_script_path(path)
         if !valid
-            show_modal!(state, err_msg)
+            show_modal!(state, err_msg; type=:warning)
             return
         end
         

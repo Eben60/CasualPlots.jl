@@ -90,11 +90,8 @@ end
     columns = get_dataframe_columns("test_df")
     @test columns == ["col1", "col2", "col3"]
     
-    # Non-existent DataFrame should return empty and log a warning
-    @test_logs (:warn, r"Could not get data for source `nonexistent_df`") begin
-        columns = get_dataframe_columns("nonexistent_df")
-        @test isempty(columns)
-    end
+    # Non-existent DataFrame should throw UndefVarError
+    @test_throws UndefVarError get_dataframe_columns("nonexistent_df")
 end
 
 @testset "extract_x_candidates" begin

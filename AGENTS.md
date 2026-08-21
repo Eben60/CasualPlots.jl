@@ -21,7 +21,9 @@
 *   **[CSV.jl](https://github.com/JuliaData/CSV.jl)** / **[XLSX.jl](https://github.com/felipenoris/XLSX.jl)**: File I/O via Package Extensions
 
 ### Error Handling & Logging
-*   **User-Facing Errors/Warnings**: Any errors and warnings in code run from the GUI (e.g., callbacks, file reading, script generation) must call `show_modal!` to inform the user, rather than silently failing or exclusively logging to the REPL.
+*   **User-Facing Errors/Warnings**: Any errors and warnings in code run from the GUI (e.g., callbacks, file reading, script generation) must call `show_modal!` to inform the user, rather than silently failing or exclusively logging to the REPL. Caught GUI errors also save their backtrace automatically, which can be viewed in the REPL using `CasualPlots.last_error()`.
+*   **Error Propagation Rule**: Low-level functions (like data fetchers) should not catch expected errors. Instead, errors should naturally propagate up to the outermost reactive boundaries (e.g., `on(...)` blocks in `setup_callbacks.jl`), which must catch them and call `show_modal!`. When an error is caught in a plot/table callback, the respective panes should be blanked (`outputs.plot[] = DOM.div("")`).
+*   **"Skippable" Errors Exception**: An exception to the propagation rule is for "skippable" errors during bulk iteration, which need not be presented to user. 
 
 ### File Structure (src/)
 

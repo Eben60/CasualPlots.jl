@@ -70,8 +70,7 @@ function handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, 
             sheet_names[] = sheets
             selected_sheet[] = first(sheets)
         catch e
-            msg = "Error reading XLSX sheets: $e"
-            show_modal!(state, msg)
+            show_modal!(state, "Error reading XLSX sheets: $e"; type=:error, exception=(e, catch_backtrace()))
             current_xlsx_path[] = ""
             sheet_names[] = String[]
             selected_sheet[] = ""
@@ -116,7 +115,7 @@ end
 Load a specific sheet from an XLSX file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_xlsx_sheet_to_table(filepath::AbstractString, sheet::AbstractString, outputs, state)
+function load_xlsx_sheet_to_table(filepath, sheet, outputs, state)
     (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
     try
         df = readtable_xlsx(filepath, sheet; infer_eltypes=true, kwargs...)
@@ -125,10 +124,12 @@ function load_xlsx_sheet_to_table(filepath::AbstractString, sheet::AbstractStrin
         state.file_opening.sheet_name[] = string(sheet)
         store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=":" * string(sheet))
     catch e
+        bt = catch_backtrace()
         msg = "Error loading XLSX sheet: $e"
-        show_modal!(state, msg)
-        outputs.table[] = DOM.div("Error loading sheet: $sheet")
+        show_modal!(state, msg; type=:error, exception=(e, bt))
+        outputs.table[] = DOM.div("")
     end
+    return nothing
 end
 
 """
@@ -137,7 +138,7 @@ end
 Load a CSV/TSV file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_csv_to_table(filepath::AbstractString, outputs, state)
+function load_csv_to_table(filepath, outputs, state)
     if !is_extension_available(:CSV)
         msg = "CSV extension not available"
         show_modal!(state, msg; type=:warning)
@@ -153,9 +154,10 @@ function load_csv_to_table(filepath::AbstractString, outputs, state)
         state.file_opening.sheet_name[] = ""
         store_and_display_dataframe!(df, filepath, outputs, state)
     catch e
+        bt = catch_backtrace()
         msg = "Error loading CSV file: $e"
-        show_modal!(state, msg)
-        outputs.table[] = DOM.div("Error loading file: $(basename(filepath))")
+        show_modal!(state, msg; type=:error, exception=(e, bt))
+        outputs.table[] = DOM.div("")
     end
     return nothing
 end
