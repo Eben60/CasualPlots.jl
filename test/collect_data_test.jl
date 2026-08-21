@@ -91,7 +91,7 @@ end
     @test columns == ["col1", "col2", "col3"]
     
     # Non-existent DataFrame should return empty and log a warning
-    @test_logs (:warn, r"Could not get columns for DataFrame `nonexistent_df`") begin
+    @test_logs (:warn, r"Could not get data for source `nonexistent_df`") begin
         columns = get_dataframe_columns("nonexistent_df")
         @test isempty(columns)
     end
@@ -104,15 +104,17 @@ end
     dims_dict = Dict{Symbol, Tuple}(
         :vec1 => (10,),
         :vec2 => (5,),
+        :col_mat => (10, 1),
         :mat1 => (10, 3),
         :mat2 => (5, 2),
         :tensor => (3, 4, 5)
     )
     
     result = extract_x_candidates(dims_dict)
-    @test length(result) == 2
+    @test length(result) == 3
     @test "vec1" in result
     @test "vec2" in result
+    @test "col_mat" in result
     @test !("mat1" in result)
     @test !("mat2" in result)
     @test !("tensor" in result)

@@ -1,6 +1,18 @@
 using CasualPlots
 using Test
+using DataFrames
 
+# Ensure DataFrames is available in Main for the tests that need it
+if !isdefined(Main, :DataFrames)
+    Main.eval(:(using DataFrames))
+end
+
+# Create mock variables for code generation tests since it now strictly checks for variable existence
+Main.eval(:(xx100 = [1, 2, 3]))
+Main.eval(:(yy100 = [1, 2, 3]))
+Main.eval(:(xx = [1, 2, 3]))
+Main.eval(:(yy = [1, 2, 3]))
+Main.eval(:(my_df = DataFrame(col_A = 1:3, col_B = 1:3)))
 @testset "Code Generation String Verification - Arrays Mode" begin
     using CasualPlots: initialize_app_state, generate_julia_code
 

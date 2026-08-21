@@ -1,14 +1,14 @@
 # src/code_generation.jl
 
 function generate_data_preview(var_name::String)
+    val = getfield(Main, Symbol(var_name))
     try
-        val = getfield(Main, Symbol(var_name))
         preview = sprint((io, x) -> show(IOContext(io, :limit => true), MIME"text/plain"(), x), val)
         # Prefix each line of preview with "# "
         lines = split(preview, '\n')
         return join(map(l -> "# " * l, lines), "\n")
     catch e
-        return "# Preview for $var_name not available"
+        return "# Preview for $var_name not available due to display error"
     end
 end
 function _generate_rows_kwarg_and_assert()
@@ -155,7 +155,14 @@ function generate_dataframe_code(state::CasualPlotsState)
         code *= _generate_rows_kwarg_and_assert()
         code *= "    # Assuming $df_name is available in the executing environment\n"
         code *= generate_data_preview(df_name) * "\n"
-        code *= "    df = $df_name\n"
+        
+        is_matrix = isa(getfield(Main, Symbol(df_name)), AbstractMatrix)
+        
+        if is_matrix
+            code *= "    df = DataFrame($df_name, [Symbol(\"$(df_name)_\$i\") for i in 1:size($df_name, 2)])\n"
+        else
+            code *= "    df = $df_name\n"
+        end
     end
     
     code *= "    df_selected = select(df, $cols_repr)\n"
@@ -397,7 +404,17 @@ Returns a NamedTuple: `(; code::String, path::Union{String, Nothing}, success::B
 If `file` is provided, writes the code to the file (appending a ".jl" suffix if it has no suffix).
 """
 function generate_julia_code(state::CasualPlotsState; file=nothing)
-    code = _generate_julia_code_string(state)
+    local code
+    try
+        code = _generate_julia_code_string(state)
+    catch e
+        err_msg = "Error generating script: $(e)"
+        if e isa UndefVarError
+            err_msg = "Cannot generate script: variable '$(e.var)' no longer exists."
+        end
+        return (; code="", path=nothing, success=false, message=err_msg)
+    end
+    
     if isnothing(file) || isempty(strip(file))
         return (; code=code, path=nothing, success=true, message="Code generated successfully")
     end

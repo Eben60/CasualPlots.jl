@@ -47,9 +47,41 @@ end
 
 collect_arrays_from_main() = _collect_variables_from_main(is_main_numeric_iterable)
 
-is_main_dataframe(var) = isa(var, AbstractDataFrame)
+is_vector_like(dims::Tuple) = length(dims) == 1 || (length(dims) == 2 && dims[2] == 1)
 
-collect_dataframes_from_main() = _collect_variables_from_main(is_main_dataframe)
+function is_main_dataframe_or_matrix(var)
+    isa(var, AbstractDataFrame) && return true
+    if isa(var, AbstractMatrix)
+        hasmethod(size, (typeof(var),)) || return false
+        return !is_vector_like(size(var))
+    end
+    return false
+end
+
+collect_dataframes_from_main() = _collect_variables_from_main(is_main_dataframe_or_matrix)
+
+"""
+    get_source_as_dataframe(source_name::AbstractString, opened_file_df=nothing) -> Union{AbstractDataFrame, Nothing}
+
+Helper to retrieve a DataFrame from Main, or coerce a Matrix into a DataFrame.
+"""
+function get_source_as_dataframe(source_name::AbstractString, opened_file_df=nothing)
+    if source_name == "__opened_file__" && !isnothing(opened_file_df)
+        return opened_file_df
+    end
+    try
+        var = getfield(Main, Symbol(source_name))
+        if isa(var, AbstractDataFrame)
+            return var
+        elseif isa(var, AbstractMatrix)
+            col_names = [Symbol("$(source_name)_$i") for i in 1:size(var, 2)]
+            return DataFrame(var, col_names)
+        end
+    catch e
+        @warn "Could not get data for source `$(source_name)`" exception=e
+    end
+    return nothing
+end
 
 """
     get_dims_of_arrays()
@@ -88,7 +120,7 @@ Filter dimensions dictionary for 1-dimensional arrays (vectors) to be used as X 
 Sorted vector of strings representing variable names.
 """
 function extract_x_candidates(dims_dict)
-    vectors_only = filter(p -> length(last(p)) == 1, dims_dict)
+    vectors_only = filter(p -> is_vector_like(last(p)), dims_dict)
     return string.(keys(vectors_only)) |> sort!
 end
 
@@ -98,7 +130,7 @@ function get_congruent_y_names(x, dims_dict::Dict)
         x_sym = Symbol(x)
         if haskey(dims_dict, x_sym)
             x_dims = dims_dict[x_sym]
-            vec_length = x_dims[1]
+            vec_length = prod(x_dims)
             for (key, dims) in dims_dict
                 if key != x_sym && !isempty(dims) && dims[1] == vec_length
                     push!(new_y_opts_strings, string(key))
@@ -122,15 +154,8 @@ Vector of column names (as Strings) in the order they appear in the DataFrame.
 Returns empty vector if DataFrame doesn't exist or has no columns.
 """
 function get_dataframe_columns(df_name::AbstractString)
-    try
-        df = getfield(Main, Symbol(df_name))
-        if isa(df, AbstractDataFrame)
-            return names(df)
-        end
-    catch e
-        @warn "Could not get columns for DataFrame `$(df_name)`" exception=e
-    end
-    return String[]
+    df = get_source_as_dataframe(df_name)
+    isnothing(df) ? String[] : names(df)
 end
 
 """
@@ -147,17 +172,6 @@ DataFrames are always 1-indexed, so returns (1, nrow(df)).
 Tuple of (1, num_rows) or (nothing, nothing) on error.
 """
 function get_dataframe_bounds(df_name::AbstractString, opened_file_df=nothing)
-    try
-        if df_name == "__opened_file__" && !isnothing(opened_file_df)
-            return (1, nrow(opened_file_df))
-        else
-            df = getfield(Main, Symbol(df_name))
-            if isa(df, AbstractDataFrame)
-                return (1, nrow(df))
-            end
-        end
-    catch e
-        @warn "Could not get bounds for DataFrame `$(df_name)`" exception=e
-    end
-    return (nothing, nothing)
+    df = get_source_as_dataframe(df_name, opened_file_df)
+    isnothing(df) ? (nothing, nothing) : (1, nrow(df))
 end

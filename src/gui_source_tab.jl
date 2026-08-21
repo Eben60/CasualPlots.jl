@@ -63,7 +63,7 @@ function create_source_type_selector(source_type)
             type="radio", name="source_type", id="radio-source-dataframe", value="DataFrame",
             checked=(source_type[] == "DataFrame"),
             onchange=js"event => { window.CasualPlots.updateObservableValue(event, $(source_type)); window.CasualPlots.toggleSourceMode(event.target.value); }"
-        ), " File/DataFrame";
+        ), " File/DataFrame/Matrix";
         class="mb-2"
     )
 end

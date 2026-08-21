@@ -536,20 +536,18 @@ function update_unified_plot!(state, outputs;
                 df = state.file_opening.opened_file_df[]
                 display_name = state.file_opening.opened_file_name[]
                 if isnothing(df)
-                    plot_observable[] = DOM.div("Error: No file has been opened. Use the Open tab to load a file.")
-                    return false
+                    error("No file has been opened. Use the Open tab to load a file.")
                 end
             else
-                df = getfield(Main, Symbol(df_name))
-                display_name = df_name
+                df = get_source_as_dataframe(df_name, state.file_opening.opened_file_df[])
             end
+            display_name = df_name
             
             available_columns = names(df)
             valid_cols = filter(col -> col in available_columns, cols)
             
             if length(valid_cols) < 2
-                plot_observable[] = DOM.div("Error: Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))")
-                return false
+                error("Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))")
             end
         end
         

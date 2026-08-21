@@ -20,6 +20,9 @@
 *   **[Electron.jl](https://github.com/davidanthoff/Electron.jl)**: Window hosting 
 *   **[CSV.jl](https://github.com/JuliaData/CSV.jl)** / **[XLSX.jl](https://github.com/felipenoris/XLSX.jl)**: File I/O via Package Extensions
 
+### Error Handling & Logging
+*   **User-Facing Errors/Warnings**: Any errors and warnings in code run from the GUI (e.g., callbacks, file reading, script generation) must call `show_modal!` to inform the user, rather than silently failing or exclusively logging to the REPL.
+
 ### File Structure (src/)
 
 ```
