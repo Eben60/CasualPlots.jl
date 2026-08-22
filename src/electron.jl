@@ -12,18 +12,19 @@ const ELECTRON_APP = Ref{Any}(nothing)
 const ELECTRON_DISP = Ref{Any}(nothing)
 
 """
-    serve_app(app; show=true)
+    serve_app(app; show=true, frame=true)
 
 Display the app in an Electron window.
 
 # Arguments
 - `app`: The Bonito app to display
 - `show::Bool=true`: If `false`, the window is created but hidden (useful for precompilation/testing)
+- `frame::Bool=true`: If `false`, creates a frameless window without OS title bar or window controls (useful for screenshots)
 """
-function serve_app(app; show::Bool=true)
-    disp = get_electron_display(; show)
+function serve_app(app; show::Bool=true, frame::Bool=true)
+    disp = get_electron_display(; show=show, frame=frame)
     display(disp, app)
-    nothing
+    return nothing
 end
 
 VERSION >= v"1.11" && eval(Meta.parse("public serve_app"))
@@ -40,16 +41,16 @@ function close_display(; strict)
     end
 end
 
-function get_electron_display(; show::Bool=true)
+function get_electron_display(; show::Bool=true, frame::Bool=true)
     app = get_electron_app()
-    window = get_electron_window(; show)
+    window = get_electron_window(; show=show, frame=frame)
     return HTTPServer.ElectronDisplay(
         HTTPServer.EWindow(app, window),
         HTTPServer.BrowserDisplay(; open_browser=false)
     )
 end
 
-function get_electron_window(; show::Bool=true)
+function get_electron_window(; show::Bool=true, frame::Bool=true)
     app = get_electron_app()
 
     any(w -> !w.exists, windows(app)) && @warn "App contains reference to nonexistent window(s)"
@@ -61,6 +62,7 @@ function get_electron_window(; show::Bool=true)
             :width => x, 
             :height => y, 
             :show => show,  # Control window visibility
+            :frame => frame,
             :webPreferences => Dict(:enableRemoteModule => true)
         )
         @info "Create new Electron Window with $opts"

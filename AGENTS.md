@@ -134,6 +134,8 @@ See [Plot Architecture](AGENTS_more_info/specific_issues/plot_architecture.md) f
 
 See [Development Workflows](AGENTS_more_info/specific_issues/development_workflows.md) for UI modification guides, adding observables, debugging patterns, interactive agentic testing workflow, and SafeTestsets conventions.
 
+See [Agentic Screenshots](AGENTS_more_info/specific_issues/agentic_screenshots.md) for instructions on automating UI screenshots seamlessly through Electron without UI clutter.
+
 ### Precompilation
 
 See [Precompilation](AGENTS_more_info/specific_issues/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.

@@ -8,6 +8,7 @@ using Bonito
 
 include("gui_testing_utils.jl")
 include("casualplots_agent_test_utils.jl")
+include("screenshot_generators.jl")
 
 export log_result, verify_session_active, set_opened_file_path
 export verify_file_loaded, verify_file_row_count, verify_range_selection
@@ -17,7 +18,9 @@ export verify_axis_limits, verify_modal_visible, verify_file_on_disk
 export verify_script_runs_cleanly
 
 export get_active_session, wait_for_session, get_active_element_info, get_active_element_id, get_active_element_tag, get_active_element_value, get_dropdown_options
-export select_dropdown_value, click_button, set_radio_value, toggle_checkbox, get_element_info, get_checkboxes_state
+export select_dropdown_value, click_button, click_element_by_text, set_radio_value, toggle_checkbox, get_element_info, get_checkboxes_state
 export get_focusable_elements, calculate_tab_distance, calculate_dropdown_keystrokes
+
+export generate_open_tab_screenshot
 
 end # module

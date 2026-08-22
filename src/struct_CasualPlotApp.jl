@@ -27,4 +27,4 @@ Bonito.export_static(dir::AbstractString, cp::CasualPlotApp; kwargs...) = Bonito
 Base.convert(::Type{Bonito.App}, cp::CasualPlotApp) = cp.app
 
 # Forward Electron Serving
-Ele.serve_app(cp::CasualPlotApp; show=true) = Ele.serve_app(cp.app; show=show)
+Ele.serve_app(cp::CasualPlotApp; kwargs...) = Ele.serve_app(cp.app; kwargs...)

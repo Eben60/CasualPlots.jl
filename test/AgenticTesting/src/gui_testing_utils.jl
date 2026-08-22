@@ -20,16 +20,16 @@
 # info = get_active_element_info(my_session)
 # ```
 """
-    get_active_session()
+    get_active_session(app_obj = isdefined(Main, :app) ? Main.app : nothing)
 
-Dynamically retrieves the active Bonito Session from `Main.app` or `Main.app.app`.
+Dynamically retrieves the active Bonito Session from the provided app object, 
+or `Main.app` / `Main.app.app` by default.
 """
-function get_active_session()
-    if !isdefined(Main, :app)
-        error("No active app found. Please define 'app = casualplots_app()' or 'app = ...' in Main.")
+function get_active_session(app_obj = isdefined(Main, :app) ? Main.app : nothing)
+    if isnothing(app_obj)
+        error("No active app found. Please define 'app = casualplots_app()' or 'app = ...' in Main, or pass the app object explicitly.")
     end
     
-    app_obj = Main.app
     # Unwrap CasualPlotApp if needed
     if isdefined(Main, :CasualPlotApp) && app_obj isa Main.CasualPlotApp
         app_obj = app_obj.app
@@ -38,7 +38,7 @@ function get_active_session()
     end
     
     if !(app_obj isa Bonito.App)
-        error("Main.app is not a Bonito.App or CasualPlotApp.")
+        error("The provided app object is not a Bonito.App or CasualPlotApp.")
     end
     
     session = app_obj.session[]
@@ -50,17 +50,18 @@ function get_active_session()
 end
 
 """
-    wait_for_session(; timeout::Real=10) -> Bonito.Session
+    wait_for_session(app_obj=nothing; timeout::Real=10) -> Bonito.Session
 
-Poll `get_active_session()` every 0.5 s until a session is available or `timeout`
+Poll `get_active_session(app_obj)` every 0.5 s until a session is available or `timeout`
 seconds have elapsed. Throws if no session connects within the deadline.
 """
-function wait_for_session(; timeout::Real=10)
+function wait_for_session(app_obj = isdefined(Main, :app) ? Main.app : nothing; timeout::Real=10)
     deadline = time() + timeout
     while time() < deadline
         try
-            return get_active_session()
-        catch
+            return get_active_session(app_obj)
+        catch e
+            println("wait_for_session caught: ", e)
             sleep(0.5)
         end
     end
@@ -176,6 +177,24 @@ function click_button(session::Bonito.Session, css_selector::String)
         })()
     """)
 end
+
+"""
+    click_element_by_text(session, text)
+
+Finds an element (div, button, or a) that contains the exact text and clicks it.
+Useful for clicking tabs or labels without knowing their CSS selector.
+"""
+function click_element_by_text(session::Bonito.Session, text::String)
+    Bonito.evaljs(session, js"""
+        (function() {
+            const elements = Array.from(document.querySelectorAll('div, button, a'));
+            const target = elements.find(el => el.innerText && el.innerText.trim() === $(text));
+            if (!target) { console.error('Element with text not found:', $(text)); return; }
+            target.click();
+        })()
+    """)
+end
+
 
 """
     set_radio_value(session, name, value)
