@@ -38,6 +38,7 @@ css_styles.css                  # Global CSS styles for all UI components
 javascripts.js                  # Global JavaScript functions (namespaced window.CasualPlots)
 
 # Core Logic
+plot_types.jl                   # Declarative plot type configuration system (SinglePlotConfig, CompoundPlot, EnumAttribute)
 plotting.jl                     # Plot generation using AlgebraOfGraphics
 setup_callbacks.jl              # Core reactive callbacks (do_replot, source, format, DataFrame)
 label_update_callbacks.jl       # Label text field callbacks
@@ -74,6 +75,7 @@ electron.jl                     # Electron window integration (show kwarg for hi
 FileDialogWorkAround.jl         # Cross-platform file dialog utilities
 extensions.jl                   # Package extensions loader
 precompile.jl                   # PrecompileTools workload for reducing TTFP
+public.julia                    # Public API declarations
 
 scripts/                        # Example/demo scripts
 ../ext/                         # Package Extensions (ReadCSV_Ext.jl, ReadXLSX_Ext.jl)
@@ -99,160 +101,13 @@ Diagrams are in the linked files:
 
 ### Critical Implementation Patterns
 
-#### 1. Source Selection & Plotting Flow
-Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the plotting pipeline.
+See [Callback & Formatting Flow](AGENTS_more_info/specific_issues/callback_and_formatting_flow.md) for the full source selection pipeline (X,Y, DataFrame, File Import), format persistence strategy (`RESET_FORMAT_OPTION`), and legend behavior.
 
-**A. X,Y Source Selection:**
-1.  **Step 1: X Selection** (`setup_x_callback`)
-    - User selects X variable.
-    - Triggers population of congruent Y-variable options.
-    - Clears current Y selection.
-    - Sets `data_bounds_from`/`data_bounds_to` from the X array's first/last indices.
-    - Initializes `range_from`/`range_to` to match bounds.
-2.  **Step 2: Y Selection** (`setup_source_callback`)
-    - User selects Y variable.
-    - Updates `current_plot_x`, `current_plot_y` for tracking.
-    - **Does NOT auto-plot** - waits for user to click "(Re-)Plot" button.
-    - *On invalid selection*: Clears plot, table, and state.
-3.  **Step 3: (Re-)Plot** (`setup_array_plot_trigger_callback`)
-    - User clicks "(Re-)Plot" button.
-    - Validates range values (uses bounds as defaults if empty).
-    - Calls `do_replot` with range parameters.
-    - Updates table view with range-filtered data.
-    - Applies non-default formatting options via `apply_custom_formatting!`.
+See [Data Cleansing](AGENTS_more_info/specific_issues/data_cleansing.md) for `clean_plot_data!`, Unitful unification, and numeric normalization.
 
-**B. DataFrame Source Selection (Main or Opened File):**
-1.  **Step 1: DataFrame Selection**
-    - User selects a DataFrame from `Main` OR selects "**opened file**" (if file loaded via Open tab).
-    - If needed (opened file), strings are normalized (`normalize_strings!`) at load time.
-    - Triggers population of column checkboxes.
-    - Clears current column selection.
-2.  **Step 2: Column Selection & Plotting** (`setup_dataframe_callbacks`)
-    - User selects columns (checkboxes).
-    - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
-    - `plot_trigger` observable fires:
-        - Validates selection (at least 2 columns).
-        - **Data Cleansing and Normalization**: Calls `clean_plot_data!` to manage unit conversions and normalize non-numeric values (see Section 4 below).
-        - Calls `update_dataframe_plot` helper.
-        - Generates plot with **default labels** (resets legend title).
-        - Updates table view.
+### Plot Types & Plotting Implementation
 
-**C. File Import with Reading Options (Open Tab):**
-The Open tab provides configurable file reading options before/after loading:
-1.  **Reading Options** (configured via UI controls):
-    - `header_row`: Row number containing headers (0 = no headers)
-    - `skip_after_header`: Rows to skip after header (subheaders)
-    - `skip_empty_rows`: Remove rows where all elements are missing
-    - `delimiter`: CSV delimiter (Auto, Comma, Tab, Space, Semicolon, Pipe)
-    - `decimal_separator`: Decimal/thousands separator format
-2.  **File Loading**:
-    - CSV/TSV: Options passed to `CSV.read()` via `collect_csv_options()`
-    - XLSX: Options passed to `XLSX.readtable()` via `collect_xlsx_options()`
-    - Both call `skip_rows!()` for post-load row processing
-3.  **Reload Button**:
-    - Enabled when a file is loaded (CSV) or sheet selected (XLSX)
-    - Re-reads the same file (`opened_file_path`) with current options
-    - Useful for adjusting options after seeing initial import results
-
-#### 2. Formatting & Updates
-Formatting changes (Plot Type, Legend, Labels) are handled differently to preserve user customizations and optimize performance. Both X,Y and DataFrame modes have separate format callback implementations that follow identical patterns.
-
-**A. Format Callback Logic:**
-- **Triggered by**: `selected_plottype`, `selected_theme`, `show_legend`, `legend_title_text`, axis limit observables, and any dynamically registered attribute in `dynamic_attributes`.
-- **Implementations**:
-    - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
-    - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` → `do_replot`)
-    - Theme: `setup_theme_callback` (applies theme globally, triggers replot)
-    - Dynamic Attributes: Callbacks automatically generated for all `AbstractPlotAttribute` configurations (triggers replot).
-    - Axis Limits: `setup_axis_limits_callbacks` (triggers immediate replot with current limits)
-- **Shared Behavior**:
-    - **All format changes trigger full replot** using the unified `do_replot` function.
-    - **Preserves user labels and axis limits**: `format_is_default` dict tracks which options are customized. After replot, `apply_custom_formatting!` re-applies non-default values.
-    - **Axis limits preserved during format changes**: `get_current_axis_limits(state)` helper merges current limits into `plot_format`.
-    - **Does NOT update table**: Table update is skipped as data hasn't changed.
-    - **Race Condition Prevention**: Returns early if `block_format_update[]` is true.
-    - **Legend title optimization**: Skip replot if legend is not visible (title is saved for when legend becomes visible).
-
-**B. Format Persistence Strategy (`format_is_default` and `RESET_FORMAT_OPTION`):**
-A `DefaultDict{Symbol, Bool}` tracks which format options are still at their default values.
-
-**Reset behavior is driven by `RESET_FORMAT_OPTION` Dict (dynamically populated at startup from `AbstractPlotAttribute` registries):**
-- `"never"` → Options that persist across all changes:
-    - `:plottype`, `:theme`
-- `"source"` → Options reset when data source changes:
-    - `:title`, `:xlabel`, `:ylabel`, `:show_legend`, `:legend_title`, and any dynamic attributes (e.g. `:group_by`, `:bar_mode`) with `reset_policy="source"`.
-    - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
-- `"range"` → Options reset when (Re-)Plot button is clicked:
-    - `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
-
-**Data Source Tracking:**
-- `last_plotted_x`, `last_plotted_y` - track last X and Y variable names (Array mode)
-- `last_plotted_dataframe` - tracks last DataFrame name (DataFrame mode)
-
-**Flow:**
-1.  **New Data Source**: `is_new_data=true` → reset options in `RESET_FORMAT_OPTION["source"]`, initialize text fields from plot defaults.
-2.  **(Re-)Plot Button**: `reset_semipersistent=true` → reset options in `RESET_FORMAT_OPTION["range"]` (axis limits).
-3.  **Format Change**: Preserve all format customizations, axis limits passed via `get_current_axis_limits(state)`.
-4.  **User Edit**: Mark corresponding flag as `false` (e.g., user changes title → `format_is_default[:title] = false`).
-5.  **Replot**: After creating new plot, `apply_custom_formatting!` iterates over non-default options and re-applies them.
-
-#### 3. Legend Behavior
-- **Default Visibility**: `show_legend` defaults to `true` only if `n_cols > 1`.
-- **State Management**:
-    - **New Plot**: Legend title is reset to empty.
-    - **Format Change**: Legend title and visibility persist.
-- **User Override**: Checkbox allows manual toggle, persisting through format updates.
-
-#### 4. Data Cleansing and Normalization
-Centralized via `clean_plot_data!` (in `preprocess_dataframes.jl`) to ensure all data passed to the plotting backend is valid and properly typed.
-- **Unitful Unification (Within Column)**: Checks each column for mixed compatible units (e.g., `m` and `cm`). If found, it unifies all elements to the largest metric unit present in that column (`unify_internal_column_units!`). Mixed incompatible units or a mix of units and plain numbers will throw an error.
-- **Numeric Normalization**: Checks column types and contents (`normalize_numeric_columns!`). If an `Any` or `AbstractString` column has `> 90%` numeric values (i.e., less than 10% non-numerics), it replaces the invalid elements with `missing` so the rest of the data can be plotted. A warning popup is shown.
-- **Unitful Unification (Cross-Column)**: If multiple Y-columns contain `Unitful` quantities, it attempts to unify them to a common target unit (`unify_units!`). If dimensions are incompatible (e.g., `s` and `m`), it issues a warning and strips the units entirely to allow plotting on the same axis.
-
-### Plot Types Architecture (plot_types.jl)
-
-The application uses an object-oriented, declarative configuration system for defining plot types and their UI controls.
-
-- **`SinglePlotConfig`**: Abstract base type for all single-layer plots (e.g. `SimplePlot`, `BarPlotConfig`). Subtypes must provide a `visual_type` (e.g. `Makie.Scatter`) and a `group_config`.
-- **`CompoundPlot`**: Configuration for layered plots combining multiple child `AbstractPlotConfig`s (e.g., `Line+Symbol`). It automatically aggregates and merges UI attributes from all its children, and generates composite AlgebraOfGraphics layers using the `+` operator.
-- **Declarative Attribute Routing**: Plot configurations declare their UI controls by returning vectors of `AbstractPlotAttribute`. 
-  - `EnumAttribute`s specify `visual_map` or `mapping_map` (and `requires_group`) to declare exactly how their UI values map into the `visual()` or `mapping()` layers of the AoG pipeline.
-  - A generic fallback automatically iterates over these attributes to assemble the final plot parameters, drastically reducing the need for plot-specific overrides.
-- **Silent Grouping**: When `group_by == "None"` but multiple data columns are selected, the pipeline automatically injects a neutral `group` mapping. This ensures distinct lines remain separated (no zigzag loops) without altering their visual aesthetics.
-
-### Plotting Implementation (plotting.jl)
-
-
-All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`Axis` calls in plotting logic).
-
-**Key Functions:**
-- `do_replot(state, outputs; data, plot_format, is_new_data)`: **Unified entry point** for all plotting
-  - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames
-  - `plot_format`: `(; plottype, show_legend, legend_title)` + axis limits + all registered `dynamic_attributes` unpacked (e.g. `group_by`, `bar_direction`, `bar_mode`).
-  - `is_new_data`: If true, initializes text fields from plot defaults
-- `check_data_create_plot(x_name, y_name; plot_format)`: Fetch from Main, delegate to create_plot
-- `create_plot(x_data::AbstractVector, y_data, ...)`: Arrays → DataFrame → AoG pipeline
-- `create_plot(df::AbstractDataFrame; xcol=1, ...)`: DataFrame → long format → AoG
-- `create_plot_df_long(df, ...)`: Core AoG plotting logic
-- `update_plot_format!(fig, axis; title, xlabel, ylabel)`: Update axis labels without replot
-- `apply_custom_formatting!(fig, ax, state)`: Re-apply non-default format options after replot
-
-**AlgebraOfGraphics Pattern:**
-```julia
-# Group differentiation based on dynamically generated layer code:
-plot_config = PLOT_TYPES[plottype]
-layer_code = build_layer(plot_config, plot_format, group_col, legend_title)
-plt = AlgebraOfGraphics.data(df) * mapping(x_col => x_name, y_col => y_name) * layer_code
-fg = draw(plt; figure=(; size=(800, 600)), legend=(show=show_legend,), axis=(; title))
-fig = fg.figure
-axis = fg.grid[1, 1].axis  # Extract Axis from FigureGrid
-```
-
-**Exports to Main:**
-```julia
-global cp_figure = fig      # Figure object
-global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage, do not use in app logic)
-```
+See [Plot Architecture](AGENTS_more_info/specific_issues/plot_architecture.md) for the declarative `SinglePlotConfig`/`CompoundPlot` system, `EnumAttribute` routing, the `do_replot` unified entry point, and the AoG pipeline pattern.
 
 ### Known Issues 
    
@@ -262,52 +117,22 @@ global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage
 
 #### Deliberately Limited Feature Set
 
-- Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`) is planned
+- Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`, and maybe a few others) is planned
 
-#### Planned Enhancements (as of v0.7.0)
+#### Planned Enhancements (as of v0.10.0)
 
-- ~~Axis limits~~ ✓ Implemented (configurable min/max, reversal, pan/zoom sync)
-- ~~Themes~~ ✓ Implemented (Makie default, AoG, theme_black/dark/ggplot2/light/minimal)
-- ~~Group differentiation~~ ✓ Implemented (Color or Geometry; Geometry disabled for BarPlot)
-- ~~Automatic Julia code generation from GUI actions~~ ✓ Implemented
+- More plot format options, e.g. palettes
 - Support for multiple independent data sources in a diagram
-- Optional regression‑fit overlays  
+    - Dual-Y or dual-X axes with different scales
+- Optional regression‑fit integration
+- Extensive Documenter.jl based documentation
 
-### Development Workflows
+### Development Workflows & Testing
 
-#### Adding a New Plot Type:
-1. Add to `supported_plot_types` in `app.jl`
-2. Ensure the type evaluates to a valid AoG visual (e.g., `Scatter`, `Lines`)
-3. No changes needed in `plotting.jl` (uses generic `visual(plottype)`)
-
-#### Modifying UI Components:
-1. **Control panel**: Edit `create_control_panel_ui.jl`
-2. **Tabs**: Modify `gui_tabs.jl`
-3. **Layout**: Adjust `assemble_layout` in `gui_layout.jl`
-4. **Styles**: Edit `css_styles.css` (prefer CSS classes over inline styles)
-
-#### Adding New Observables:
-1. Initialize in `initialize_app_state()` (`app_state.jl`)
-2. Add to state NamedTuple unpacking where needed
-3. Connect to callbacks in relevant `setup_*_callback` function
-
-#### Debugging Observable Updates:
-- Use `on(obs) do val; @info "Observable changed" val; end` pattern
-- Check `block_format_update[]` state to verify race prevention
-- Verify callback execution order in REPL output
-
-### Testing
 - Review the **Testing Guidelines** Knowledge Item (KI) before running or modifying tests.
 - Manual testing via `src/scripts/casualplots_test.jl`
-    - see also [extended manual testing protocol](AGENTS_more_info/specific_issues/manual_testing_plan.md)
-- **Interactive Agentic Workflow**: When capturing screenshots or testing specific UI states interactively with the user, follow this cooperative workflow:
-    1. **Launch**: Agent starts the GUI locally (e.g., using `Kaimon` `ex` tool to run `Bonito.Server(app, "127.0.0.1", 8000)`).
-    2. **Navigate**: User navigates to `http://localhost:8000` in their local browser and interacts with the GUI to reach the desired state.
-    3. **Capture/Read**: Agent uses `browser_subagent` to capture a screenshot of `http://localhost:8000` (without modifying the state) OR the agent reads the necessary backend variables.
-- GUI agentic testing was not successful. See attempts and more info in Branch `v0.6.0-refactoring`
-- Additional testing tools are in [AgenticTesting.jl](test/AgenticTesting) subpackage.
-    - **Note for Documentation**: The JS hooks inside this package (e.g., `set_radio_value`, `click_button` in `gui_testing_utils.jl`) can be executed via `Bonito.evaljs` to visually drive the UI. This is highly useful for automating documentation screenshots.
-- Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more
+
+See [Development Workflows](AGENTS_more_info/specific_issues/development_workflows.md) for UI modification guides, adding observables, debugging patterns, interactive agentic testing workflow, and SafeTestsets conventions.
 
 ### Precompilation
 
@@ -327,21 +152,21 @@ export Ele                  # Displaying Bonito `app` in Electron window
 
 ### Data Source Selection
 **DataFrame Selection:**
-![DataFrame Source Selection](AGENTS_more_info/ScreenShots/DataFrame%20source%20selection%20tab.png)
+![DataFrame Source Selection](AGENTS_more_info/ScreenShots/dataframe_source_selection.png)
 
 **Array Selection:**
-![Array Source Selection](AGENTS_more_info/ScreenShots/Source%20selection%20-%20arrays.png)
+![Array Source Selection](AGENTS_more_info/ScreenShots/xy_source_selection.png)
 
 ### Plotting Examples
-**DataFrame Plotting:**
-![DataFrame Plot Example](AGENTS_more_info/ScreenShots/DataFrame%20selected,%20checkboxes%20selected.png)
+<!-- **DataFrame Plotting:** -->
+<!-- ![DataFrame Plot Example](AGENTS_more_info/ScreenShots/DataFrame%20selected,%20checkboxes%20selected.png) -->
 
-**Array Plotting:**
-![Array Plot Example](AGENTS_more_info/ScreenShots/X,Y%20arrays%20selected,%20plot,%20table%20displayed.png)
+<!-- **Array Plotting:** -->
+<!-- ![Array Plot Example](AGENTS_more_info/ScreenShots/X,Y%20arrays%20selected,%20plot,%20table%20displayed.png) -->
 
 ### Plot Formatting
 **Format Pane:**
-![Format Pane](AGENTS_more_info/ScreenShots/Format%20pane%20for%20DataFrames%20source.png)
+![Format Pane](AGENTS_more_info/ScreenShots/format_tab.png)
 
 **BarPlot Format Pane:**
 ![BarPlot Format Pane](AGENTS_more_info/ScreenShots/format_tab_barplot.png)
@@ -349,3 +174,5 @@ export Ele                  # Displaying Bonito `app` in Electron window
 ## Development Status
 **Status**: Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.
 
+## Agent Housekeeping Rules
+- Whenever the Agent notes that a new commit has been made, they should ask the user whether to update `AGENTS.md` and `docs/src/changelog.md`.
