@@ -370,3 +370,38 @@ function calculate_dropdown_keystrokes(session::Bonito.Session, css_selector::St
     """)
 end
 
+"""
+    wait_until(condition::Function; timeout=10.0, interval=0.1)
+
+Polls `condition()` every `interval` seconds until it returns true or `timeout` is reached.
+"""
+function wait_until(condition::Function; timeout=10.0, interval=0.1)
+    t0 = time()
+    while !condition()
+        sleep(interval)
+        if time() - t0 > timeout
+            @warn "wait_until timeout reached"
+            break
+        end
+    end
+end
+
+"""
+    wait_for_observable(obs::Observables.Observable, target_value; timeout=10.0)
+
+Blocks until the observable equals the target value, or times out.
+"""
+function wait_for_observable(obs, target_value; timeout=10.0)
+    wait_until(() -> obs[] == target_value; timeout=timeout)
+end
+
+"""
+    wait_for_ui_settle(session::Bonito.Session; delay=1.0)
+
+Issues a `Bonito.evaljs_value` roundtrip to flush all pending WebSocket messages, 
+then sleeps for the requested extra delay to allow asynchronous browser tasks to settle.
+"""
+function wait_for_ui_settle(session::Bonito.Session; delay=1.0)
+    Bonito.evaljs_value(session, js"true")
+    sleep(delay)
+end

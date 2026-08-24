@@ -152,26 +152,14 @@ export Ele                  # Displaying Bonito `app` in Electron window
 
 ## UI Screenshots
 
-### Data Source Selection
-**DataFrame Selection:**
-![DataFrame Source Selection](AGENTS_more_info/ScreenShots/dataframe_source_selection.png)
+For annotated screenshots of the GUI in action, refer to the **[Tutorial (WIP)](docs/src/tutorial.md)**, which covers:
 
-**Array Selection:**
-![Array Source Selection](AGENTS_more_info/ScreenShots/xy_source_selection.png)
-
-### Plotting Examples
-<!-- **DataFrame Plotting:** -->
-<!-- ![DataFrame Plot Example](AGENTS_more_info/ScreenShots/DataFrame%20selected,%20checkboxes%20selected.png) -->
-
-<!-- **Array Plotting:** -->
-<!-- ![Array Plot Example](AGENTS_more_info/ScreenShots/X,Y%20arrays%20selected,%20plot,%20table%20displayed.png) -->
-
-### Plot Formatting
-**Format Pane:**
-![Format Pane](AGENTS_more_info/ScreenShots/format_tab.png)
-
-**BarPlot Format Pane:**
-![BarPlot Format Pane](AGENTS_more_info/ScreenShots/format_tab_barplot.png)
+- **Data Selection** — X,Y Arrays mode and DataFrame mode (§2a, §2b)
+- **File Import** — Open tab with CSV/XLSX options (§2c)
+- **Plot Formatting** — Lines/Scatter plots, BarPlot (Dodged & Stacked), Axis Limits (§3)
+- **Window Management** — Maximized Plot Pane (§4)
+- **Data Table** — Column header color coding by type (§5)
+- **Export & Script Generation** — Save tab (§6)
 
 ## Development Status
 **Status**: Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.

@@ -11,3 +11,4 @@ stacktraces.txt
 .gitattributes
 tools/*
 **/.~lock.*
+/docs/src/Screenshots/processing/

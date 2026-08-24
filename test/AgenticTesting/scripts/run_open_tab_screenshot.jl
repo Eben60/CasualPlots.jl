@@ -8,8 +8,10 @@ using ShareAdd
 # Include and use the local AgenticTesting module
 @usingany AgenticTesting
 
+CasualPlots.@populate()
+
 println("Starting automated UI interaction...")
 # Generates the screenshot and saves it to docs/src/Screenshots/tmp/open_file_tab_1.png
-generate_open_tab_screenshot("open_file_tab_3.png")
+generate_open_tab_screenshot("open_file_tab.png")
 
 println("Screenshot generation complete.")

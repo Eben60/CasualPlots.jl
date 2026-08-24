@@ -29,6 +29,7 @@ function casualplots_app()
     setup_source_callback(state, outputs)
     setup_format_change_callbacks(state, outputs)
     setup_theme_callback(state, outputs)
+    apply_theme!(state, state.plotting.format.selected_theme[])
     
     # Setup label update callbacks for editable text fields
     setup_label_update_callbacks(state, outputs)

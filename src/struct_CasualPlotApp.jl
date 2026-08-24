@@ -11,7 +11,11 @@ struct CasualPlotApp
 end
 
 # Forward lifecycle
-Base.close(cp::CasualPlotApp) = close(cp.app)
+function Base.close(cp::CasualPlotApp)
+    close(cp.app)
+    set_theme!()
+    return nothing
+end
 
 # Forward Display (REPL, Notebooks, IDEs)
 Base.show(io::IO, m::MIME, cp::CasualPlotApp) = show(io, m, cp.app)
