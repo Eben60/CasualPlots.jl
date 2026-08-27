@@ -48,7 +48,7 @@ docs/src/Screenshots/
 ├── <name>.png                               # Current reference screenshots (the "golden" files)
 ├── tmp/                                     # Output directory for generated screenshots
 │   └── <name>.png, <name>_01.png, ...       # Auto-numbered to avoid overwrites
-└── processing/<name>/<name>.md              # Detailed spec per screenshot (see §4)
+└── specifications/<name>/<name>.md              # Detailed spec per screenshot (see §4)
 ```
 
 ---
@@ -71,94 +71,17 @@ Output files are auto-numbered (e.g., `format_tab_barplot_dodged.png`, `_01.png`
 
 ---
 
-## 4. Creating Per-Screenshot Specification Files
+## 4. Using Per-Screenshot Specification Files
 
-Before writing a generator for a screenshot, the agent must first create a detailed Markdown specification file. This spec serves as the single source of truth for both the generator code and the verification step.
+Each screenshot has a detailed Markdown specification in `docs/src/Screenshots/specifications/<name>/<name>.md`. These specs are the single source of truth for both writing generator code and verifying output.
 
-### Location & Naming
+Before running or modifying a generator, **always read the corresponding spec first** using `view_file`. It contains:
+- The exact prerequisites and data sources required.
+- The step-by-step UI reproduction sequence.
+- The expected UI state (dropdown values, labels, plot content, table data).
+- The key visual verification criteria to check after generation.
 
-```
-docs/src/Screenshots/processing/<name>/<name>.md
-```
-where `<name>` matches the screenshot filename without the `.png` extension (e.g., `format_tab_barplot_dodged`).
-
-### How to Create the Spec
-
-1. **Inspect the reference screenshot** using `view_file` on `docs/src/Screenshots/<name>.png`. Extract every visible detail: active tab, dropdown values, checkbox states, plot type, axis labels/ticks, title, legend, theme, table headers and data.
-2. **Reverse-engineer the reproduction steps** from what is visible. The CasualPlots UI is straightforward — the active tab, selected dropdowns, and data content directly tell you how to reproduce the state. Cross-reference with `AGENTS.md` and `app_state.jl` for observable names if needed.
-3. **Ask the user only if** the data source or a specific step cannot be determined from the screenshot alone (e.g., a custom DataFrame not created by `@populate`, an obscure file import, or non-obvious UI state hidden behind a tab).
-4. **Write the spec** following the template below.
-
-### Template
-
-```markdown
-# <name>.png
-
-## 1. Overview & Purpose
-One-sentence description of what this screenshot demonstrates.
-
----
-
-## 2. Prerequisites & Environment Setup
-- Execute `CasualPlots.@populate` to inject standard demo data into `Main`.
-- Required variable(s):
-  - `variable_name`: Description and shape/type.
-  - (If a custom DataFrame is needed, include the Julia code to create it.)
-
----
-
-## 3. Step-by-Step UI Reproduction Sequence
-
-### A. Source Configuration
-1. Open the application.
-2. (Tab navigation, source type selection, dropdown selections, column checks, range settings, (Re-)Plot click)
-
-### B. Format Configuration (if applicable)
-1. (Plot type, theme, group-by, legend, labels, limits)
-
-### C. Additional Actions (if applicable)
-1. (Maximize window, navigate to Save tab, enter file path, etc.)
-
----
-
-## 4. UI State & Values
-
-### Control Panel (Left Pane)
-- **Active Tab**: ...
-- (All visible dropdown values, checkbox states, text field contents)
-
-### Plot Pane (Top-Right Floating Window)
-- **Window State**: Normal / Maximized / Minimized
-- **Plot Type**: ...
-- **Theme**: ...
-- **Title**: ...
-- **X-Axis**: label, tick values
-- **Y-Axis**: label, tick values
-- **Plotted Data**: describe series, colors, shapes
-- **Legend**: position, entries
-
-### Table Pane (Bottom-Right Floating Window)
-- **Header Bar Title**: `SOURCE: ...`
-- **Displayed Columns**: column names with header background colors (Gray=Index, Green=numeric, Blue=Unitful, Yellow=string/mixed)
-- **Visible Rows**: row count and key data values
-
----
-
-## 5. Key Visual Verification Criteria
-> [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared
-> content-wise with the original screenshot
-> ([`<name>.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/<name>.png))
-> using the `view_file` tool. If the generated image differs substantially in any
-> of the criteria below, the task is **not done**.
-
-To verify if another screenshot matches this configuration:
-1. (3–5 bullet points covering the most important visual elements)
-```
-
-### Existing Specs
-
-Specifications already exist for all current screenshots and are located in `docs/src/Screenshots/processing/`. When writing a new generator, always check if a spec already exists. If it does, consult it before coding.
+Specifications exist for all current screenshots. If you are asked to add a **new** screenshot and no spec exists yet, see [Creating Screenshot Specification Files](agentic_screenshot_specs.md) for the creation workflow and template.
 
 ---
 
@@ -311,13 +234,30 @@ include("test/AgenticTesting/scripts/run_all_screenshots.jl")
 After each screenshot generation, the agent **must** perform a detailed two-stage visual verification using the `view_file` tool:
 
 ### Stage 1: Specification Comparison
-1. Read the `.md` spec at `docs/src/Screenshots/processing/<name>/<name>.md`.
-2. Use `view_file` on the **latest numbered** generated image in `docs/src/Screenshots/tmp/` (e.g., `_03.png` not `_01.png`).
-3. Verify every element listed in the spec's "Key Visual Verification Criteria": active tab, dropdown values, plot type, axis labels, title, legend, table headers, data values.
+
+> [!CAUTION]
+> **No shortcuts, no inferred values.** Every value in the report must be independently read and transcribed in full—first from the spec file, then from the screenshot. Do not summarize, abbreviate, or use phrases like "7 entries" or "same as spec". The comparison (Match column) must only be determined **after** both the Spec Value and Screenshot Value columns have been fully populated with explicit literal values.
+
+**Procedure:**
+
+1. **Read the spec.** Use `view_file` on `docs/src/Screenshots/specifications/<name>/<name>.md`. DO NOT edit this file!
+2. **View the generated image.** Use `view_file` on the **latest numbered** generated image in `docs/src/Screenshots/tmp/` (e.g., `_04.png` not `_01.png`). You **must** call `view_file` at this exact point in the workflow—do not rely on images viewed in earlier turns.
+3. **Build the report table.** For **each and every** element listed in the spec's "§4. UI State & Values" and "§5. Key Visual Verification Criteria" sections:
+   - **Spec Value column**: Transcribe the literal value from the spec (e.g., the exact checkbox names, exact label strings, exact legend entries with their colors).
+   - **Screenshot Value column**: Independently describe what you actually see in the generated image, using the same level of detail and the same format. List every individual item explicitly (e.g., every legend entry, every column header, every checkbox state).
+   - **Match column**: Set to `true` or `false` only **after** both value columns are filled. Compare them value-by-value.
+4. **Write the report.** Create (or **overwrite** if it already exists) a file named `report_<name>.md` next to the spec file. The report must be **rewritten from scratch** on every iteration—never append to or patch a previous report. Use the 4-column table format (see [report_dataframe_source_selection.md](report_dataframe_source_selection.md) as the template):
+
+   ```
+   | Item | Spec Value | Screenshot Value | Match |
+   ```
+
+5. **Conclude.** At the bottom, write `Stage 1 Conclusion: **PASS**` or `**FAIL**` with a brief explanation of any mismatches.
 
 ### Stage 2: Reference Comparison
+Execute Stage 2 only if Stage 1 passed. Otherwise skip directly to Failure Protocol.
 1. Use `view_file` on the original reference screenshot at `docs/src/Screenshots/<name>.png`.
-2. Compare the generated image against it. Minor differences due to GUI evolution (e.g., updated number formatting, renamed radio button text) are acceptable. Layout, data content, and overall appearance must match.
+2. Compare the generated image against it. Minor differences due to GUI evolution (e.g., updated number formatting, renamed radio button text, changed positions of controls),  are acceptable. Layout, data content, and overall appearance must match. In case of substantial deviations due GUI evolution, ask user what to do.
 
 ### Failure Protocol
 - If the image fails either stage, diagnose the root cause (wrong CSS selector, timing issue, missing wait, wrong observable).
@@ -332,7 +272,7 @@ After each screenshot generation, the agent **must** perform a detailed two-stag
 When asked to create a generator for a new screenshot that doesn't have one yet:
 
 1. **Ask the user** how the screenshot was originally produced (which tab, which data source, which format options, etc.), or consult the existing reference image via `view_file`.
-2. **Create the `.md` specification** in `docs/src/Screenshots/processing/<name>/<name>.md` following the established format (Overview, Prerequisites, Step-by-Step, UI State, Verification Criteria).
+2. **Create the `.md` specification** in `docs/src/Screenshots/specifications/<name>/<name>.md` following the established format (Overview, Prerequisites, Step-by-Step, UI State, Verification Criteria).
 3. **Write the generator function** in the appropriate file:
    - `screenshot_generators.jl` — for basic screenshots (source tab, simple plots)
    - `screenshot_generators_advanced.jl` — for screenshots needing format changes, label overrides, or complex replot synchronisation

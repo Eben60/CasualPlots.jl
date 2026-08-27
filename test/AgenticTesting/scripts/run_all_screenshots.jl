@@ -14,5 +14,6 @@ include("run_format_tab_lines.jl")
 include("run_plot_pane_maximized.jl")
 include("run_save_tab_script.jl")
 include("run_table_view.jl")
+include("run_line_symbol_plot.jl")
 
 println("=== All screenshots generated successfully ===")

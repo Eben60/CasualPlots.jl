@@ -3,13 +3,10 @@
 """
     get_unique_filepath(dir::AbstractString, filename::AbstractString) -> String
 
-Checks if `joinpath(dir, filename)` exists. If it does, appends "_01", "_02", etc., 
-to the filename (before the extension) until a non-existent path is found.
+Checks if `joinpath(dir, filename)` exists using a numbered suffix ("_01", "_02", etc.)
+right from the start, returning the first non-existent numbered path.
 """
 function get_unique_filepath(dir, filename)
-    path = normpath(joinpath(dir, filename))
-    isfile(path) || return path
-    
     base, ext = splitext(filename)
     i = 1
     while true
