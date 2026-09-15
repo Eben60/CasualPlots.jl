@@ -1,26 +1,8 @@
 """
-    do_replot(state, outputs; data, plot_format, is_new_data=false)
-
-Unified function for plotting and replotting, regardless of data source or update reason.
-
-# Arguments
-- `state`: Application state struct `CasualPlotsState`
-- `outputs`: Output observables struct `Outputs`
-- `data`: NamedTuple with either:
-  - `(; x_name, y_name, range_from=nothing, range_to=nothing)` for array mode (fetches from Main)
-  - `(; df, x_name, y_name)` for DataFrame mode (uses provided DataFrame)
-- `plot_format`: NamedTuple with format options `(; plottype, show_legend, legend_title)`
-- `is_new_data`: If true, initializes text fields from plot defaults and resets format_is_default
-
-# Returns
-- The FigureResult if successful, nothing otherwise
-"""
-
-"""
-    get_current_axis_limits(state) -> NamedTuple
+    get_current_axis_limits(state::CasualPlotsState) -> NamedTuple
 
 Get the current axis limits from state for use in plot_format.
-Returns a NamedTuple with x_min, x_max, y_min, y_max, xreversed, yreversed.
+Returns a NamedTuple with `x_min`, `x_max`, `y_min`, `y_max`, `xreversed`, `yreversed`.
 """
 function get_current_axis_limits(state)
     format = state.plotting.format
@@ -34,6 +16,32 @@ function get_current_axis_limits(state)
     )
 end
 
+"""
+    do_replot(
+        state::CasualPlotsState,
+        outputs::OutputObservables;
+        data::NamedTuple,
+        plot_format::NamedTuple,
+        is_new_data::Bool=false,
+        reset_semipersistent::Bool=false,
+    ) -> Union{NamedTuple, Nothing}
+
+Unified function for plotting and replotting, regardless of data source or update reason.
+
+# Arguments
+- `state::CasualPlotsState`: Application state struct `CasualPlotsState`.
+- `outputs::OutputObservables`: Output observables struct `OutputObservables`.
+
+# Keyword Arguments
+- `data::NamedTuple`: Data specification containing `(; df, x_name, y_name)`.
+- `plot_format::NamedTuple`: Format options (e.g., `plottype`, `show_legend`, dynamic attributes, and axis limits).
+- `is_new_data::Bool`: If `true`, initializes text fields from plot defaults and resets format defaults. Defaults to `false`.
+- `reset_semipersistent::Bool`: If `true`, resets semipersistent format options (such as axis limits) to defaults. Defaults to `false`.
+
+# Returns
+- `NamedTuple`: The plot result `(; fig, axis, fig_params)` if successful.
+- `Nothing`: If plot creation failed or returned `nothing`.
+"""
 function do_replot(state, outputs; data, plot_format, is_new_data=false, reset_semipersistent=false)
     (; current_figure, current_axis, xlabel_text, ylabel_text, title_text, legend_title_text) = state.plotting.handles
     (; show_legend) = state.plotting.format
