@@ -1,6 +1,6 @@
 name = "CasualPlots"
 uuid = "96609e94-6212-48a9-9561-4cd28ba001d1"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Eben60"]
 
 [workspace]
@@ -27,9 +27,7 @@ WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [weakdeps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-Parsers = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0" # remove Parsers entry after CSV supports v3
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
-XML = "72c71f33-b9b6-44de-8c94-c961784809e2" # remove XML entry after 0.4.6 is released
 
 [extensions]
 ReadCSV_Ext = "CSV"
@@ -39,7 +37,7 @@ ReadXLSX_Ext = "XLSX"
 AlgebraOfGraphics = "0.12, 0.13"
 Bonito = "4.1, 5.1"
 BonitoWidgets = "0.1.2"
-CSV = "0.10"
+CSV = "1"
 CairoMakie = "0.15"
 ColorSchemes = "3.31"
 DataFrames = "1.8"
@@ -50,11 +48,9 @@ FilePathsBase = "0.9"
 Hyperscript = "0.0.5 - 0.1"
 NativeFileDialog = "0.2.1"
 Observables = "0.5"
-Parsers = "< 3" # remove Parsers entry after CSV supports v3
 PrecompileTools = "1.2"
 Printf = "<0.0.1, 1"
 Unitful = "1.25"
 WGLMakie = "0.13"
-XLSX = "0.10, 0.11, 0.12"
-XML = "0.4.0 - 0.4.4, 0.4.6" # remove XML entry after 0.4.6 is released
+XLSX = "0.12.3"
 julia = "1.10"
