@@ -52,6 +52,12 @@ function variable_examples()
         t = reshape(m, 10, 3, 4)
     end
 
+    caspl_2d_sinsin = let
+        xs = range(0.0, 6.0; length=61)
+        ys = range(0.0, 6.0; length=61)
+        [(sin(x) / (x + 3)) * (sin(y) / (y + 3)) for x in xs, y in ys]
+    end
+
     # Create test DataFrames from existing arrays
     caspl_df_simple = DataFrame(
         x = caspl_x_10,
@@ -117,6 +123,7 @@ function variable_examples()
         caspl_cm_25, 
         caspl_mmcm_25, 
         caspl_3d, 
+        caspl_2d_sinsin, 
         caspl_df_simple, 
         caspl_df_large, 
         caspl_df_unitful, 
@@ -132,7 +139,7 @@ Injects several demo variables into the caller's scope.
 These variables (prefixed with `caspl_`) include arrays, matrices, Unitful vectors, and DataFrames of varying complexity. They are primarily used for testing and demonstrating CasualPlots functionality.
 
 Variables created include:
-- `caspl_x_10`, `caspl_ys10`, `caspl_z10`, etc. (Vectors and Matrices)
+- `caspl_x_10`, `caspl_ys10`, `caspl_z10`, `caspl_2d_sinsin`, etc. (Vectors and Matrices)
 - `caspl_u_10`, `caspl_cm_25`, etc. (Unitful arrays)
 - `caspl_df_simple`, `caspl_df_large`, `caspl_df_unitful`, etc. (DataFrames)
 """
@@ -151,6 +158,7 @@ macro populate()
             caspl_cm_25, 
             caspl_mmcm_25, 
             caspl_3d, 
+            caspl_2d_sinsin, 
             caspl_df_simple, 
             caspl_df_large, 
             caspl_df_unitful, 
