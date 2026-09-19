@@ -2,12 +2,10 @@
 
 ### [0.10.0]
 
-_WIP_
-as of commit "Agents instructions refactored"
-3071af91e0a3428d1f57876e9437b033c1f8d77b
-22 August 2026 at 14:01
+_2026-09-20_
 
 **Added**
+- Log-scale option.
 - Matrices can now be selected as source alongside with `DataFrame`s
 - Auto-select the first sheet by default when opening `XLSX` files.
 - Visual loading indicator in the Plot pane during heavy operations (e.g., initial JIT compilation).

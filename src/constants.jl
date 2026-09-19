@@ -20,7 +20,7 @@ const DEFAULT_THEME = "Makie default"
 
 const GLOBAL_CSS = read(joinpath(@__DIR__, "css_styles.css"), String)
 
-const AXES_LIMITS_OPTIONS = [:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed]
+const AXES_LIMITS_OPTIONS = [:x_min, :x_max, :y_min, :y_max, :xreversed, :yreversed, :xlog, :ylog]
 const PLOT_LABELS_OPTIONS= [:title, :xlabel, :ylabel, ]
 const PLOT_LEGEND_OPTIONS = [:show_legend, :legend_title]
 

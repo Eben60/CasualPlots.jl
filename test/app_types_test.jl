@@ -25,6 +25,10 @@ using Observables
     @test state.plotting.format.x_min[] === nothing
     @test state.plotting.format.show_legend[] == true
     @test state.plotting.format.xreversed[] == false
+    @test state.plotting.format.xlog[] == false
+    @test state.plotting.format.ylog[] == false
+    @test state.plotting.format.x_is_categorical[] == false
+    @test state.plotting.format.y_is_categorical[] == false
     @test isempty(state.plotting.format.dynamic_attributes)
     @test state.misc.block_format_update[] == false
 end

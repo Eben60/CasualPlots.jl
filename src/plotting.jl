@@ -28,6 +28,10 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing, 
     x_max = get(plot_format, :x_max, nothing)
     y_min = get(plot_format, :y_min, nothing)
     y_max = get(plot_format, :y_max, nothing)
+    
+    # Get log scales (default to false)
+    xlog = get(plot_format, :xlog, false)
+    ylog = get(plot_format, :ylog, false)
 
     # Use custom labels if provided, otherwise use the data column names
     final_x_name = if !isnothing(custom_xlabel) && custom_xlabel != ""
@@ -61,7 +65,8 @@ function create_plot_df_long(df, x_name, y_name, plot_format; mappings=nothing, 
     fg = draw(plt;
         figure=(; size=plot_size), 
         legend=(show=show_legend, ),
-        axis=(; title, limits=(x_min, x_max, y_min, y_max), xreversed, yreversed),
+        axis=(; title, limits=(x_min, x_max, y_min, y_max), xreversed, yreversed, 
+              xscale = xlog ? log10 : identity, yscale = ylog ? log10 : identity),
     )
 
     fig = fg.figure

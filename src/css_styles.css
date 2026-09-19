@@ -350,7 +350,7 @@
 .axis-limits-label {
     font-size: 12px;
     font-weight: bold;
-    min-width: 50px;
+    min-width: 42px;
 }
 
 .axis-limits-label-small {
@@ -359,8 +359,14 @@
     min-width: 25px;
 }
 
+.axis-limits-dash {
+    font-weight: bold;
+    font-size: 12px;
+    margin: 0 2px;
+}
+
 .axis-limits-input {
-    width: 70px;
+    width: 60px;
     padding: 4px 6px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -378,4 +384,10 @@
     width: 16px;
     height: 16px;
     cursor: pointer;
+}
+
+.axis-limits-input:disabled, .axis-limits-checkbox:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f0f0f0;
 }

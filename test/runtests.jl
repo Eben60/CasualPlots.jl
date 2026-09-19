@@ -17,3 +17,4 @@ using SafeTestsets
 @safetestset "Code Generation" include("code_generation_test.jl")
 @safetestset "Code Generation E2E" include("code_generation_e2e_test.jl")
 @safetestset "Unitful Integration" include("integrations_unitful_test.jl")
+@safetestset "Categorical Detection" include("categorical_detection_test.jl")

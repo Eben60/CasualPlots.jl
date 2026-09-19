@@ -51,6 +51,8 @@ end
     # Mutate some format options
     state.plotting.format.x_min[] = 10.0
     state.plotting.handles.title_text[] = "Custom Title"
+    state.plotting.format.xlog[] = true
+    state.plotting.format.ylog[] = true
     
     state.misc.format_is_default[:x_min] = false
     state.misc.format_is_default[:title] = false
@@ -59,6 +61,8 @@ end
     reset_semipersistent_format_options!(state)
     
     @test state.plotting.format.x_min[] === nothing
+    @test state.plotting.format.xlog[] == false
+    @test state.plotting.format.ylog[] == false
     @test state.misc.format_is_default[:x_min] == true
     # semipersistent reset shouldn't touch title
     @test state.plotting.handles.title_text[] == "Custom Title"

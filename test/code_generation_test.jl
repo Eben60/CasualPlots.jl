@@ -74,6 +74,34 @@ end
     @test !occursin("taking exactly the same data already existing in the Main", code)
 end
 
+@testset "Code Generation - Log Scales" begin
+    using CasualPlots: initialize_app_state, generate_julia_code
+
+    state = initialize_app_state()
+    state.data_selection.source_type[] = "X, Y Arrays"
+    state.data_selection.selected_x[] = "xx"
+    state.data_selection.selected_y[] = "yy"
+    
+    # Test Case 1: Defaults (no log scales)
+    code_default = generate_julia_code(state).code
+    @test !occursin("xscale=log10", code_default)
+    @test !occursin("yscale=log10", code_default)
+    
+    # Test Case 2: xlog enabled
+    state.plotting.format.xlog[] = true
+    state.plotting.format.ylog[] = false
+    code_xlog = generate_julia_code(state).code
+    @test occursin("xscale=log10", code_xlog)
+    @test !occursin("yscale=log10", code_xlog)
+    
+    # Test Case 3: Both enabled
+    state.plotting.format.xlog[] = true
+    state.plotting.format.ylog[] = true
+    code_both = generate_julia_code(state).code
+    @test occursin("xscale=log10", code_both)
+    @test occursin("yscale=log10", code_both)
+end
+
 @testset "Code Generation String Verification - Opened File Mode with options" begin
     using CasualPlots: initialize_app_state, generate_julia_code
 

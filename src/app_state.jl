@@ -84,6 +84,10 @@ function reset_semipersistent_format_options!(state)
     format.xreversed[] = false
     format.yreversed[] = false
     
+    # Reset log scales to false
+    format.xlog[] = false
+    format.ylog[] = false
+    
     # Mark as default in format_is_default dict
     for key in RESET_FORMAT_OPTION["range"]
         format_is_default[key] = true

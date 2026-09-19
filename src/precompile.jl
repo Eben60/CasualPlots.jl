@@ -52,7 +52,7 @@ using PrecompileTools
                     plot_format = (; 
                         plottype=plottype, show_legend=false, legend_title="", group_by="Color",
                         x_min=nothing, x_max=nothing, y_min=nothing, y_max=nothing,
-                        xreversed=false, yreversed=false
+                        xreversed=false, yreversed=false, xlog=false, ylog=false,
                     )
                     CasualPlots.create_plot_df_long(df_long, "x", "y", plot_format; mappings)
                 end

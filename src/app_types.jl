@@ -55,6 +55,10 @@ end
     y_max_default::Observable{Union{Nothing, Float64}} = Observable{Union{Nothing, Float64}}(nothing)
     xreversed::Observable{Bool} = Observable(false)
     yreversed::Observable{Bool} = Observable(false)
+    xlog::Observable{Bool} = Observable(false)
+    ylog::Observable{Bool} = Observable(false)
+    x_is_categorical::Observable{Bool} = Observable(false)
+    y_is_categorical::Observable{Bool} = Observable(false)
 end
 
 @kwdef struct PlotHandles

@@ -203,6 +203,8 @@ function generate_plot_function(state::CasualPlotsState)
     y_max = format.y_max[]
     xreversed = format.xreversed[]
     yreversed = format.yreversed[]
+    xlog = format.xlog[]
+    ylog = format.ylog[]
     
     source_type = state.data_selection.source_type[]
     
@@ -237,6 +239,14 @@ function cp_create_plot(data)
     layer_code = build_layer_code(plot_config, nt_format, "group_col", repr(legend_title))
     
     # Plotting code
+    axis_kwargs = "title, limits, xreversed=$(xreversed), yreversed=$(yreversed)"
+    if xlog
+        axis_kwargs *= ", xscale=log10"
+    end
+    if ylog
+        axis_kwargs *= ", yscale=log10"
+    end
+    
     code *= """
     plt = AlgebraOfGraphics.data(df) * mapping(x_col => final_x_name, y_col => final_y_name) * $(layer_code)
     
@@ -245,7 +255,7 @@ function cp_create_plot(data)
     fg = draw(plt; 
         figure=(; size=(800, 600)), 
         legend=(show=$(show_legend),), 
-        axis=(; title, limits, xreversed=$(xreversed), yreversed=$(yreversed))
+        axis=(; $(axis_kwargs))
     )
     
     return fg

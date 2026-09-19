@@ -214,25 +214,35 @@ Each row has: "X from:" [input] "to:" [input] "rev.:" [checkbox]
 DOM.div containing the complete axis limits section
 """
 function create_axis_limits_section(format)
-    (; x_min, x_max, y_min, y_max, xreversed, yreversed) = format
+    (; x_min, x_max, y_min, y_max, xreversed, yreversed, xlog, ylog, x_is_categorical, y_is_categorical) = format
     
     # X axis row
     x_row = DOM.div(
-        DOM.label("X from:"; class="axis-limits-label"),
+        DOM.label("X lim:"; class="axis-limits-label"),
         DOM.input(
             type="number",
             step="any",
             id="axis-x-min-input",
             class="axis-limits-input",
-            placeholder=""
+            placeholder="",
+            disabled=x_is_categorical
         ),
-        DOM.label("to:"; class="axis-limits-label-small"),
+        DOM.span("–"; class="axis-limits-dash"),
         DOM.input(
             type="number",
             step="any",
             id="axis-x-max-input",
             class="axis-limits-input",
-            placeholder=""
+            placeholder="",
+            disabled=x_is_categorical
+        ),
+        DOM.label("log:"; class="axis-limits-label-small"),
+        DOM.input(
+            type="checkbox",
+            id="axis-x-log-checkbox",
+            checked=xlog,
+            class="axis-limits-checkbox",
+            disabled=x_is_categorical
         ),
         DOM.label("rev.:"; class="axis-limits-label-small"),
         DOM.input(
@@ -240,27 +250,38 @@ function create_axis_limits_section(format)
             id="axis-x-reversed-checkbox",
             checked=xreversed,
             class="axis-limits-checkbox",
+            disabled=x_is_categorical
         );
         class="axis-limits-row"
     )
     
     # Y axis row
     y_row = DOM.div(
-        DOM.label("Y from:"; class="axis-limits-label"),
+        DOM.label("Y lim:"; class="axis-limits-label"),
         DOM.input(
             type="number",
             step="any",
             id="axis-y-min-input",
             class="axis-limits-input",
-            placeholder=""
+            placeholder="",
+            disabled=y_is_categorical
         ),
-        DOM.label("to:"; class="axis-limits-label-small"),
+        DOM.span("–"; class="axis-limits-dash"),
         DOM.input(
             type="number",
             step="any",
             id="axis-y-max-input",
             class="axis-limits-input",
-            placeholder=""
+            placeholder="",
+            disabled=y_is_categorical
+        ),
+        DOM.label("log:"; class="axis-limits-label-small"),
+        DOM.input(
+            type="checkbox",
+            id="axis-y-log-checkbox",
+            checked=ylog,
+            class="axis-limits-checkbox",
+            disabled=y_is_categorical
         ),
         DOM.label("rev.:"; class="axis-limits-label-small"),
         DOM.input(
@@ -268,6 +289,7 @@ function create_axis_limits_section(format)
             id="axis-y-reversed-checkbox",
             checked=yreversed,
             class="axis-limits-checkbox",
+            disabled=y_is_categorical
         );
         class="axis-limits-row"
     )

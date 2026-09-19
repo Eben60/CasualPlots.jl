@@ -13,6 +13,8 @@ function get_current_axis_limits(state)
         y_max = format.y_max[],
         xreversed = format.xreversed[],
         yreversed = format.yreversed[],
+        xlog = format.xlog[],
+        ylog = format.ylog[],
     )
 end
 
@@ -607,6 +609,19 @@ function update_unified_plot!(state, outputs;
                 y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
             end
             
+            # Check for categorical data to disable numeric-only UI controls
+            T_x = nonmissingtype(eltype(df_selected[!, xcol_name]))
+            x_is_cat = !(T_x <: Union{Real, Unitful.Quantity})
+            state.plotting.format.x_is_categorical[] = x_is_cat
+            
+            if length(valid_cols) > 1
+                T_y = nonmissingtype(eltype(df_selected[!, valid_cols[2]]))
+                y_is_cat = !(T_y <: Union{Real, Unitful.Quantity})
+            else
+                y_is_cat = false
+            end
+            state.plotting.format.y_is_categorical[] = y_is_cat
+            
             # Update cache
             cache.cached_cleaned_df[] = df_selected
             cache.cached_cols[] = copy(valid_cols)
@@ -968,6 +983,10 @@ function clear_axis_limits(state)
     format.xreversed[] = false
     format.yreversed[] = false
     
+    # Reset log scales
+    format.xlog[] = false
+    format.ylog[] = false
+    
     # Mark all as default
     for key in RESET_FORMAT_OPTION["range"]
         format_is_default[key] = true
@@ -1000,6 +1019,8 @@ function setup_axis_limits_callbacks(state, outputs)
             y_max = y_max[],
             xreversed = xreversed[],
             yreversed = yreversed[],
+            xlog = state.plotting.format.xlog[],
+            ylog = state.plotting.format.ylog[],
         )
         return merge(base_format, NamedTuple(dynamic_vals))
     end
@@ -1049,6 +1070,23 @@ function setup_axis_limits_callbacks(state, outputs)
         # Mark as non-default if reversed
         format_is_default[:yreversed] = !val
         
+        trigger_axis_replot()
+    end
+    
+    # === Log Scale Change Handlers ===
+    on(state.plotting.format.xlog) do val
+        state.misc.block_format_update[] && return
+        isnothing(current_axis[]) && return
+        
+        format_is_default[:xlog] = !val
+        trigger_axis_replot()
+    end
+    
+    on(state.plotting.format.ylog) do val
+        state.misc.block_format_update[] && return
+        isnothing(current_axis[]) && return
+        
+        format_is_default[:ylog] = !val
         trigger_axis_replot()
     end
 end
@@ -1108,6 +1146,18 @@ function setup_axis_limits_ui_sync(session, state)
                 
                 const cb_yrev = e => window.CasualPlots.updateObservableChecked(e, $(yreversed));
                 yrev.addEventListener('change', cb_yrev);
+                
+                const xlog_chk = document.getElementById('axis-x-log-checkbox');
+                if (xlog_chk) {
+                    const cb_xlog = e => window.CasualPlots.updateObservableChecked(e, $(state.plotting.format.xlog));
+                    xlog_chk.addEventListener('change', cb_xlog);
+                }
+                
+                const ylog_chk = document.getElementById('axis-y-log-checkbox');
+                if (ylog_chk) {
+                    const cb_ylog = e => window.CasualPlots.updateObservableChecked(e, $(state.plotting.format.ylog));
+                    ylog_chk.addEventListener('change', cb_ylog);
+                }
                 
             } else if (attempts > 50) {
                 clearInterval(interval);
