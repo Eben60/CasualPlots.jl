@@ -1,6 +1,6 @@
 # Callback & Formatting Flow
 
-Extracted from `AGENTS.md`. See also the [Mermaid diagrams](../Mermaid/) for visual flows.
+Extracted from `AGENTS.md`. See also the [Mermaid diagrams](../mermaid/) for visual flows.
 
 ## 1. Source Selection & Plotting Flow
 

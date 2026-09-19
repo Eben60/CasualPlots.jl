@@ -171,9 +171,9 @@ In short, it is WIP, however, the main goals are already implemented and the pac
 
 ## Screenshots
 
-- [Open File Tab](AGENTS_more_info/ScreenShots/open_file_tab.png)
-- [X, Y Source Selection, Scatter Plot](AGENTS_more_info/ScreenShots/xy_source_selection.png)
-- [DataFrame Source Selection](AGENTS_more_info/ScreenShots/dataframe_source_selection.png)
-- [Format Tab, Lines Plot](AGENTS_more_info/ScreenShots/format_tab.png)
-- [Format Tab, Bar Plot](AGENTS_more_info/ScreenShots/format_tab_barplot.png)
-- [Save Tab](AGENTS_more_info/ScreenShots/save_tab.png)
+- [Open File Tab](docs/src/Screenshots/open_file_tab.png)
+- [X, Y Source Selection, Scatter Plot](docs/src/Screenshots/xy_source_selection.png)
+- [DataFrame Source Selection](docs/src/Screenshots/dataframe_source_selection.png)
+- [Format Tab, Lines Plot](docs/src/Screenshots/format_tab_lines.png)
+- [Format Tab, Bar Plot](docs/src/Screenshots/format_tab_barplot_dodged.png)
+- [Save Tab](docs/src/Screenshots/save_tab_script.png)

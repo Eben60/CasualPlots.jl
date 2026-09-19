@@ -2,7 +2,7 @@
 
 This document describes how to create a per-screenshot specification file for `CasualPlots.jl`. These specs serve as the single source of truth for both the generator code and the verification step.
 
-For the overall screenshot reproduction workflow (running generators, interaction toolkit, synchronisation, verification protocol), see [Agentic Screenshots](agentic_screenshots.md).
+For the overall screenshot reproduction workflow (running generators, interaction toolkit, synchronisation, verification protocol), see [Agentic Screenshots](../SKILL.md).
 
 ---
 

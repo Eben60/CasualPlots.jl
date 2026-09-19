@@ -86,7 +86,7 @@ scripts/                        # Example/demo scripts
 
 The application uses a reactive `state` struct (`CasualPlotsState`) with `Observables.jl` for all UI state management.
 To provide REPL read-access, the `Bonito.App` and the `state` are bundled in a `CasualPlotApp` struct returned by `casualplots_app()`.
-See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_state_architecture.md) for the full state structure and output observables documentation.
+See [Reactive State Architecture](.agents/references/reactive_state_architecture.md) for the full state structure and output observables documentation.
 
 **Window Management & Layout**: The Plot and Table panes are implemented as `BonitoWidgets.FloatingWindow`s. Custom JavaScript in `gui_layout.jl` injects window controls (Minimize, Restore, Maximize) and handles cross-window visibility toggling (e.g., maximizing the Plot pane hides the Table pane and Grid, while restoring resets the layout). A `ResizeObserver` monitors the Plot pane's dimensions and notifies a `plot_size` observable, which triggers an in-place `Makie.resize!` of the figure without a full replot.
 
@@ -94,20 +94,20 @@ See [Reactive State Architecture](AGENTS_more_info/specific_issues/reactive_stat
 
 Diagrams are in the linked files:
 
-- [High-Level User Flow](AGENTS_more_info/Mermaid/high-level_user_flow.md)
-- [Callback Execution Sequence](AGENTS_more_info/Mermaid/callback_execution_sequence.md)
-- [State Transition Map](AGENTS_more_info/Mermaid/state_transition_map.md)
+- [High-Level User Flow](.agents/mermaid/high-level_user_flow.md)
+- [Callback Execution Sequence](.agents/mermaid/callback_execution_sequence.md)
+- [State Transition Map](.agents/mermaid/state_transition_map.md)
 
 
 ### Critical Implementation Patterns
 
-See [Callback & Formatting Flow](AGENTS_more_info/specific_issues/callback_and_formatting_flow.md) for the full source selection pipeline (X,Y, DataFrame, File Import), format persistence strategy (`RESET_FORMAT_OPTION`), and legend behavior.
+See [Callback & Formatting Flow](.agents/references/callback_and_formatting_flow.md) for the full source selection pipeline (X,Y, DataFrame, File Import), format persistence strategy (`RESET_FORMAT_OPTION`), and legend behavior.
 
-See [Data Cleansing](AGENTS_more_info/specific_issues/data_cleansing.md) for `clean_plot_data!`, Unitful unification, and numeric normalization.
+See [Data Cleansing](.agents/references/data_cleansing.md) for `clean_plot_data!`, Unitful unification, and numeric normalization.
 
 ### Plot Types & Plotting Implementation
 
-See [Plot Architecture](AGENTS_more_info/specific_issues/plot_architecture.md) for the declarative `SinglePlotConfig`/`CompoundPlot` system, `EnumAttribute` routing, the `do_replot` unified entry point, and the AoG pipeline pattern.
+See [Plot Architecture](.agents/references/plot_architecture.md) for the declarative `SinglePlotConfig`/`CompoundPlot` system, `EnumAttribute` routing, the `do_replot` unified entry point, and the AoG pipeline pattern.
 
 ### Known Issues 
    
@@ -129,16 +129,16 @@ See [Plot Architecture](AGENTS_more_info/specific_issues/plot_architecture.md) f
 
 ### Development Workflows & Testing
 
-- Review the **Testing Guidelines** Knowledge Item (KI) before running or modifying tests.
+- Review the **Testing Guidelines** Skill (`julia-testing-guidelines`) before running or modifying tests.
 - Manual testing via `src/scripts/casualplots_test.jl`
 
-See [Development Workflows](AGENTS_more_info/specific_issues/development_workflows.md) for UI modification guides, adding observables, debugging patterns, interactive agentic testing workflow, and SafeTestsets conventions.
+See [Development Workflows](.agents/references/development_workflows.md) for UI modification guides, adding observables, debugging patterns, interactive agentic testing workflow, and SafeTestsets conventions.
 
-See [Agentic Screenshots](AGENTS_more_info/specific_issues/agentic_screenshots.md) for instructions on automating UI screenshots seamlessly through Electron without UI clutter.
+See the **casualplots-screenshots** skill ([SKILL.md](.agents/skills/casualplots-screenshots/SKILL.md)) for instructions on automating UI screenshots seamlessly through Electron without UI clutter.
 
 ### Precompilation
 
-See [Precompilation](AGENTS_more_info/specific_issues/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
+See [Precompilation](.agents/references/precompilation.md) for details on PrecompileTools workload, Electron hidden window feature, and known limitations.
 
 
 ### Exports

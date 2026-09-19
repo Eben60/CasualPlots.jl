@@ -1,3 +1,8 @@
+---
+name: casualplots-screenshots
+description: Automated capture, updating, and verification of CasualPlots.jl GUI screenshots via Electron and macOS screencapture. Use when capturing screenshots, creating new screenshot generators, updating documentation images, or verifying UI visual output.
+---
+
 # Agentic Creation of Reproducible Screenshots
 
 This document is the authoritative reference for AI agents tasked with generating, updating, or verifying automated screenshots of the `CasualPlots.jl` GUI on macOS.
@@ -55,7 +60,7 @@ docs/src/Screenshots/
 
 ## 3. The Capture Pipeline (`capture_gui_screenshot`)
 
-All screenshot generators delegate to [`capture_gui_screenshot`](../../test/AgenticTesting/src/screenshot_generators.jl) (in `screenshot_generators.jl`), which orchestrates the full lifecycle:
+All screenshot generators delegate to [`capture_gui_screenshot`](../../../test/AgenticTesting/src/screenshot_generators.jl) (in `screenshot_generators.jl`), which orchestrates the full lifecycle:
 
 1. **Reset theme** to `DEFAULT_THEME` and populate demo data in `Main` via `CasualPlots.@populate()` / `variable_examples()`.
 2. **Create app** via `casualplots_app()`, populate state observables for arrays and DataFrames.
@@ -81,13 +86,13 @@ Before running or modifying a generator, **always read the corresponding spec fi
 - The expected UI state (dropdown values, labels, plot content, table data).
 - The key visual verification criteria to check after generation.
 
-Specifications exist for all current screenshots. If you are asked to add a **new** screenshot and no spec exists yet, see [Creating Screenshot Specification Files](agentic_screenshot_specs.md) for the creation workflow and template.
+Specifications exist for all current screenshots. If you are asked to add a **new** screenshot and no spec exists yet, see [Creating Screenshot Specification Files](references/agentic_screenshot_specs.md) for the creation workflow and template.
 
 ---
 
 ## 5. Interaction Toolkit
 
-All DOM interaction helpers are in [`gui_testing_utils.jl`](../../test/AgenticTesting/src/gui_testing_utils.jl). The key functions are:
+All DOM interaction helpers are in [`gui_testing_utils.jl`](../../../test/AgenticTesting/src/gui_testing_utils.jl). The key functions are:
 
 ### Navigation & Clicks
 | Function | Purpose |
@@ -99,7 +104,7 @@ All DOM interaction helpers are in [`gui_testing_utils.jl`](../../test/AgenticTe
 | `toggle_checkbox(session, "#checkbox-id")` | Toggle a checkbox |
 
 ### Text Input (`set_input_value`)
-Defined in [`screenshot_generators_advanced.jl`](../../test/AgenticTesting/src/screenshot_generators_advanced.jl). Dispatches `input`, `change`, and `blur` events on a text field:
+Defined in [`screenshot_generators_advanced.jl`](../../../test/AgenticTesting/src/screenshot_generators_advanced.jl). Dispatches `input`, `change`, and `blur` events on a text field:
 ```julia
 set_input_value(session, "#input-xlabel", "My X Label")
 ```
@@ -246,7 +251,7 @@ After each screenshot generation, the agent **must** perform a detailed two-stag
    - **Spec Value column**: Transcribe the literal value from the spec (e.g., the exact checkbox names, exact label strings, exact legend entries with their colors).
    - **Screenshot Value column**: Independently describe what you actually see in the generated image, using the same level of detail and the same format. List every individual item explicitly (e.g., every legend entry, every column header, every checkbox state).
    - **Match column**: Set to `true` or `false` only **after** both value columns are filled. Compare them value-by-value.
-4. **Write the report.** Create (or **overwrite** if it already exists) a file named `report_<name>.md` next to the spec file. The report must be **rewritten from scratch** on every iteration—never append to or patch a previous report. Use the 4-column table format (see [report_dataframe_source_selection.md](report_dataframe_source_selection.md) as the template):
+4. **Write the report.** Create (or **overwrite** if it already exists) a file named `report_<name>.md` next to the spec file. The report must be **rewritten from scratch** on every iteration—never append to or patch a previous report. Use the 4-column table format (see [report_dataframe_source_selection.md](references/report_dataframe_source_selection.md) as the template):
 
    ```
    | Item | Spec Value | Screenshot Value | Match |

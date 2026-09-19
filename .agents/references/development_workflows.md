@@ -2,7 +2,7 @@
 
 Extracted from `AGENTS.md`.
 
-- Review the **Development Workflow Guidelines** Knowledge Item (KI) for general workflow rules (file staging, GitKraken, ShareAdd, Kaimon MCP).
+- Review the **Development Workflow Guidelines** Skill (`julia-development-workflow`) for general workflow rules (file staging, GitKraken, ShareAdd, Kaimon MCP).
 
 ## Modifying UI Components
 
@@ -25,7 +25,7 @@ Extracted from `AGENTS.md`.
 
 ## Testing
 
-- Review the **Testing Guidelines** Knowledge Item (KI) before running or modifying tests.
+- Review the **Testing Guidelines** Skill (`julia-testing-guidelines`) before running or modifying tests.
 - Manual testing via `src/scripts/casualplots_test.jl`
     - see also [extended manual testing protocol](manual_testing_plan.md)
 - **Interactive Agentic Workflow**: When capturing screenshots or testing specific UI states interactively with the user, follow this cooperative workflow:
