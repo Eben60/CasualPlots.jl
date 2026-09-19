@@ -1,7 +1,7 @@
 # format_tab_limits.png
 
 ## 1. Overview & Purpose
-Demonstrates setting manual **Axis Limits** and enabling **Axis Reversal** in the **Format** tab, specifically setting `X from: 2` to `15` and ticking the `rev.` checkbox to invert the horizontal axis direction.
+Demonstrates setting manual **Axis Limits** and enabling **Axis Reversal** in the **Format** tab, specifically setting `X lim: 2` – `15` and ticking the `rev.` checkbox to invert the horizontal axis direction. Controls also display the `log:` scale checkboxes, active for numeric data.
 
 ---
 
@@ -24,10 +24,9 @@ Demonstrates setting manual **Axis Limits** and enabling **Axis Reversal** in th
 ### B. Format Tab Customization
 1. Navigate to the **Format** tab.
 2. Confirm **Plot type:** is `Scatter` and **Theme:** is `Makie default`.
-3. In the **X from:** input field, enter `2`.
-4. In the **to:** input field for X, enter `15`.
-5. Check the **rev.:** checkbox next to the X limit inputs to reverse the X-axis.
-6. Leave Y limit fields unconstrained and Y `rev.:` unchecked.
+3. In the **X lim:** inputs, enter `2` for lower bound and `15` for upper bound (separated by an en-dash).
+4. In the X row, leave **log:** unchecked, and check the **rev.:** checkbox to reverse the X-axis.
+5. Leave Y limit fields as placeholder defaults, with **log:** and **rev.:** unchecked.
 
 ---
 
@@ -42,8 +41,8 @@ Demonstrates setting manual **Axis Limits** and enabling **Axis Reversal** in th
 - **X-Axis:** `time`
 - **Y-Axis:** `caspl_df_large`
 - **Title:** `Scatter Plot of caspl_df_large vs time`
-- **X from:** `2` | **to:** `15` | **rev.:** **Checked** (active blue checkmark)
-- **Y from:** `-0.251` (placeholder) | **to:** `5.262` (placeholder) | **rev.:** Unchecked
+- **X lim:** `2` – `15` | **log:** Unchecked (enabled) | **rev.:** **Checked** (active blue checkmark, enabled)
+- **Y lim:** `-0.251` (placeholder) – `5.262` (placeholder) | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
 
 ### Plot Pane (Top-Right Floating Window)
 - **Window State**: Normal split view.
@@ -80,6 +79,6 @@ Demonstrates setting manual **Axis Limits** and enabling **Axis Reversal** in th
 
 To verify if another screenshot matches this configuration:
 1. **Reversed X-Axis**: Horizontal axis values decrease from left to right ($15 \to 10 \to 5$), with empty space on the left $[15, 10]$.
-2. **Format Tab Inputs**: `X from: 2`, `to: 15`, with X `rev.` checkbox clearly checked.
+2. **Format Tab Inputs**: `X lim: 2` – `15`, `log:` unchecked, with X `rev.` checkbox clearly checked. Both X and Y limits and scale checkboxes are enabled.
 3. **Legend Order**: `col2` (blue), `col3` (orange), `sqrt_val` (green).
 4. **Table Header**: Shows `SOURCE: caspl_df_large`.

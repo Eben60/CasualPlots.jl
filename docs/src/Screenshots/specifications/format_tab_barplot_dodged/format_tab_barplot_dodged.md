@@ -1,7 +1,7 @@
 # format_tab_barplot_dodged.png
 
 ## 1. Overview & Purpose
-Demonstrates the **Format** tab configured for a **BarPlot** with categorical X data in **Vertical Dodged** mode, using the dark theme `theme_black`, customized axis labels, and custom plot title (`Students scores`).
+Demonstrates the **Format** tab configured for a **BarPlot** with categorical X data in **Vertical Dodged** mode, using the dark theme `theme_black`, customized axis labels, and custom plot title (`Students scores`). Because the X-axis (`Name`) is categorical, the X-axis limit inputs, `log:` checkbox, and `rev.:` checkbox are automatically disabled.
 
 ---
 
@@ -54,7 +54,8 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical X 
 - **X-Axis:** `Name`
 - **Y-Axis:** `Score`
 - **Title:** `Students scores` (active input field with cursor)
-- **Limits**: All X/Y limit inputs empty/placeholders, `rev.:` unchecked
+- **X lim:** `0.3` – `4.7` (placeholders, **disabled**) | **log:** Unchecked (**disabled**) | **rev.:** Unchecked (**disabled**) *(controls greyed out due to categorical X-axis `Name`)*
+- **Y lim:** `4.805` – `15.695` (placeholders, enabled) | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
 
 ### Plot Pane (Top-Right Floating Window)
 - **Window State**: Normal split view.
@@ -96,4 +97,5 @@ To verify if another screenshot matches this configuration:
 1. **Theme**: Plot area is completely dark (`theme_black`) with white text and grid.
 2. **Plot Type**: Vertical dodged bar plot with pairs of blue and orange bars for `Ann`, `Bob`, `Charlie`, `Dennis`.
 3. **Format Controls**: Active tab is `Format`; dropdowns show `BarPlot`, `Vertical`, `Dodged`, `theme_black`.
-4. **Table View**: Header `SOURCE: SampleScores` with `Name` column colored yellow and scores colored green.
+4. **Disabled Categorical Controls**: X-axis limit inputs, `log:` checkbox, and `rev.:` checkbox are visibly disabled/greyed out because `Name` is categorical, while Y-axis controls remain enabled.
+5. **Table View**: Header `SOURCE: SampleScores` with `Name` column colored yellow and scores colored green.

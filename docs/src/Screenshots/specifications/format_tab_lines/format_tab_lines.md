@@ -31,10 +31,9 @@ Demonstrates the **Format** tab configured for a **Lines** plot with custom form
 7. In the **X-Axis:** input field, enter `Custom X axis title`.
 8. In the **Y-Axis:** input field, enter `Custom Y title`.
 9. The **Title:** field displays `Lines Plot of caspl_df_unitmix vs index`.
-10. In the **X from:** input field, enter `-5`.
-11. In the **to:** input field for X, enter `30`.
-12. Leave **rev.:** unchecked for both X and Y.
-13. Leave Y limits as default/unconstrained.
+10. In the **X lim:** inputs, enter `-5` for lower bound and `30` for upper bound (separated by an en-dash).
+11. Leave **log:** and **rev.:** unchecked for both X and Y.
+12. Leave Y limits as default/unconstrained.
 
 ---
 
@@ -49,8 +48,8 @@ Demonstrates the **Format** tab configured for a **Lines** plot with custom form
 - **X-Axis:** `Custom X axis title`
 - **Y-Axis:** `Custom Y title`
 - **Title:** `Lines Plot of caspl_df_unitmix vs index`
-- **X from:** `-5` | **to:** `30` | **rev.:** Unchecked
-- **Y from:** `-0.42` (placeholder) | **to:** `28.83` (placeholder) | **rev.:** Unchecked
+- **X lim:** `-5` – `30` | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
+- **Y lim:** `-0.42` (placeholder) – `28.83` (placeholder) | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
 
 ### Plot Pane (Top-Right Floating Window)
 - **Window State**: Normal split view.
@@ -92,5 +91,5 @@ To verify if another screenshot matches this configuration:
 1. **Format Tab Active**: Tab is `Format`, Plot type is `Lines`, Theme is `theme_ggplot2`, Group by is `Geometry`.
 2. **Custom Labels**: X title is `Custom X axis title`, Y title is `Custom Y title`, Legend title is `Some Legend`.
 3. **Geometry/Linestyles**: All 3 lines are black with different linestyles (solid, dashed, dotted); dotted line has a visible gap around $x=4\text{–}5$.
-4. **Axis Limits**: X-axis bounds are explicitly from `-5` to `30`.
+4. **Axis Limits & Scale**: X-axis bounds are explicitly `X lim: -5` – `30`, with `log:` and `rev.:` checkboxes present, enabled, and unchecked.
 5. **Table Header Colors**: `area` and `linear` headers are blue (Unitful), `unimiss` is yellow (mixed/string).

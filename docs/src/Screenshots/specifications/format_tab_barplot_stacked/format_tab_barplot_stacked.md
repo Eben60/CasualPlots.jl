@@ -1,7 +1,7 @@
 # format_tab_barplot_stacked.png
 
 ## 1. Overview & Purpose
-Demonstrates the **Format** tab configured for a **BarPlot** with categorical data in **Horizontal Stacked** mode, using `theme_ggplot2`, custom axis labels, and custom plot title (`Students scores`).
+Demonstrates the **Format** tab configured for a **BarPlot** with categorical data in **Horizontal Stacked** mode, using `theme_ggplot2`, custom axis labels, and custom plot title (`Students scores`). Because the data includes a categorical axis (`Name`), the corresponding custom scale controls (limits, `log:`, `rev.:`) are automatically disabled.
 
 ---
 
@@ -54,7 +54,8 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical da
 - **X-Axis:** `Name`
 - **Y-Axis:** `Score`
 - **Title:** `Students scores`
-- **Limits**: Placeholders visible, `rev.:` unchecked
+- **X lim:** `0.3` – `4.7` (placeholders, **disabled**) | **log:** Unchecked (**disabled**) | **rev.:** Unchecked (**disabled**) *(controls greyed out due to categorical axis)*
+- **Y lim:** `4.805` – `15.695` (placeholders, enabled) | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
 
 ### Plot Pane (Top-Right Floating Window)
 - **Window State**: Normal split view.
@@ -90,4 +91,5 @@ To verify if another screenshot matches this configuration:
 1. **Format Tab Active**: `BarPlot`, `Horizontal`, `Stacked`, `theme_ggplot2` selected.
 2. **Plot Layout**: Horizontal stacked bars with ggplot2 gray background.
 3. **Bar Stacking**: Blue segment on left, orange segment on right; Charlie has the longest total bar ($22.3$).
-4. **Table**: Matches `SOURCE: SampleScores` table.
+4. **Disabled Categorical Controls**: X-axis limit inputs, `log:` checkbox, and `rev.:` checkbox are visibly disabled/greyed out because the category axis `Name` is categorical, while Y-axis controls remain enabled.
+5. **Table**: Matches `SOURCE: SampleScores` table.

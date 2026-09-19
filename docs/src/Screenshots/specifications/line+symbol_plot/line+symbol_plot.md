@@ -45,8 +45,8 @@ Demonstrates the **Format** tab configured for a **Line+Symbol** plot type, usin
 - **X-Axis:** `argument`
 - **Y-Axis:** `functions`
 - **Title:** `Combined plot of two functions`
-- **X from:** `0` **to:** `10`, **rev.:** unchecked
-- **Y from:** `0` **to:** `100`, **rev.:** unchecked
+- **X lim:** `0` – `10` | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
+- **Y lim:** `0` – `100` | **log:** Unchecked (enabled) | **rev.:** Unchecked (enabled)
 
 ### Plot Pane (Top-Right Floating Window)
 - **Window State**: Normal split view.
@@ -76,5 +76,5 @@ To verify if another screenshot matches this configuration:
 1. **Plot Type**: Line+Symbol plot with both lines and circle markers visible on each series.
 2. **Two Series**: Blue (`y1`, quadratic) and orange (`y2`, power) curves with markers, fanning out from bottom-left to upper-right.
 3. **Theme & Labels**: ggplot2 theme (gray background, white grid); title is `Combined plot of two functions`; X-axis is `argument`; Y-axis is `functions`; legend title is `two functions`.
-4. **Format Controls**: Active tab is `Format`; dropdowns show `Line+Symbol`, `Color`, `theme_ggplot2`.
+4. **Format Controls**: Active tab is `Format`; dropdowns show `Line+Symbol`, `Color`, `theme_ggplot2`; `X lim:` (`0` – `10`) and `Y lim:` (`0` – `100`) controls are active with enabled `log:` and `rev.:` checkboxes.
 5. **Table Pane**: Minimized, header shows `SOURCE: caspl_df_simple`.
