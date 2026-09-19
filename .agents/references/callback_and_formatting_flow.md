@@ -26,12 +26,12 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - Updates table view with range-filtered data.
     - Applies non-default formatting options via `apply_custom_formatting!`.
 
-### B. DataFrame Source Selection (Main or Opened File)
+### B. DataFrame / Matrix Source Selection (Main or Opened File)
 
-1.  **Step 1: DataFrame Selection**
-    - User selects a DataFrame from `Main` OR selects "opened file" (if file loaded via Open tab).
+1.  **Step 1: Source Selection**
+    - User selects a DataFrame or 2D Matrix from `Main` OR selects "opened file" (if file loaded via Open tab).
     - If needed (opened file), strings are normalized (`normalize_strings!`) at load time.
-    - Triggers population of column checkboxes.
+    - Triggers population of column checkboxes (or generated column names `Col1`, `Col2`, etc. for matrices).
     - Clears current column selection.
 2.  **Step 2: Column Selection & Plotting** (`setup_dataframe_callbacks`)
     - User selects columns (checkboxes).
@@ -54,7 +54,7 @@ The Open tab provides configurable file reading options before/after loading:
     - `decimal_separator`: Decimal/thousands separator format
 2.  **File Loading**:
     - CSV/TSV: Options passed to `CSV.read()` via `collect_csv_options()`
-    - XLSX: Options passed to `XLSX.readtable()` via `collect_xlsx_options()`
+    - XLSX: Options passed to `XLSX.readtable()` via `collect_xlsx_options()`. The first sheet is auto-selected and loaded by default.
     - Both call `skip_rows!()` for post-load row processing
 3.  **Reload Button**:
     - Enabled when a file is loaded (CSV) or sheet selected (XLSX)
@@ -69,20 +69,23 @@ Formatting changes (Plot Type, Legend, Labels) are handled differently to preser
 
 ### A. Format Callback Logic
 
-- **Triggered by**: `selected_plottype`, `selected_theme`, `show_legend`, `legend_title_text`, axis limit observables, and any dynamically registered attribute in `dynamic_attributes`.
+- **Triggered by**: `selected_plottype`, `selected_theme`, `show_legend`, `legend_title_text`, axis limit/scale observables (`x_min`, `x_max`, `y_min`, `y_max`, `xreversed`, `yreversed`, `xlog`, `ylog`), and any dynamically registered attribute in `dynamic_attributes`.
 - **Implementations**:
     - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
     - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` -> `do_replot`)
     - Theme: `setup_theme_callback` (applies theme globally, triggers replot)
     - Dynamic Attributes: Callbacks automatically generated for all `AbstractPlotAttribute` configurations (triggers replot).
-    - Axis Limits: `setup_axis_limits_callbacks` (triggers immediate replot with current limits)
+    - Axis Limits & Log Scale: `setup_axis_limits_callbacks` (triggers immediate replot with current limits, reversal, and log scale options).
 - **Shared Behavior**:
     - **All format changes trigger full replot** using the unified `do_replot` function.
+    - **Visual Loading Indicator**: During plot processing / replot (including heavy initial JIT compilation), a loading indicator is displayed in `outputs.plot[]`.
+    - **Categorical Axis Disabling**: When axis data is non-numeric (`!(T <: Union{Real, Unitful.Quantity})`), `x_is_categorical` or `y_is_categorical` is set to `true`, disabling the limits inputs, reversal checkbox (`rev.:`), and log scale checkbox (`log:`) for that axis.
     - **Preserves user labels and axis limits**: `format_is_default` dict tracks which options are customized. After replot, `apply_custom_formatting!` re-applies non-default values.
-    - **Axis limits preserved during format changes**: `get_current_axis_limits(state)` helper merges current limits into `plot_format`.
+    - **Axis limits preserved during format changes**: `get_current_axis_limits(state)` helper merges current limits, reversals, and log scales into `plot_format`.
     - **Does NOT update table**: Table update is skipped as data has not changed.
     - **Race Condition Prevention**: Returns early if `block_format_update[]` is true.
     - **Legend title optimization**: Skip replot if legend is not visible (title is saved for when legend becomes visible).
+    - **Centralized Error Handling**: Errors during callbacks are caught at the outer boundary, displayed via `show_modal!` (mirroring to REPL), and the full stack trace is inspectable in the REPL with `CasualPlots.last_error()`.
 
 ### B. Format Persistence Strategy (`format_is_default` and `RESET_FORMAT_OPTION`)
 
@@ -91,7 +94,7 @@ A `DefaultDict{Symbol, Bool}` tracks which format options are still at their def
 Reset behavior is driven by `RESET_FORMAT_OPTION` Dict (dynamically populated at startup from `AbstractPlotAttribute` registries):
 - `"never"` -> Options that persist across all changes: `:plottype`, `:theme`
 - `"source"` -> Options reset when data source changes: `:title`, `:xlabel`, `:ylabel`, `:show_legend`, `:legend_title`, dynamic attributes (e.g. `:group_by`, `:bar_mode`) with `reset_policy="source"`, axis limits.
-- `"range"` -> Options reset when (Re-)Plot button is clicked: `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`
+- `"range"` -> Options reset when (Re-)Plot button is clicked: `:x_min`, `:x_max`, `:y_min`, `:y_max`, `:xreversed`, `:yreversed`, `:xlog`, `:ylog` (`AXES_LIMITS_OPTIONS`).
 
 **Data Source Tracking:**
 - `last_plotted_x`, `last_plotted_y` - track last X and Y variable names (Array mode)

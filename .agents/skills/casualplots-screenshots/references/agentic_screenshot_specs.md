@@ -47,13 +47,17 @@ There are two complementary ways to gather the information needed for a spec:
    Main.app.state.plotting.handles.title_text[]
    Main.app.state.plotting.handles.legend_title_text[]
 
-   # Axis limits
+   # Axis limits, reversal, and scale
    Main.app.state.plotting.format.x_min[]
    Main.app.state.plotting.format.x_max[]
    Main.app.state.plotting.format.y_min[]
    Main.app.state.plotting.format.y_max[]
    Main.app.state.plotting.format.xreversed[]
    Main.app.state.plotting.format.yreversed[]
+   Main.app.state.plotting.format.xlog[]
+   Main.app.state.plotting.format.ylog[]
+   Main.app.state.plotting.format.x_is_categorical[]
+   Main.app.state.plotting.format.y_is_categorical[]
    ```
    Use `fieldnames(typeof(Main.app.state.data_selection))` etc. to discover additional observables.
 

@@ -73,6 +73,12 @@ Base.@kwdef struct PlotFormat
     # Axis reversal
     xreversed::Observable{Bool}
     yreversed::Observable{Bool}
+    # Axis log scale
+    xlog::Observable{Bool}
+    ylog::Observable{Bool}
+    # Categorical axis status (disables limit and scale controls when true)
+    x_is_categorical::Observable{Bool}
+    y_is_categorical::Observable{Bool}
 end
 
 Base.@kwdef struct PlotHandles
@@ -96,7 +102,7 @@ Base.@kwdef struct Misc
     format_is_default::DefaultDict{Symbol, Bool}  # Track user-customized format options
     last_plotted_x::Observable{Union{Nothing, String}}  # Data source tracking (Array)
     last_plotted_y::Observable{Union{Nothing, String}}  # Data source tracking (Array)
-    last_plotted_dataframe::Observable{Union{Nothing, String}}  # Data source tracking (DataFrame)
+    last_plotted_dataframe::Observable{Union{Nothing, String}}  # Data source tracking (DataFrame or Matrix)
 end
 ```
 
@@ -104,8 +110,9 @@ end
 Separate `OutputObservables` struct for UI display:
 ```julia
 Base.@kwdef struct OutputObservables
-    plot::Observable{Any}           # DOM element for plot pane
+    plot::Observable{Any}           # DOM element for plot pane (supports visual loading indicator)
     table::Observable{Any}          # DOM element for table pane
+    table_title::Observable{String} # Title string displayed on table pane header
     current_x::Observable{Union{Nothing, String}}      # Currently plotted X data
     current_y::Observable{Union{Nothing, String}}      # Currently plotted Y data
 end

@@ -7,13 +7,13 @@ stateDiagram-v2
     [*] --> Idle: App Launched
     
     Idle --> AwaitingY: X Variable Selected
-    Idle --> AwaitingCols: DataFrame Selected
+    Idle --> AwaitingCols: DataFrame or Matrix Selected
     
     AwaitingY --> DataReady: Y Variable Selected
     AwaitingY --> Idle: X Deselected
     
     AwaitingCols --> DataReady: Columns Selected\n+ plot_trigger fired
-    AwaitingCols --> Idle: DataFrame Deselected
+    AwaitingCols --> Idle: DataFrame/Matrix Deselected
     
     DataReady --> Plotting: Valid Data Confirmed
     DataReady --> Error: Invalid Data\n(dimension mismatch,\nmissing columns)
@@ -23,12 +23,12 @@ stateDiagram-v2
     
     WarningModal --> PlotDisplayed: User Dismisses
     
-    PlotDisplayed --> Replotting: Format Changed\n(plottype, theme,\ngroup_by, legend,\nlabels)
+    PlotDisplayed --> Replotting: Format Changed\n(plottype, theme,\ngroup_by, legend,\nlabels, limits/scales)
     
     Replotting --> PlotDisplayed: Format Applied\n(labels preserved)
     
     PlotDisplayed --> AwaitingY: New X/Y Selected
-    PlotDisplayed --> AwaitingCols: New DataFrame Selected
+    PlotDisplayed --> AwaitingCols: New DataFrame/Matrix Selected
     PlotDisplayed --> Idle: Selection Cleared
     
     %% Save Flow
@@ -54,21 +54,24 @@ stateDiagram-v2
         block_format_update = true
         normalize_numeric_columns!
         if is_new_source: reset format_is_default
-        reset_semipersistent: reset axis limits
+        reset_semipersistent: reset axis limits & scales
+        outputs.plot: shows loading spinner
     end note
     
     note right of Replotting
         Uses stored current_plot_x,
         current_plot_y (no refetch)
-        get_current_axis_limits() preserves limits
+        get_current_axis_limits() preserves limits & scales
         apply_custom_formatting!
         re-applies non-default labels
+        outputs.plot: shows loading spinner
     end note
     
     note right of PlotDisplayed
-        Global exports available:
+        Global exports & utilities:
         - cp_figure
         - cp_figure_ax
+        - CasualPlots.last_error()
     end note
     
     note right of Saving

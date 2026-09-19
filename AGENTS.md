@@ -156,7 +156,7 @@ For annotated screenshots of the GUI in action, refer to the **[Tutorial (WIP)](
 
 - **Data Selection** — X,Y Arrays mode and DataFrame mode (§2a, §2b)
 - **File Import** — Open tab with CSV/XLSX options (§2c)
-- **Plot Formatting** — Lines/Scatter plots, BarPlot (Dodged & Stacked), Axis Limits (§3)
+- **Plot Formatting** — Lines/Scatter plots, BarPlot (Dodged & Stacked), Axis Limits & Log Scale (§3)
 - **Window Management** — Maximized Plot Pane (§4)
 - **Data Table** — Column header color coding by type (§5)
 - **Export & Script Generation** — Save tab (§6)

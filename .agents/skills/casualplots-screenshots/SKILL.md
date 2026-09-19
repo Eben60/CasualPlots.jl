@@ -319,6 +319,11 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 | X min input | `#axis-x-min-input` |
 | X max input | `#axis-x-max-input` |
 | X reversed checkbox | `input[type="checkbox"][id="axis-x-reversed-checkbox"]` |
+| X log checkbox | `input[type="checkbox"][id="axis-x-log-checkbox"]` |
+| Y min input | `#axis-y-min-input` |
+| Y max input | `#axis-y-max-input` |
+| Y reversed checkbox | `input[type="checkbox"][id="axis-y-reversed-checkbox"]` |
+| Y log checkbox | `input[type="checkbox"][id="axis-y-log-checkbox"]` |
 | Save path input | `#save-path-input` |
 | Modal OK button | `#btn-modal-ok` |
 | Range from input | `#range-from-input` |
@@ -342,6 +347,7 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 | `format_tab_barplot_stacked.png` | `generate_format_tab_barplot_stacked_screenshot` | `screenshot_generators_remaining.jl` | `run_format_tab_barplot_stacked.jl` |
 | `format_tab_limits.png` | `generate_format_tab_limits_screenshot` | `screenshot_generators_remaining.jl` | `run_format_tab_limits.jl` |
 | `format_tab_lines.png` | `generate_format_tab_lines_screenshot` | `screenshot_generators_remaining.jl` | `run_format_tab_lines.jl` |
+| `line+symbol_plot.png` | `generate_line_symbol_plot_screenshot` | `screenshot_generators_advanced.jl` | `run_line_symbol_plot.jl` |
 | `plot_pane_maximized.png` | `generate_plot_pane_maximized_screenshot` | `screenshot_generators_remaining.jl` | `run_plot_pane_maximized.jl` |
 | `save_tab_script.png` | `generate_save_tab_script_screenshot` | `screenshot_generators_remaining.jl` | `run_save_tab_script.jl` |
 | `table_view.png` | `generate_table_view_screenshot` | `screenshot_generators_remaining.jl` | `run_table_view.jl` |

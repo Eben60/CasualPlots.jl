@@ -50,15 +50,16 @@ flowchart TD
     CreatePlot --> DisplayPlot[Display Plot + Table]
     
     %% DataFrame Mode Flow
-    DFMode --> SelectDF["Select DataFrame (Main or Opened File)"]
-    SelectDF --> ValidateDF{DataFrame Valid?}
+    DFMode --> SelectDF["Select DataFrame or Matrix (Main or Opened File)"]
+    ValidateDF{DataFrame or Matrix Valid?}
+    SelectDF --> ValidateDF
     ValidateDF -->|No| WaitDF[Wait for Selection]
     ValidateDF -->|Yes| ShowCols[Display Column Checkboxes]
     ShowCols --> SelectCols[Select Columns via Checkboxes]
     SelectCols --> TriggerPlot[Trigger plot_trigger Observable]
     TriggerPlot --> ValidateCols{Columns Valid?}
     ValidateCols -->|No| Error[Show Error]
-    ValidateCols -->|Yes| CheckNewDF{New DataFrame?}
+    ValidateCols -->|Yes| CheckNewDF{New Data Source?}
     CheckNewDF -->|"df != last_dataframe"| ResetDFFormat[Reset format_is_default]
     CheckNewDF -->|Same DataFrame| KeepDFFormat[Preserve Format Settings]
     ResetDFFormat --> NormalizeNumeric[Normalize Numeric Columns]
@@ -78,7 +79,7 @@ flowchart TD
     UserEdit -->|Group By| GroupByChange[Update group mapping]
     UserEdit -->|Legend Toggle| MarkNonDefault
     UserEdit -->|Legend Title| MarkNonDefault
-    UserEdit -->|Axis Limits| AxisLimitEdit[Update Axis Limits]
+    UserEdit -->|Axis Limits & Scales| AxisLimitEdit[Update Limits, Reversal, or Log Scale]
     UserEdit -->|Labels| UpdateLabels[Update Axis Labels Directly]
     
     ApplyTheme --> DoReplot[do_replot with new format]
@@ -86,8 +87,8 @@ flowchart TD
     AxisLimitEdit --> DoReplot
     MarkNonDefault --> DoReplot
     DoReplot --> ApplyCustom[apply_custom_formatting!]
-    Note right of ApplyCustom: Re-apply non-default labels
-    Note right of DoReplot: get_current_axis_limits preserves limits
+    DoReplot -.- NoteLimits["Note: get_current_axis_limits preserves limits & scales"]
+    ApplyCustom -.- NoteCustom["Note: Re-apply non-default labels"]
     
     UpdateLabels --> RefreshPlot[Refresh Plot Display]
     ApplyCustom --> RefreshPlot
@@ -130,4 +131,6 @@ flowchart TD
     style GlobalVars fill:#fff3cd
     style SaveSuccess fill:#d4edda
     style ConfigOptions fill:#e8f4fd
+    style NoteLimits fill:#ffffde,stroke:#aaaa33
+    style NoteCustom fill:#ffffde,stroke:#aaaa33
 ```

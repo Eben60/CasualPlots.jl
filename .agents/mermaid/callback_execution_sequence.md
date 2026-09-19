@@ -31,6 +31,7 @@ sequenceDiagram
     SourceCB->>Obs: block_format_update[] = true
     Note over SourceCB: Prevent format callback race
     
+    SourceCB->>Plot: show_loading_indicator(outputs)
     SourceCB->>SourceCB: Fetch data from Main module
     SourceCB->>Plot: do_replot(data, format, is_new_data=is_new_source)
     Plot-->>SourceCB: fig_result (with defaults)
@@ -67,9 +68,10 @@ sequenceDiagram
         Note over FormatCB: Mark as user-customized
         
         FormatCB->>FormatCB: get_current_axis_limits(state)
-        Note over FormatCB: Preserve axis limits in plot_format
+        Note over FormatCB: Preserve axis limits & scales in plot_format
         
-        FormatCB->>Plot: do_replot(data, plot_format with limits)
+        FormatCB->>Plot: show_loading_indicator(outputs)
+        FormatCB->>Plot: do_replot(data, plot_format with limits & scales)
         Note over Plot: Create new plot with format settings
         Plot-->>FormatCB: fig_result
         
@@ -79,6 +81,17 @@ sequenceDiagram
         FormatCB->>Obs: plot[] = new figure
         Note over FormatCB: Table NOT updated (source unchanged)
     end
+    deactivate FormatCB
+    
+    %% Axis Limits & Scales Change
+    Note over User,Table: User Changes Axis Limits, Reversal, or Log Scale
+    User->>UI: Toggle Log scale / Edit Limit / Toggle Reversed
+    UI->>Obs: xlog[] / ylog[] / x_min[] / ... updated
+    Obs->>FormatCB: Triggered (setup_axis_limits_callbacks)
+    activate FormatCB
+    FormatCB->>Plot: trigger_axis_replot() -> do_replot
+    Plot-->>FormatCB: fig_result
+    FormatCB->>Obs: plot[] = new figure
     deactivate FormatCB
     
     %% Theme Change
@@ -110,21 +123,27 @@ sequenceDiagram
     deactivate FormatCB
     
     %% DataFrame Mode
-    Note over User,Table: DataFrame Mode: User Selects Columns
-    User->>UI: Select DataFrame "df1"
-    UI->>Obs: selected_df[] = "df1"
+    Note over User,Table: DataFrame or Matrix Mode: User Selects Columns
+    User->>UI: Select DataFrame/Matrix "df1"
+    UI->>Obs: selected_dataframe[] = "df1"
     
     User->>UI: Check columns [col1, col2, col3]
-    UI->>Obs: selected_cols[] = [col1, col2, col3]
+    UI->>Obs: selected_columns[] = [col1, col2, col3]
     UI->>Obs: plot_trigger[] += 1
     
     Obs->>SourceCB: DataFrame callback triggered
     activate SourceCB
-    SourceCB->>SourceCB: Validate columns exist in df
+    SourceCB->>SourceCB: Validate columns exist in source
+    SourceCB->>SourceCB: clean_plot_data! & check categorical types
+    opt Categorical detected
+        SourceCB->>Obs: x_is_categorical[] / y_is_categorical[] = true
+        Note over SourceCB: Disables limits, rev., and log controls
+    end
     SourceCB->>SourceCB: normalize_numeric_columns!
     opt Data Dirty
         SourceCB->>Obs: show_modal[] = true (Warning)
     end
+    SourceCB->>Plot: show_loading_indicator(outputs)
     SourceCB->>Plot: update_dataframe_plot(df, cols)
     Plot-->>SourceCB: new fig
     SourceCB->>Obs: plot[] = new figure

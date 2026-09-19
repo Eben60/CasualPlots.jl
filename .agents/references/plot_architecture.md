@@ -28,8 +28,9 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 
 **Key Functions:**
 - `do_replot(state, outputs; data, plot_format, is_new_data)`: **Unified entry point** for all plotting
-  - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames
-  - `plot_format`: `(; plottype, show_legend, legend_title)` + axis limits + all registered `dynamic_attributes` unpacked (e.g. `group_by`, `bar_direction`, `bar_mode`).
+  - Shows visual loading indicator in `outputs.plot[]` during processing.
+  - `data`: Either `(; x_name, y_name)` for arrays or `(; df, x_name, y_name)` for DataFrames / Matrices
+  - `plot_format`: `(; plottype, show_legend, legend_title)` + axis limits & scales (`x_min`, `x_max`, `y_min`, `y_max`, `xreversed`, `yreversed`, `xlog`, `ylog`) + all registered `dynamic_attributes` unpacked (e.g. `group_by`, `bar_direction`, `bar_mode`).
   - `is_new_data`: If true, initializes text fields from plot defaults
 - `check_data_create_plot(x_name, y_name; plot_format)`: Fetch from Main, delegate to create_plot
 - `create_plot(x_data::AbstractVector, y_data, ...)`: Arrays -> DataFrame -> AoG pipeline
@@ -44,13 +45,21 @@ All plotting uses **AlgebraOfGraphics exclusively** (no direct Makie `Figure`/`A
 plot_config = PLOT_TYPES[plottype]
 layer_code = build_layer(plot_config, plot_format, group_col, legend_title)
 plt = AlgebraOfGraphics.data(df) * mapping(x_col => x_name, y_col => y_name) * layer_code
-fg = draw(plt; figure=(; size=(800, 600)), legend=(show=show_legend,), axis=(; title))
+fg = draw(plt; 
+    figure=(; size=(800, 600)), 
+    legend=(show=show_legend,), 
+    axis=(; title, xlabel, ylabel, limits=(xlimits, ylimits),
+            xreversed, yreversed,
+            xscale = xlog ? log10 : identity, 
+            yscale = ylog ? log10 : identity))
 fig = fg.figure
 axis = fg.grid[1, 1].axis  # Extract Axis from FigureGrid
 ```
 
-**Exports to Main:**
+**Exports & Error Inspection:**
 ```julia
 global cp_figure = fig      # Figure object
 global cp_figure_ax = axis  # Axis object for fine-tuning (for manual REPL usage, do not use in app logic)
+
+CasualPlots.last_error()    # View full backtrace of the most recent error caught in GUI callbacks
 ```
