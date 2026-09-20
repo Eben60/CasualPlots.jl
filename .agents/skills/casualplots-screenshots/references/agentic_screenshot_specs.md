@@ -8,11 +8,11 @@ For the overall screenshot reproduction workflow (running generators, interactio
 
 ## Location & Naming
 
-Each spec lives in its own subdirectory:
+Specifications live directly in:
 ```
-docs/src/Screenshots/specifications/<name>/<name>.md
+test/AgenticTesting/screenshots/specifications/<name>.md
 ```
-where `<name>` matches the screenshot filename without the `.png` extension (e.g., `format_tab_barplot_dodged`).
+where `<name>` matches the screenshot filename without the `.png` extension (e.g., `format_tab_barplot_dodged.md`).
 
 ---
 
@@ -142,4 +142,4 @@ To verify if another screenshot matches this configuration:
 
 ## Existing Specs
 
-Specifications already exist for all current screenshots and are located in `docs/src/Screenshots/specifications/`. Before creating a new spec, always check if one already exists for the target screenshot.
+Specifications already exist for all current screenshots and are located in `test/AgenticTesting/screenshots/specifications/`. Before creating a new spec, always check if one already exists for the target screenshot.

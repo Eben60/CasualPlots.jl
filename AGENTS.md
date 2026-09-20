@@ -152,7 +152,11 @@ export Ele                  # Displaying Bonito `app` in Electron window
 
 ## UI Screenshots
 
-For annotated screenshots of the GUI in action, refer to the **[Tutorial (WIP)](docs/src/tutorial.md)**, which covers:
+All reference screenshots are stored in `docs/src/Screenshots/`, with corresponding test specifications in `test/AgenticTesting/screenshots/specifications/`.
+
+For instructions on automated creation of GUI screenshots, see the **casualplots-screenshots** skill ([SKILL.md](.agents/skills/casualplots-screenshots/SKILL.md)).
+
+For annotated screenshots of the GUI in action within the user documentation, refer to the **[Tutorial (WIP)](docs/src/tutorial.md)**, which covers:
 
 - **Data Selection** — X,Y Arrays mode and DataFrame mode (§2a, §2b)
 - **File Import** — Open tab with CSV/XLSX options (§2c)

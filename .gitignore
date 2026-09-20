@@ -11,4 +11,5 @@ stacktraces.txt
 .gitattributes
 tools/*
 **/.~lock.*
+test/AgenticTesting/screenshots/reports/
 
