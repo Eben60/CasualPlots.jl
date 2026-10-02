@@ -15,5 +15,5 @@ include("run_plot_pane_maximized.jl")
 include("run_save_tab_script.jl")
 include("run_table_view.jl")
 include("run_line_symbol_plot.jl")
-
+include("run_Scatter_by_geometry.jl")
 println("=== All screenshots generated successfully ===")
