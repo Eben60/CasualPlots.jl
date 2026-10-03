@@ -2,6 +2,12 @@
 # State Component Types
 # ==========================================
 
+"""
+    FileOpening
+
+State observables for the File Open tab.
+Controls the loaded DataFrame from disk, file paths, sheet selections, and parsing options (delimiter, headers, etc.).
+"""
 @kwdef struct FileOpening
     opened_file_df::Observable{Union{Nothing, DataFrame}} = Observable{Union{Nothing, DataFrame}}(nothing)
     opened_file_name::Observable{String} = Observable("")
@@ -14,6 +20,12 @@
     decimal_separator::Observable{String} = Observable("Dot")
 end
 
+"""
+    FileSaving
+
+State observables for the File Save tab.
+Controls the output path, save status messages, and overwrite confirmation dialogs.
+"""
 @kwdef struct FileSaving
     save_file_path::Observable{String} = Observable("")
     save_status_message::Observable{String} = Observable("")
@@ -21,11 +33,22 @@ end
     show_overwrite_confirm::Observable{Bool} = Observable(false)
 end
 
+"""
+    Dialogs
+
+State observables for application-wide modal dialogs (errors, warnings, etc.).
+"""
 @kwdef struct Dialogs
     show_modal::Observable{Bool} = Observable(false)
     modal_type::Observable{Symbol} = Observable(:none)
 end
 
+"""
+    DataSelection
+
+State observables for data source selection (X, Y Arrays vs DataFrame).
+Stores available datasets, selected column names, and row range boundaries.
+"""
 @kwdef struct DataSelection
     source_type::Observable{String} = Observable("X, Y Arrays")
     dims_dict_obs::Observable{Dict} = Observable(Dict())
@@ -40,6 +63,12 @@ end
     data_bounds_to::Observable{Union{Nothing, Int}} = Observable{Union{Nothing, Int}}(nothing)
 end
 
+"""
+    PlotFormat
+
+State observables for plot formatting.
+Controls the selected plot type, theme, legend visibility, axis limits, log scales, and dynamic plot attributes (like `group_by` or `bar_mode`).
+"""
 @kwdef struct PlotFormat
     selected_plottype::Observable{String} = Observable("Scatter")
     selected_theme::Observable{String} = Observable(DEFAULT_THEME)
@@ -61,6 +90,12 @@ end
     y_is_categorical::Observable{Bool} = Observable(false)
 end
 
+"""
+    PlotHandles
+
+State observables that hold the active plot's figure, axis, and dimension handles.
+Also stores user-defined or default text labels for the axes and titles.
+"""
 @kwdef struct PlotHandles
     xlabel_text::Observable{String} = Observable("")
     ylabel_text::Observable{String} = Observable("")
@@ -71,11 +106,22 @@ end
     plot_size::Observable{Any} = Observable{Any}((810, 610))
 end
 
+"""
+    Plotting
+
+Nested state category combining plot formatting options (`PlotFormat`) and active figure/axis handles (`PlotHandles`).
+"""
 @kwdef struct Plotting
     format::PlotFormat = PlotFormat()
     handles::PlotHandles = PlotHandles()
 end
 
+"""
+    Misc
+
+Miscellaneous state and caching references.
+Includes anti-bounce update tracking (`last_update`), formatting block flags (`block_format_update`), and cached dataframes to avoid redundant recomputations.
+"""
 @kwdef struct Misc
     trigger_update::Observable{Bool} = Observable(true)
     last_update::Ref{Float64} = Ref(0.0)
@@ -94,6 +140,24 @@ end
 # Top-Level State Type
 # ==========================================
 
+"""
+    CasualPlotsState
+
+The top-level reactive state struct for the `CasualPlots` application.
+This struct orchestrates all UI observables, separated into logical categories:
+- `file_opening`: Disk I/O parsing and loaded file paths.
+- `file_saving`: Output paths and save status.
+- `dialogs`: Error/Warning modal visibility.
+- `data_selection`: Array/DataFrame choices and active column selections.
+- `plotting`: Plot type, formatting options, and Makie figure/axis handles.
+- `misc`: Internal update flags and cached data.
+
+To inspect this state in the REPL:
+```julia
+app = casualplots_app()
+propertynames(app.state)
+```
+"""
 @kwdef struct CasualPlotsState
     file_opening::FileOpening = FileOpening()
     file_saving::FileSaving = FileSaving()

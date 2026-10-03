@@ -14,6 +14,22 @@ test/AgenticTesting/screenshots/specifications/<name>.md
 ```
 where `<name>` matches the screenshot filename without the `.png` extension (e.g., `format_tab_barplot_dodged.md`).
 
+> **Note on Paths**: The reference screenshots themselves are located at `docs/src/Screenshots/` relative to the package root. The template below uses `../../../../docs/src/Screenshots/<name>.png` to correctly link to them from the `specifications/` directory. Do not alter this relative path structure.
+
+---
+
+## Understanding the Application State
+
+The active GUI state is accessible via Kaimon at `Main.app.state`. This object is of type `CasualPlots.CasualPlotsState`.
+
+This type is fully documented, and each of its nested component types (e.g., `DataSelection`, `PlotFormat`, `PlotHandles`) are documented recursively. Before querying or reverse-engineering the UI state, use the REPL to read these docstrings to understand exactly which UI elements control which observables.
+
+```julia
+@doc CasualPlots.CasualPlotsState
+# And then recursively explore the components you need:
+@doc CasualPlots.PlotFormat
+```
+
 ---
 
 ## How to Create a Spec
@@ -24,49 +40,36 @@ There are two complementary ways to gather the information needed for a spec:
 
 1. **Inspect the reference screenshot** using `view_file` on `docs/src/Screenshots/<name>.png`. Extract every visible detail: active tab, dropdown values, checkbox states, plot type, axis labels/ticks, title, legend, theme, table headers and data.
 
-2. **Query the live GUI state** (when available). If the user has the GUI open and `Main.app` is accessible via Kaimon, you can read the exact observable values programmatically. This is more reliable than reverse-engineering from pixels alone. Key queries:
-   ```julia
-   # Data selection state
-   Main.app.state.data_selection.source_type[]           # "X, Y Arrays" or "DataFrame"
-   Main.app.state.data_selection.selected_dataframe[]     # e.g. "caspl_df_exp"
-   Main.app.state.data_selection.selected_columns[]       # Vector of checked column names
-   Main.app.state.data_selection.selected_x[]             # X variable name (array mode)
-   Main.app.state.data_selection.selected_y[]             # Y variable name (array mode)
-   Main.app.state.data_selection.range_from[]             # Range start
-   Main.app.state.data_selection.range_to[]               # Range end
-
-   # Plot format state
-   Main.app.state.plotting.format.selected_plottype[]     # "Scatter", "Lines", "BarPlot"
-   Main.app.state.plotting.format.selected_theme[]        # e.g. "theme_ggplot2"
-   Main.app.state.plotting.format.show_legend[]           # true/false
-   Main.app.state.plotting.format.dynamic_attributes      # Dict of plot-type-specific options
-
-   # Labels & titles
-   Main.app.state.plotting.handles.xlabel_text[]
-   Main.app.state.plotting.handles.ylabel_text[]
-   Main.app.state.plotting.handles.title_text[]
-   Main.app.state.plotting.handles.legend_title_text[]
-
-   # Axis limits, reversal, and scale
-   Main.app.state.plotting.format.x_min[]
-   Main.app.state.plotting.format.x_max[]
-   Main.app.state.plotting.format.y_min[]
-   Main.app.state.plotting.format.y_max[]
-   Main.app.state.plotting.format.xreversed[]
-   Main.app.state.plotting.format.yreversed[]
-   Main.app.state.plotting.format.xlog[]
-   Main.app.state.plotting.format.ylog[]
-   Main.app.state.plotting.format.x_is_categorical[]
-   Main.app.state.plotting.format.y_is_categorical[]
-   ```
-   Use `fieldnames(typeof(Main.app.state.data_selection))` etc. to discover additional observables.
+2. **Query the live GUI state** (when available). If live GUI state is available via Kaimon, you can read the exact observable values programmatically rather than guessing from pixels. If live GUI state is not available, ask the user if they can provide it.
+   
+   - Refer to the **Understanding the Application State** section above to learn the schema via docstrings.
+   - To inspect the current live values, examine the top-level categories:
+     ```julia
+     Main.app.state.data_selection
+     Main.app.state.plotting.format
+     Main.app.state.plotting.handles
+     Main.app.state.misc
+     ```
 
 ### Steps
 
 1. **Gather information** from the screenshot and/or the live state (whichever are available). Use both when possible — the screenshot shows the visual result, the state gives exact values.
    > **Note**: Reference screenshots may have been taken manually and can include macOS window chrome (title bar, traffic-light buttons). The generator must always use `frame=false` (as enforced by `capture_gui_screenshot`), so ignore the window frame when writing the spec — focus only on the GUI content inside it.
-2. **Reverse-engineer the reproduction steps** from the gathered information. The CasualPlots UI is straightforward — the active tab, selected dropdowns, and data content directly tell you how to reproduce the state. Cross-reference with `AGENTS.md` and `app_state.jl` for observable names if needed.
-3. **Ask the user only if** the data source or a specific step cannot be determined from the screenshot and state alone (e.g., a custom DataFrame not created by `@populate`, an obscure file import, or non-obvious UI state hidden behind a tab).
+
+2. **Reverse-engineer the reproduction steps** from the gathered information. Once you have the target values from `Main.app.state`, map them to the corresponding UI interactions.
+   
+   > [!WARNING]
+   > **Never update observables directly** (e.g., `app.state.plotting.handles.xlabel_text[] = "X"`). This bypasses the reactive callbacks (`do_replot`, `block_format_update`, etc.) and causes the UI to break or reset.
+   
+   Instead, you must use the DOM interaction helpers from `gui_testing_utils.jl` to simulate real user behavior:
+   - For dropdowns (e.g., changing `selected_plottype`), use `select_dropdown_value(...)`.
+   - For text fields (e.g., changing `xlabel_text`), use `set_input_value(...)`.
+   - For checkboxes (e.g., changing `show_legend`), use `toggle_checkbox(...)`.
+   
+   Cross-reference the state docstrings mentioned in **Understanding the Application State** to learn which observable maps to which DOM interaction.
+
+3. **Ask the user if** you cannot determine the data source or a specific step from the screenshot and state alone (e.g., a custom DataFrame not created by `@populate`, an obscure file import, or non-obvious UI state hidden behind a tab).
+
 4. **Write the spec** following the template below.
 
 ---
@@ -130,7 +133,7 @@ One-sentence description of what this screenshot demonstrates.
 > [!IMPORTANT]
 > **Mandatory Comparison Requirement**: The produced PNG file must be compared
 > content-wise with the original screenshot
-> ([`<name>.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/<name>.png))
+> ([`<name>.png`](../../../../docs/src/Screenshots/<name>.png))
 > using the `view_file` tool. If the generated image differs substantially in any
 > of the criteria below, the task is **not done**.
 

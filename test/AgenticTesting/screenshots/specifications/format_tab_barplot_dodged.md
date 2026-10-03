@@ -91,7 +91,7 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical X 
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`format_tab_barplot_dodged.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/format_tab_barplot_dodged.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`format_tab_barplot_dodged.png`](../../../../docs/src/Screenshots/format_tab_barplot_dodged.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Theme**: Plot area is completely dark (`theme_black`) with white text and grid.

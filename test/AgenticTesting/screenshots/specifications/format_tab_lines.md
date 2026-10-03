@@ -85,7 +85,7 @@ Demonstrates the **Format** tab configured for a **Lines** plot with custom form
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`format_tab_lines.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/format_tab_lines.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`format_tab_lines.png`](../../../../docs/src/Screenshots/format_tab_lines.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Format Tab Active**: Tab is `Format`, Plot type is `Lines`, Theme is `theme_ggplot2`, Group by is `Geometry`.

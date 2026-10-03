@@ -75,7 +75,7 @@ Demonstrates setting manual **Axis Limits** and enabling **Axis Reversal** in th
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`format_tab_limits.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/format_tab_limits.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`format_tab_limits.png`](../../../../docs/src/Screenshots/format_tab_limits.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Reversed X-Axis**: Horizontal axis values decrease from left to right ($15 \to 10 \to 5$), with empty space on the left $[15, 10]$.

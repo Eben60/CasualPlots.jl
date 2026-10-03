@@ -79,7 +79,7 @@ Demonstrates a basic **Scatter** plot with geometry-based grouping. Two columns 
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`Scatter_by_geometry.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/Scatter_by_geometry.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`Scatter_by_geometry.png`](../../../../docs/src/Screenshots/Scatter_by_geometry.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Format Tab Active**: Tab is `Format`, Plot type is `Scatter`, Theme is `Makie default`, Group by is `Geometry`.

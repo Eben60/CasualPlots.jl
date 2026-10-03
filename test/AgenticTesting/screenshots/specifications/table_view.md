@@ -52,7 +52,7 @@ Demonstrates the **Maximized Data Table Pane** view, showcasing dynamic column h
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`table_view.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/table_view.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`table_view.png`](../../../../docs/src/Screenshots/table_view.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Full-Screen Table**: The Table pane occupies the entire screen; no sidebar or plot is visible.

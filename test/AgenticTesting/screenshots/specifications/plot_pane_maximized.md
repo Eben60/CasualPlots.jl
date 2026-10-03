@@ -53,7 +53,7 @@ Demonstrates the **Maximized Plot Pane** view where the Plot floating window exp
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`plot_pane_maximized.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/plot_pane_maximized.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`plot_pane_maximized.png`](../../../../docs/src/Screenshots/plot_pane_maximized.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Full-Screen Plot**: No Control Panel or Data Table is visible; the Plot pane fills the entire window frame.
