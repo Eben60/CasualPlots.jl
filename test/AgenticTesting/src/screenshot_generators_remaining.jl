@@ -19,9 +19,6 @@ function generate_format_tab_barplot_stacked_screenshot(
     ))
 
     return capture_gui_screenshot(; filename=filename, dir=dir, timeout=timeout) do session, local_app
-        # Ensure SampleScores is picked up
-        local_app.state.data_selection.dataframes_dict_obs[] = CasualPlots.collect_dataframes_from_main()
-        
         # Navigate to "Source" Tab
         click_element_by_text(session, "Source")
         wait_for_ui_settle(session; delay=1.0)

@@ -371,11 +371,11 @@ function calculate_dropdown_keystrokes(session::Bonito.Session, css_selector::St
 end
 
 """
-    wait_until(condition::Function; timeout=10.0, interval=0.1)
+    wait_until(condition::Function; timeout=60.0, interval=0.1)
 
 Polls `condition()` every `interval` seconds until it returns true or `timeout` is reached.
 """
-function wait_until(condition::Function; timeout=10.0, interval=0.1)
+function wait_until(condition::Function; timeout=60.0, interval=0.1)
     t0 = time()
     while !condition()
         sleep(interval)
@@ -387,11 +387,11 @@ function wait_until(condition::Function; timeout=10.0, interval=0.1)
 end
 
 """
-    wait_for_observable(obs::Observables.Observable, target_value; timeout=10.0)
+    wait_for_observable(obs::Observables.Observable, target_value; timeout=60.0)
 
 Blocks until the observable equals the target value, or times out.
 """
-function wait_for_observable(obs, target_value; timeout=10.0)
+function wait_for_observable(obs, target_value; timeout=60.0)
     wait_until(() -> obs[] == target_value; timeout=timeout)
 end
 

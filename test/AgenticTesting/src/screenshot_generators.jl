@@ -36,9 +36,11 @@ function capture_gui_screenshot(
     end
     local_app = casualplots_app()
     Core.eval(Main, :(app = $local_app))
-    # Ensure data is populated in the state observables
-    local_app.state.data_selection.dims_dict_obs[] = CasualPlots.get_dims_of_arrays()
-    local_app.state.data_selection.dataframes_dict_obs[] = CasualPlots.collect_dataframes_from_main()
+    # Ensure data is populated in the state observables.
+    # `invokelatest` is required (Julia ≥ 1.12): globals created via `Core.eval` after the
+    # caller started (e.g. `SampleScores` in a generator) are invisible in the caller's world age.
+    local_app.state.data_selection.dims_dict_obs[] = Base.invokelatest(CasualPlots.get_dims_of_arrays)
+    local_app.state.data_selection.dataframes_dict_obs[] = Base.invokelatest(CasualPlots.collect_dataframes_from_main)
     CasualPlots.Ele.serve_app(local_app; frame=false)
 
     # 2. Wait for Session and UI load
