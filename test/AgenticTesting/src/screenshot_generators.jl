@@ -53,21 +53,46 @@ function capture_gui_screenshot(
         # Let the specific function do its clicks and wait
         interaction_callback(session, local_app)
         
-        # 6. Fetch Window ID and Capture
-        swift_script = normpath(joinpath(@__DIR__, "get_electron_id.swift"))
+        # 6. Capture via Electron API
         screenshot_path = get_unique_filepath(dir, filename)
         mkpath(dirname(screenshot_path))
-        
-        id_str = readchomp(`swift $swift_script`)
-        println("Found Electron Window ID: ", id_str)
         
         println("Hiding scrollbars...")
         Bonito.evaljs(session, js"document.body.style.overflow = 'hidden';")
         sleep(0.5)
 
-        # -o removes shadow
-        run(`screencapture -o -l $id_str $screenshot_path`)
-        println("Screenshot saved to: ", screenshot_path)
+        println("Capturing screenshot via Electron API...")
+        electron_app = CasualPlots.Ele.get_electron_app()
+        electron_win = CasualPlots.Ele.get_electron_window()
+        
+        # Escape path for JS string (cross-platform safety)
+        safe_path = replace(screenshot_path, "\\" => "\\\\", "\"" => "\\\"")
+        
+        js_code = """
+        (function() {
+            const fs = require('fs');
+            const win = electron.BrowserWindow.fromId($(electron_win.id));
+            return win.webContents.capturePage().then(image => {
+                fs.writeFileSync("$(safe_path)", image.toPNG());
+                return "success";
+            }).catch(err => {
+                return err.toString();
+            });
+        })()
+        """
+        Base.run(electron_app, js_code)
+        
+        # Wait for file to be written asynchronously
+        t0 = time()
+        while !isfile(screenshot_path) && time() - t0 < 5.0
+            sleep(0.1)
+        end
+        
+        if isfile(screenshot_path)
+            println("Screenshot saved to: ", screenshot_path)
+        else
+            error("Capture failed: screenshot file was not created within timeout.")
+        end
     catch e
         println("Error during capture: ", e)
         rethrow(e)
