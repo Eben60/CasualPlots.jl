@@ -1,7 +1,9 @@
 using Pkg
 
 initial_env = Base.active_project()
+initial_fancy_exp = get(ENV, "UNITFUL_FANCY_EXPONENTS", Sys.isapple() ? "true" : "false")
 try
+    ENV["UNITFUL_FANCY_EXPONENTS"] = "false"
     Pkg.activate(normpath(joinpath(@__DIR__, "..")))
     using CSV, XLSX, AgenticTesting, CasualPlots
     Core.eval(Main, :(CasualPlots.@populate()))
@@ -23,5 +25,6 @@ try
     
     println("=== All screenshots generated successfully ===")
 finally
+    ENV["UNITFUL_FANCY_EXPONENTS"] = initial_fancy_exp
     Pkg.activate(initial_env)
 end

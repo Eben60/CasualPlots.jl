@@ -113,7 +113,7 @@ end
 
 Automates opening the CasualPlots app via Electron, navigating to the 'Open' tab,
 loading `sample_data-multisheet.xlsx`, selecting sheet `TestData2`, and capturing
-the screenshot using macOS `screencapture`.
+the screenshot using the Electron capture API.
 """
 function generate_open_tab_screenshot(
     filename="open_file_tab.png";

@@ -1,11 +1,11 @@
 ---
 name: casualplots-screenshots
-description: Automated capture, updating, and verification of CasualPlots.jl GUI screenshots via Electron and macOS screencapture. Use when capturing screenshots, creating new screenshot generators, updating documentation images, or verifying UI visual output.
+description: Automated capture, updating, and verification of CasualPlots.jl GUI screenshots via Electron's internal capture API. Use when capturing screenshots, creating new screenshot generators, updating documentation images, or verifying UI visual output.
 ---
 
 # Agentic Creation of Reproducible Screenshots
 
-This document is the authoritative reference for AI agents tasked with generating, updating, or verifying automated screenshots of the `CasualPlots.jl` GUI on macOS.
+This document is the authoritative reference for AI agents tasked with generating, updating, or verifying automated screenshots of the `CasualPlots.jl` GUI.
 
 ---
 
@@ -17,13 +17,13 @@ This document is the authoritative reference for AI agents tasked with generatin
 
 ## 2. Architecture Overview
 
-### Capture Method: Electron + macOS `screencapture`
+### Capture Method: Electron `capturePage` API
 
-The app launches via `Electron.jl` (with `frame=false` to strip the macOS title bar). A Swift script (`get_electron_id.swift`) discovers the Electron window's macOS Window ID, and the native `screencapture -o -l <windowID>` command captures the window content cleanly, without OS shadow or chrome.
+The app launches via `Electron.jl` (with `frame=false` to strip the OS window frame). We then inject JavaScript into the Electron context to invoke the `win.webContents.capturePage()` API. This natively captures the rendering context and writes it to a PNG cleanly, without OS shadow or chrome, and works cross-platform.
 
 ### Prerequisites
 
-- **macOS Screen Recording permission** must be granted to the terminal / IDE running the automation (System Settings → Privacy & Security → Screen Recording).
+- None. The native Electron capture does not require OS-level screen recording permissions.
 
 ### File Organisation
 
@@ -35,8 +35,7 @@ test/AgenticTesting/
 │   ├── casualplots_agent_test_utils.jl      # CasualPlots-specific test utilities
 │   ├── screenshot_generators.jl             # Core capture_gui_screenshot + basic generators
 │   ├── screenshot_generators_advanced.jl    # Generators needing format-tab & label changes
-│   ├── screenshot_generators_remaining.jl   # Generators for remaining screenshots
-│   └── get_electron_id.swift                # Swift script to find Electron Window ID
+│   └── screenshot_generators_remaining.jl   # Generators for remaining screenshots
 ├── scripts/
 │   ├── run_all_screenshots.jl               # Runs all generators sequentially
 │   ├── run_open_tab_screenshot.jl           # Individual runner scripts (one per screenshot)
@@ -72,7 +71,7 @@ All screenshot generators delegate to [`capture_gui_screenshot`](../../../test/A
 5. **Reset throttle** (`state.misc.last_update[] = 0.0`).
 6. **Execute the interaction callback** — this is where the specific generator function drives the GUI to the desired state.
 7. **Hide scrollbars** via `Bonito.evaljs(session, js"document.body.style.overflow = 'hidden';")`.
-8. **Capture** via `screencapture -o -l <windowID> <path>`.
+8. **Capture** via Electron's `win.webContents.capturePage()` API.
 9. **Cleanup**: `close(local_app)` and `CasualPlots.Ele.close_display(strict=true)`.
 
 Output files are auto-numbered (e.g., `format_tab_barplot_dodged.png`, `_01.png`, `_02.png`, …) to avoid overwriting earlier attempts.
