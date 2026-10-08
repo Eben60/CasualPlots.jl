@@ -31,7 +31,7 @@ include("screenshot_generators/generate_dataframe_source_screenshot.jl")
 # ==========================================
 # 1. Exported API (Main testing entry points)
 # ==========================================
-export run_screenshot_generator, with_screenshot_env, capture_gui_screenshot, compare_images_ssim
+export run_screenshot_generator, with_screenshot_env, capture_gui_screenshot, compare_images_ssim, compare_directories_ssim
 export generate_open_tab_screenshot, generate_dataframe_source_screenshot, generate_xy_source_screenshot, 
        generate_format_tab_barplot_dodged_screenshot, generate_format_tab_barplot_stacked_screenshot, 
        generate_format_tab_limits_screenshot, generate_format_tab_lines_screenshot, 
