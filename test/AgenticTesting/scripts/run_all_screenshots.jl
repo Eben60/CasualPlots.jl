@@ -8,6 +8,7 @@ already_target = initial_env !== nothing && normpath(initial_env) == target_proj
 try
     already_target || Pkg.activate(target_env)
     using AgenticTesting, CasualPlots
+    using CSV, XLSX
     Core.eval(Main, :(CasualPlots.@populate()))
 
     with_screenshot_env(; nofancy=true) do

@@ -28,11 +28,8 @@ function compare_images_ssim(path1, path2; threshold = Sys.isapple() ? 0.98 : 0.
 
     score = Float64(assess_ssim(img1, img2))
     passed = score >= threshold
-    if !passed
-        @info "SSIM score $(round(score, digits=4)) is below threshold $threshold"
-    end
 
-    return (; passed = passed, score = score)
+    return (; passed , score)
 end
 
 """
@@ -87,24 +84,29 @@ Returns a NamedTuple with `passed::Bool` (true if all scores are >= `threshold` 
 are missing) and `scores` mapping canonical filenames to their scores.
 """
 function compare_directories_ssim(;
-    source_dir = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots")),
-    target_dir = joinpath(source_dir, "tmp"),
+    ref_dir = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots")),
+    target_dir = joinpath(ref_dir, "tmp"),
     threshold = Sys.isapple() ? 0.98 : 0.9,
 )
-    source_candidates = _find_screenshot_candidates(source_dir)
+    source_candidates = _find_screenshot_candidates(ref_dir)
     target_candidates = _find_screenshot_candidates(target_dir)
 
     scores = Dict{String, Union{Float64, Missing}}()
 
-    for (canonical_name, src_file) in source_candidates
+    for (canonical_name, ref_file) in source_candidates
         if !haskey(target_candidates, canonical_name)
             scores[canonical_name] = missing
         else
             tgt_file = target_candidates[canonical_name]
-            src_path = joinpath(source_dir, src_file)
+            ref_path = joinpath(ref_dir, ref_file)
             tgt_path = joinpath(target_dir, tgt_file)
-            res = compare_images_ssim(src_path, tgt_path; threshold = threshold)
-            scores[canonical_name] = res.score
+            (; passed , score) = compare_images_ssim(ref_path, tgt_path; threshold)
+
+            if !passed
+                @info "$(canonical_name): SSIM score $(round(score, digits=4)) is below threshold $threshold"
+            end
+
+            scores[canonical_name] = score
         end
     end
 
