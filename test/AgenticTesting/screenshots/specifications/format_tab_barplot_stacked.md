@@ -6,13 +6,13 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical da
 ---
 
 ## 2. Prerequisites & Environment Setup
-- Inject a custom DataFrame into `Main`:
+- Inject a custom DataFrame into `Main` (or use `CasualPlots.@populate()`):
   ```julia
   using DataFrames
-  SampleScores = DataFrame(
+  caspl_df_scores = DataFrame(
       Name = ["Ann", "Bob", "Charlie", "Dennis"],
       Symbol("Score 1") => [9.0, 7.8, 7.1, 14.6],
-      Symbol("Score 2") => [8.8, 12.0, 15.2, 5.3]
+      Symbol("Score 2") => [8.8, 12.0, 15.2, 5.3],
   )
   ```
 
@@ -23,7 +23,7 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical da
 ### A. Source Tab Configuration
 1. Open the application.
 2. In the **Source** tab, select **File/DataFrame** mode.
-3. Select `SampleScores` from the **Select Source:** dropdown.
+3. Select `caspl_df_scores` from the **Select Source:** dropdown.
 4. Check columns: `Name` (categorical axis), `Score 1`, `Score 2`.
 5. Click **(Re-)Plot**.
 
@@ -62,7 +62,7 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical da
 - **Background**: Light gray ggplot2 theme with white gridlines.
 - **Plot Title**: `Students scores` (centered)
 - **Vertical Axis**: Categorical ticks from bottom to top: `Ann`, `Bob`, `Charlie`, `Dennis`. Axis label at left is `Score`.
-- **Horizontal Axis**: Numerical ticks at `0`, `5`, `10`, `15`, `20`. Axis label at bottom is `SampleScores`.
+- **Horizontal Axis**: Numerical ticks at `0`, `5`, `10`, `15`, `20`. Axis label at bottom is `caspl_df_scores`.
 - **Plotted Bars**:
   - Horizontal composite bars with blue (`Score 1`) segment on the left and orange (`Score 2`) segment stacked to its right:
     - **Ann**: Blue segment $[0, 9.0]$, Orange segment $[9.0, 17.8]$ (Total = 17.8)
@@ -73,7 +73,7 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical da
   - Right side with blue square (`Score 1`) and orange square (`Score 2`).
 
 ### Table Pane (Bottom-Right Floating Window)
-- **Header Bar Title**: `SOURCE: SampleScores`
+- **Header Bar Title**: `SOURCE: caspl_df_scores`
 - **Displayed Columns**:
   - `Index` (gray header)
   - `Name` (yellow header)
@@ -92,4 +92,4 @@ To verify if another screenshot matches this configuration:
 2. **Plot Layout**: Horizontal stacked bars with ggplot2 gray background.
 3. **Bar Stacking**: Blue segment on left, orange segment on right; Charlie has the longest total bar ($22.3$).
 4. **Disabled Categorical Controls**: X-axis limit inputs, `log:` checkbox, and `rev.:` checkbox are visibly disabled/greyed out because the category axis `Name` is categorical, while Y-axis controls remain enabled.
-5. **Table**: Matches `SOURCE: SampleScores` table.
+5. **Table**: Matches `SOURCE: caspl_df_scores` table.

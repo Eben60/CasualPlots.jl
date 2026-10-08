@@ -13,7 +13,6 @@ FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 ImageQualityIndexes = "2996bd0c-7a13-11e9-2da2-2f5ce47296a9"
 Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
 PNGFiles = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
-ShareAdd = "27c01619-3163-4fe3-a204-36d38c32eb7d"
 XLSX = "fdbf4ff8-1666-58a4-91e7-1b58723a45e0"
 
 [sources]

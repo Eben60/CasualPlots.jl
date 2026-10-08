@@ -110,6 +110,12 @@ function variable_examples()
         DataFrame(m, nms)
     end
 
+    caspl_df_scores = DataFrame(
+        "Name" => ["Ann", "Bob", "Charlie", "Dennis"],
+        "Score 1" => [9.0, 7.8, 7.1, 14.6],
+        "Score 2" => [8.8, 12.0, 15.2, 5.3],
+    )
+
     return (; 
         caspl_x_10, 
         caspl_ys10, 
@@ -129,6 +135,7 @@ function variable_examples()
         caspl_df_unitful, 
         caspl_df_unitmix, 
         caspl_df_exp,
+        caspl_df_scores,
     )
 end
 
@@ -142,6 +149,7 @@ Variables created include:
 - `caspl_x_10`, `caspl_ys10`, `caspl_z10`, `caspl_2d_sinsin`, etc. (Vectors and Matrices)
 - `caspl_u_10`, `caspl_cm_25`, etc. (Unitful arrays)
 - `caspl_df_simple`, `caspl_df_large`, `caspl_df_unitful`, etc. (DataFrames)
+- `caspl_df_scores` (Categorical barplot demo)
 """
 macro populate()
     return esc(quote
@@ -164,6 +172,7 @@ macro populate()
             caspl_df_unitful, 
             caspl_df_unitmix, 
             caspl_df_exp,
+            caspl_df_scores,
         ) = CasualPlots.variable_examples();
     end)
 end

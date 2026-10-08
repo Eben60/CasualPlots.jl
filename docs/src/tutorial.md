@@ -100,6 +100,10 @@ Select **Lines** or **Scatter** plot type. Options include:
     *🔍 [Click to view full resolution](Screenshots/format_tab_lines.png)*
     [![Format Tab Lines](Screenshots/format_tab_lines.png)](Screenshots/format_tab_lines.png)
 
+!!! details "📸 Screenshot: Scatter Plot, Differentiated by Geometry"
+    *🔍 [Click to view full resolution](Screenshots/Scatter_by_geometry.png)*
+    [![Scatter Plot Geometry](Screenshots/Scatter_by_geometry.png)](Screenshots/Scatter_by_geometry.png)
+
 ---
 
 ### b). Bar Plots (Dodged vs Stacked with Categorical Data)

@@ -1,30 +1,33 @@
 using Pkg
 
 initial_env = Base.active_project()
-initial_fancy_exp = get(ENV, "UNITFUL_FANCY_EXPONENTS", Sys.isapple() ? "true" : "false")
+target_env = normpath(joinpath(@__DIR__, ".."))
+target_project = normpath(joinpath(target_env, "Project.toml"))
+already_target = initial_env !== nothing && normpath(initial_env) == target_project
+
 try
-    ENV["UNITFUL_FANCY_EXPONENTS"] = "false"
-    Pkg.activate(normpath(joinpath(@__DIR__, "..")))
-    using CSV, XLSX, AgenticTesting, CasualPlots
+    already_target || Pkg.activate(target_env)
+    using AgenticTesting, CasualPlots
     Core.eval(Main, :(CasualPlots.@populate()))
 
-    println("=== Running all screenshot generators ===")
+    with_screenshot_env(; nofancy=true) do
+        println("=== Running all screenshot generators ===")
 
-    include("run_dataframe_source_screenshot.jl")
-    include("run_xy_source_screenshot.jl")
-    include("run_open_tab_screenshot.jl")
-    include("run_format_tab_barplot_dodged.jl")
-    include("run_format_tab_barplot_stacked.jl")
-    include("run_format_tab_limits.jl")
-    include("run_format_tab_lines.jl")
-    include("run_plot_pane_maximized.jl")
-    include("run_save_tab_script.jl")
-    include("run_table_view.jl")
-    include("run_line_symbol_plot.jl")
-    include("run_Scatter_by_geometry.jl")
-    
-    println("=== All screenshots generated successfully ===")
+        run_screenshot_generator(generate_dataframe_source_screenshot)
+        run_screenshot_generator(generate_xy_source_screenshot)
+        run_screenshot_generator(generate_open_tab_screenshot)
+        run_screenshot_generator(generate_format_tab_barplot_dodged_screenshot)
+        run_screenshot_generator(generate_format_tab_barplot_stacked_screenshot)
+        run_screenshot_generator(generate_format_tab_limits_screenshot)
+        run_screenshot_generator(generate_format_tab_lines_screenshot)
+        run_screenshot_generator(generate_plot_pane_maximized_screenshot)
+        run_screenshot_generator(generate_save_tab_script_screenshot)
+        run_screenshot_generator(generate_table_view_screenshot)
+        run_screenshot_generator(generate_line_symbol_plot_screenshot)
+        run_screenshot_generator(generate_Scatter_by_geometry_screenshot)
+        
+        println("=== All screenshots generated successfully ===")
+    end
 finally
-    ENV["UNITFUL_FANCY_EXPONENTS"] = initial_fancy_exp
-    Pkg.activate(initial_env)
+    already_target || (initial_env !== nothing ? Pkg.activate(initial_env) : Pkg.activate())
 end

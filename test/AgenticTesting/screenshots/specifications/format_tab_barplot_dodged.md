@@ -6,13 +6,13 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical X 
 ---
 
 ## 2. Prerequisites & Environment Setup
-- Inject a custom DataFrame into `Main`:
+- Inject a custom DataFrame into `Main` (or use `CasualPlots.@populate()`):
   ```julia
   using DataFrames
-  SampleScores = DataFrame(
+  caspl_df_scores = DataFrame(
       Name = ["Ann", "Bob", "Charlie", "Dennis"],
       Symbol("Score 1") => [9.0, 7.8, 7.1, 14.6],
-      Symbol("Score 2") => [8.8, 12.0, 15.2, 5.3]
+      Symbol("Score 2") => [8.8, 12.0, 15.2, 5.3],
   )
   ```
 
@@ -23,7 +23,7 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical X 
 ### A. Source Tab Configuration
 1. Open the application.
 2. In the **Source** tab, select **File/DataFrame** mode.
-3. Select `SampleScores` from the **Select Source:** dropdown.
+3. Select `caspl_df_scores` from the **Select Source:** dropdown.
 4. Check columns: `Name` (as categorical X-axis), `Score 1`, `Score 2`.
 5. Click **(Re-)Plot**.
 
@@ -75,7 +75,7 @@ Demonstrates the **Format** tab configured for a **BarPlot** with categorical X 
   - Orange square: `Score 2`
 
 ### Table Pane (Bottom-Right Floating Window)
-- **Header Bar Title**: `SOURCE: SampleScores`
+- **Header Bar Title**: `SOURCE: caspl_df_scores`
 - **Displayed Columns & Types**:
   - `Index` (gray header)
   - `Name` (light yellow header - string/categorical)
@@ -98,4 +98,4 @@ To verify if another screenshot matches this configuration:
 2. **Plot Type**: Vertical dodged bar plot with pairs of blue and orange bars for `Ann`, `Bob`, `Charlie`, `Dennis`.
 3. **Format Controls**: Active tab is `Format`; dropdowns show `BarPlot`, `Vertical`, `Dodged`, `theme_black`.
 4. **Disabled Categorical Controls**: X-axis limit inputs, `log:` checkbox, and `rev.:` checkbox are visibly disabled/greyed out because `Name` is categorical, while Y-axis controls remain enabled.
-5. **Table View**: Header `SOURCE: SampleScores` with `Name` column colored yellow and scores colored green.
+5. **Table View**: Header `SOURCE: caspl_df_scores` with `Name` column colored yellow and scores colored green.

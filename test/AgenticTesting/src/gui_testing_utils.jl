@@ -405,3 +405,20 @@ function wait_for_ui_settle(session::Bonito.Session; delay=1.0)
     Bonito.evaljs_value(session, js"true")
     sleep(delay)
 end
+
+"""
+    set_input_value(session, selector, value)
+"""
+function set_input_value(session::Bonito.Session, selector::String, value::String)
+    Bonito.evaljs(session, js"""
+        (function() {
+            const el = document.querySelector($(selector));
+            if (el) {
+                el.value = $(value);
+                el.dispatchEvent(new Event('input', {bubbles: true}));
+                el.dispatchEvent(new Event('change', {bubbles: true}));
+                el.dispatchEvent(new Event('blur', {bubbles: true}));
+            }
+        })()
+    """)
+end

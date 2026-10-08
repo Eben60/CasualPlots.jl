@@ -33,21 +33,23 @@ test/AgenticTesting/
 │   ├── AgenticTesting.jl                    # Module definition & exports
 │   ├── gui_testing_utils.jl                 # DOM interaction helpers & wait functions
 │   ├── casualplots_agent_test_utils.jl      # CasualPlots-specific test utilities
-│   ├── screenshot_generators.jl             # Core capture_gui_screenshot + basic generators
-│   ├── screenshot_generators_advanced.jl    # Generators needing format-tab & label changes
-│   └── screenshot_generators_remaining.jl   # Generators for remaining screenshots
+│   ├── generating_screenshots.jl            # Core capture_gui_screenshot, run_screenshot_generator & helpers
+│   ├── image_comparison.jl                  # Image SSIM comparison utilities
+│   └── screenshot_generators/               # Individual generator files (1 function per file)
+│       ├── generate_Scatter_by_geometry_screenshot.jl
+│       ├── generate_dataframe_source_screenshot.jl
+│       ├── generate_format_tab_barplot_dodged_screenshot.jl
+│       ├── generate_format_tab_barplot_stacked_screenshot.jl
+│       ├── generate_format_tab_limits_screenshot.jl
+│       ├── generate_format_tab_lines_screenshot.jl
+│       ├── generate_line_symbol_plot_screenshot.jl
+│       ├── generate_open_tab_screenshot.jl
+│       ├── generate_plot_pane_maximized_screenshot.jl
+│       ├── generate_save_tab_script_screenshot.jl
+│       ├── generate_table_view_screenshot.jl
+│       └── generate_xy_source_screenshot.jl
 ├── scripts/
-│   ├── run_all_screenshots.jl               # Runs all generators sequentially
-│   ├── run_open_tab_screenshot.jl           # Individual runner scripts (one per screenshot)
-│   ├── run_dataframe_source_screenshot.jl
-│   ├── run_xy_source_screenshot.jl
-│   ├── run_format_tab_barplot_dodged.jl
-│   ├── run_format_tab_barplot_stacked.jl
-│   ├── run_format_tab_limits.jl
-│   ├── run_format_tab_lines.jl
-│   ├── run_plot_pane_maximized.jl
-│   ├── run_save_tab_script.jl
-│   └── run_table_view.jl
+│   └── run_all_screenshots.jl               # Runs all generators sequentially via run_screenshot_generator
 ├── screenshots/
 │   ├── specifications/
 │   │   └── <name>.md                        # Detailed spec per screenshot (see §4)
@@ -60,19 +62,25 @@ docs/src/Screenshots/
 
 ---
 
-## 3. The Capture Pipeline (`capture_gui_screenshot`)
+## 3. The Capture Pipeline (`capture_gui_screenshot` & `run_screenshot_generator`)
 
-All screenshot generators delegate to [`capture_gui_screenshot`](../../../test/AgenticTesting/src/screenshot_generators.jl) (in `screenshot_generators.jl`), which orchestrates the full lifecycle:
+All screenshot generation uses the core helpers in [`generating_screenshots.jl`](../../../test/AgenticTesting/src/generating_screenshots.jl):
 
-1. **Reset theme** to `DEFAULT_THEME` and populate demo data in `Main` via `CasualPlots.@populate()` / `variable_examples()`.
-2. **Create app** via `casualplots_app()`, populate state observables for arrays and DataFrames.
-3. **Launch Electron** with `CasualPlots.Ele.serve_app(local_app; frame=false)`.
-4. **Wait for Bonito session** via `wait_for_session(local_app; timeout=...)`.
-5. **Reset throttle** (`state.misc.last_update[] = 0.0`).
-6. **Execute the interaction callback** — this is where the specific generator function drives the GUI to the desired state.
-7. **Hide scrollbars** via `Bonito.evaljs(session, js"document.body.style.overflow = 'hidden';")`.
-8. **Capture** via Electron's `win.webContents.capturePage()` API.
-9. **Cleanup**: `close(local_app)` and `CasualPlots.Ele.close_display(strict=true)`.
+- **`capture_gui_screenshot(interaction_callback; filename, dir, timeout=15)`** orchestrates the low-level lifecycle:
+  1. **Reset theme** to `DEFAULT_THEME` and populate demo data in `Main` via `CasualPlots.@populate()` / `variable_examples()`.
+  2. **Create app** via `casualplots_app()`, populate state observables for arrays and DataFrames using `Base.invokelatest`.
+  3. **Launch Electron** with `CasualPlots.Ele.serve_app(local_app; frame=false)`.
+  4. **Wait for Bonito session** via `wait_for_session(local_app; timeout=...)`.
+  5. **Reset throttle** (`state.misc.last_update[] = 0.0`).
+  6. **Execute the interaction callback** — calls `interaction_callback(session, local_app)` driving the GUI to the desired state.
+  7. **Hide scrollbars** via `Bonito.evaljs(session, js"document.body.style.overflow = 'hidden';")`.
+  8. **Capture** via Electron's `win.webContents.capturePage()` API.
+  9. **Cleanup**: `close(local_app)` and `CasualPlots.Ele.close_display(strict=true)`.
+
+- **`run_screenshot_generator(generator_func; filename=nothing, dir=nothing)`** provides the unified runner wrapper:
+  1. Calls `generator_func()` to obtain the default hardwired filename (unless overridden by `filename`).
+  2. Resolves output directory (defaults to `docs/src/Screenshots/tmp`).
+  3. Delegates to `capture_gui_screenshot(generator_func; filename, dir)`.
 
 Output files are auto-numbered (e.g., `format_tab_barplot_dodged.png`, `_01.png`, `_02.png`, …) to avoid overwriting earlier attempts.
 
@@ -106,7 +114,7 @@ All DOM interaction helpers are in [`gui_testing_utils.jl`](../../../test/Agenti
 | `toggle_checkbox(session, "#checkbox-id")` | Toggle a checkbox |
 
 ### Text Input (`set_input_value`)
-Defined in [`screenshot_generators_advanced.jl`](../../../test/AgenticTesting/src/screenshot_generators_advanced.jl). Dispatches `input`, `change`, and `blur` events on a text field:
+Defined in [`gui_testing_utils.jl`](../../../test/AgenticTesting/src/gui_testing_utils.jl). Dispatches `input`, `change`, and `blur` events on a text field:
 ```julia
 set_input_value(session, "#input-xlabel", "My X Label")
 ```
@@ -216,23 +224,33 @@ wait_for_ui_settle(session; delay=1.0)
 
 ## 7. Running Screenshots
 
-### Execution Method
+### Running an Individual Screenshot
 
-Each screenshot has a standalone runner script in `test/AgenticTesting/scripts/`. Execute it via **Kaimon `ex`**:
+To run a specific screenshot generator interactively via **Kaimon `ex`** or in the Julia REPL:
 
 ```julia
-include("test/AgenticTesting/scripts/run_format_tab_barplot_dodged.jl")
+using Pkg; Pkg.activate("test/AgenticTesting")
+using AgenticTesting, CasualPlots
+
+CasualPlots.@populate()
+run_screenshot_generator(generate_xy_source_screenshot)
 ```
 
-The Kaimon `ex` tool may promote long-running inclusions to background jobs. Use `list_jobs`, `check_eval`, and `agent_output` to monitor progress.
+Optional keyword arguments for `run_screenshot_generator`:
+- `filename`: Override the output filename (defaults to the generator's default, e.g. `generate_xy_source_screenshot()`).
+- `dir`: Override the output directory (defaults to `docs/src/Screenshots/tmp`).
 
-**Do NOT run the code line-by-line in the REPL.** Each runner script handles environment setup (`using ShareAdd; @usingany CasualPlots, AgenticTesting; CasualPlots.@populate()`), generator invocation, and cleanup as a single unit.
+The Kaimon `ex` tool may promote long-running executions to background jobs. Use `list_jobs`, `check_eval`, and `agent_output` to monitor progress.
 
 ### Running All Screenshots
+
+To generate all 12 screenshots sequentially:
 
 ```julia
 include("test/AgenticTesting/scripts/run_all_screenshots.jl")
 ```
+
+This activates the `AgenticTesting` test environment, wraps execution in `with_screenshot_env(; nofancy=true)`, and calls `run_screenshot_generator` for each generator in sequence.
 
 ---
 
@@ -280,22 +298,25 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 
 1. **Ask the user** how the screenshot was originally produced (which tab, which data source, which format options, etc.), or consult the existing reference image via `view_file`.
 2. **Create the `.md` specification** in `test/AgenticTesting/screenshots/specifications/<name>.md` following the established format (Overview, Prerequisites, Step-by-Step, UI State, Verification Criteria).
-3. **Write the generator function** in the appropriate file:
-   - `screenshot_generators.jl` — for basic screenshots (source tab, simple plots)
-   - `screenshot_generators_advanced.jl` — for screenshots needing format changes, label overrides, or complex replot synchronisation
-   - `screenshot_generators_remaining.jl` — overflow file for additional generators
-4. **Export** the new function from `AgenticTesting.jl`.
-5. **Create the runner script** in `test/AgenticTesting/scripts/run_<name>.jl`:
+3. **Write the generator function** in a dedicated file: `test/AgenticTesting/src/screenshot_generators/generate_<name>_screenshot.jl`:
    ```julia
-   using ShareAdd
-   @usingany CasualPlots, AgenticTesting
-   CasualPlots.@populate()
-
-   println("Starting screenshot generation for <name>.png...")
-   screenshot_path = generate_<name>_screenshot("<name>.png")
-   println("Done. Screenshot saved at: ", screenshot_path)
+   """
+       generate_<name>_screenshot
+   """
+   generate_<name>_screenshot() = "<name>.png"
+   function generate_<name>_screenshot(session, local_app)
+       # DOM interactions driving GUI to target state
+   end
    ```
-6. **Add** the new runner to `run_all_screenshots.jl`.
+4. **Include and export** the new function in `test/AgenticTesting/src/AgenticTesting.jl`:
+   - Add `include("screenshot_generators/generate_<name>_screenshot.jl")`
+   - Add `generate_<name>_screenshot` to the `export` list.
+5. **Add to `run_all_screenshots.jl`**:
+   - Add `run_screenshot_generator(generate_<name>_screenshot)` inside the `with_screenshot_env` block in `test/AgenticTesting/scripts/run_all_screenshots.jl`.
+6. **Test execution**:
+   ```julia
+   run_screenshot_generator(generate_<name>_screenshot)
+   ```
 7. **Run, verify** (§8), and iterate until the output matches.
 
 ---
@@ -340,21 +361,22 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 
 ## 11. Existing Screenshot Inventory
 
-| Screenshot | Generator Function | Source File | Runner Script |
+| Screenshot | Generator Function | Source File (under `test/AgenticTesting/src/screenshot_generators/`) | Runner Invocation |
 | :--- | :--- | :--- | :--- |
-| `open_file_tab.png` | `generate_open_tab_screenshot` | `screenshot_generators.jl` | `run_open_tab_screenshot.jl` |
-| `dataframe_source_selection.png` | `generate_dataframe_source_screenshot` | `screenshot_generators.jl` | `run_dataframe_source_screenshot.jl` |
-| `xy_source_selection.png` | `generate_xy_source_screenshot` | `screenshot_generators.jl` | `run_xy_source_screenshot.jl` |
-| `format_tab_barplot_dodged.png` | `generate_format_tab_barplot_dodged_screenshot` | `screenshot_generators_advanced.jl` | `run_format_tab_barplot_dodged.jl` |
-| `format_tab_barplot_stacked.png` | `generate_format_tab_barplot_stacked_screenshot` | `screenshot_generators_remaining.jl` | `run_format_tab_barplot_stacked.jl` |
-| `format_tab_limits.png` | `generate_format_tab_limits_screenshot` | `screenshot_generators_remaining.jl` | `run_format_tab_limits.jl` |
-| `format_tab_lines.png` | `generate_format_tab_lines_screenshot` | `screenshot_generators_remaining.jl` | `run_format_tab_lines.jl` |
-| `line+symbol_plot.png` | `generate_line_symbol_plot_screenshot` | `screenshot_generators_advanced.jl` | `run_line_symbol_plot.jl` |
-| `plot_pane_maximized.png` | `generate_plot_pane_maximized_screenshot` | `screenshot_generators_remaining.jl` | `run_plot_pane_maximized.jl` |
-| `save_tab_script.png` | `generate_save_tab_script_screenshot` | `screenshot_generators_remaining.jl` | `run_save_tab_script.jl` |
-| `table_view.png` | `generate_table_view_screenshot` | `screenshot_generators_remaining.jl` | `run_table_view.jl` |
+| `open_file_tab.png` | `generate_open_tab_screenshot` | `generate_open_tab_screenshot.jl` | `run_screenshot_generator(generate_open_tab_screenshot)` |
+| `dataframe_source_selection.png` | `generate_dataframe_source_screenshot` | `generate_dataframe_source_screenshot.jl` | `run_screenshot_generator(generate_dataframe_source_screenshot)` |
+| `xy_source_selection.png` | `generate_xy_source_screenshot` | `generate_xy_source_screenshot.jl` | `run_screenshot_generator(generate_xy_source_screenshot)` |
+| `format_tab_barplot_dodged.png` | `generate_format_tab_barplot_dodged_screenshot` | `generate_format_tab_barplot_dodged_screenshot.jl` | `run_screenshot_generator(generate_format_tab_barplot_dodged_screenshot)` |
+| `format_tab_barplot_stacked.png` | `generate_format_tab_barplot_stacked_screenshot` | `generate_format_tab_barplot_stacked_screenshot.jl` | `run_screenshot_generator(generate_format_tab_barplot_stacked_screenshot)` |
+| `format_tab_limits.png` | `generate_format_tab_limits_screenshot` | `generate_format_tab_limits_screenshot.jl` | `run_screenshot_generator(generate_format_tab_limits_screenshot)` |
+| `format_tab_lines.png` | `generate_format_tab_lines_screenshot` | `generate_format_tab_lines_screenshot.jl` | `run_screenshot_generator(generate_format_tab_lines_screenshot)` |
+| `line+symbol_plot.png` | `generate_line_symbol_plot_screenshot` | `generate_line_symbol_plot_screenshot.jl` | `run_screenshot_generator(generate_line_symbol_plot_screenshot)` |
+| `plot_pane_maximized.png` | `generate_plot_pane_maximized_screenshot` | `generate_plot_pane_maximized_screenshot.jl` | `run_screenshot_generator(generate_plot_pane_maximized_screenshot)` |
+| `save_tab_script.png` | `generate_save_tab_script_screenshot` | `generate_save_tab_script_screenshot.jl` | `run_screenshot_generator(generate_save_tab_script_screenshot)` |
+| `table_view.png` | `generate_table_view_screenshot` | `generate_table_view_screenshot.jl` | `run_screenshot_generator(generate_table_view_screenshot)` |
+| `Scatter_by_geometry.png` | `generate_Scatter_by_geometry_screenshot` | `generate_Scatter_by_geometry_screenshot.jl` | `run_screenshot_generator(generate_Scatter_by_geometry_screenshot)` |
 
-All generators listed above have been verified as producing correct output as of the current codebase. If the GUI changes, simply re-run the corresponding runner script to regenerate.
+All 12 generators listed above are verified and can be executed individually via `run_screenshot_generator(...)` or collectively via `include("test/AgenticTesting/scripts/run_all_screenshots.jl")`.
 
 ---
 
