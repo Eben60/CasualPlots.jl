@@ -24,7 +24,9 @@ function capture_gui_screenshot(
     interaction_callback;
     filename,
     dir,
-    timeout=15,
+    timeout = 15,
+    makescript = false,
+    scriptfile = nothing,
 )
     # 1. Reset theme and start App
     CasualPlots.apply_theme!(nothing, CasualPlots.DEFAULT_THEME)
@@ -49,6 +51,17 @@ function capture_gui_screenshot(
     try
         # Let the specific function do its clicks and wait
         interaction_callback(session, local_app)
+        
+        if makescript && !isnothing(scriptfile)
+            mkpath(dirname(scriptfile))
+            println("Generating script to: ", scriptfile)
+            res = CasualPlots.generate_julia_code(local_app; file = scriptfile)
+            if res.success
+                println("Script saved successfully to: ", scriptfile)
+            else
+                @warn "Script generation failed: $(res.message)"
+            end
+        end
         
         # 6. Capture via Electron API
         screenshot_path = get_unique_filepath(dir, filename)
@@ -123,12 +136,25 @@ function with_screenshot_env(f; nofancy=true)
     return result
 end
 
-function run_screenshot_generator(generator_func; filename = nothing, dir = nothing)
-    isnothing(filename) &&  (filename = generator_func())
+function run_screenshot_generator(
+    generator_func;
+    filename = nothing,
+    dir = nothing,
+    makescript = false,
+    scriptfile = nothing,
+)
+    isnothing(filename) && (filename = generator_func())
     isnothing(dir) && (dir = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots", "tmp")))
+
+    if makescript && isnothing(scriptfile)
+        screenshot_stem = splitext(filename)[1]
+        project_root = normpath(joinpath(@__DIR__, "..", "..", ".."))
+        scriptfile = normpath(joinpath(project_root, "tmp", string(screenshot_stem, ".jl")))
+    end
+
     println("--- Generating screenshot: $filename ---")
 
-    capture_gui_screenshot(generator_func; filename, dir)
+    capture_gui_screenshot(generator_func; filename, dir, makescript, scriptfile)
 
     println("--- Generation complete ---")
     return nothing

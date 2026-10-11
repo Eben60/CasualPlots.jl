@@ -8,7 +8,7 @@ Demonstrates a **Lines** plot for discharging onto a non-linear load using the `
 ## 2. Prerequisites & Environment Setup
 - Execute `CasualPlots.@populate` to inject standard demo data into `Main`.
 - Required variable:
-  - `caspl_df_dissip`: 61-row DataFrame containing columns `time` (Unitful `s`), `U` (Unitful `V`), `I` (Unitful `nA`), `remarks` (String/Missing).
+  - `caspl_df_dissip`: 121-row DataFrame containing columns `time` (Unitful `s`), `U` (Unitful `V`), `I` (Unitful `nA` with simulated noise), `remarks` (String/Missing).
 
 ---
 
@@ -47,17 +47,17 @@ Demonstrates a **Lines** plot for discharging onto a non-linear load using the `
 - **X-Axis:** `time [s]`
 - **Y-Axis:** `U[V], I[nA]`
 - **Title:** `Discharge onto non-linear load`
-- **X lim:** `0` – `63` (placeholder) | **log:** Unchecked | **rev.:** Unchecked
-- **Y lim:** `0` – `12.054` (placeholder) | **log:** Unchecked | **rev.:** Unchecked
+- **X lim:** `0` – `1260` (placeholder) | **log:** Unchecked | **rev.:** Unchecked
+- **Y lim:** `0` – `12.084` (placeholder) | **log:** Unchecked | **rev.:** Unchecked
 
 ### Plot Pane (Top-Right Floating Window)
 - **Window State**: Normal split view.
 - **Plot Title**: `Discharge onto non-linear load`
-- **X-Axis Title**: `time [s]` (ticks at 0, 10, 20, 30, 40, 50, 60)
+- **X-Axis Title**: `time [s]` (ticks at 0, 500, 1000)
 - **Y-Axis Title**: `U[V], I[nA]` (ticks at 0, 5, 10)
 - **Plotted Lines**:
-  - **Blue line (`I`)**: starts around 11.5 at $t=0$, decreases smoothly, has a visible gap at $t=36$, continues down to ~1.4 at $t=60$.
-  - **Orange line (`U`)**: starts around 3.1 at $t=0$, decreases smoothly, has a sharp upward spike at $t=36$, continues down to ~1.1 at $t=60$.
+  - **Blue line (`I`)**: starts around 11.5 at $t=0$, decreases with simulated noise fluctuations, has a visible gap at $t=360$, continues down to ~0.6–0.7 at $t=1200$.
+  - **Orange line (`U`)**: starts around 3.1 at $t=0$, decreases smoothly, has a sharp upward spike at $t=360$, continues down to ~0.7 at $t=1200$.
 - **Legend**:
   - Positioned on the right side in a bordered box.
   - Blue line: `I`
@@ -71,12 +71,12 @@ Demonstrates a **Lines** plot for discharging onto a non-linear load using the `
   - `U` (light blue header - Unitful `V`)
   - `I` (light blue header - Unitful `nA`)
 - **Sample Cell Values**:
-  - Row 1: Index `1`, time `0 s`, U `3.1 V`, I `11.532 nA`
-  - Row 2: Index `2`, time `1 s`, U `3.0068 V`, I `10.849 nA`
-  - Row 3: Index `3`, time `2 s`, U `2.919 V`, I `10.225 nA`
-  - Row 4: Index `4`, time `3 s`, U `2.8362 V`, I `9.653 nA`
-  - Row 5: Index `5`, time `4 s`, U `2.758 V`, I `9.1279 nA`
-  - Row 6: Index `6`, time `5 s`, U `2.684 V`, I `8.6445 nA`
+  - Row 1: Index `1`, time `0 s`, U `3.1 V`, I `11.538 nA`
+  - Row 2: Index `2`, time `10 s`, U `3.0219 V`, I `11.036 nA`
+  - Row 3: Index `3`, time `20 s`, U `2.9477 V`, I `10.401 nA`
+  - Row 4: Index `4`, time `30 s`, U `2.877 V`, I `9.99 nA`
+  - Row 5: Index `5`, time `40 s`, U `2.8097 V`, I `9.4149 nA`
+  - Row 6: Index `6`, time `50 s`, U `2.7454 V`, I `9.1451 nA`
 
 ---
 
@@ -87,7 +87,7 @@ Demonstrates a **Lines** plot for discharging onto a non-linear load using the `
 To verify if another screenshot matches this configuration:
 1. **Format Tab Active**: Tab is `Format`, Plot type is `Lines`, Theme is `Makie default`, Group by is `Color`.
 2. **Custom Labels**: Title is `Discharge onto non-linear load`, X title is `time [s]`, Y title is `U[V], I[nA]`.
-3. **Plotted Series & Anomalies**: Blue line (`I`) has a visible gap at $t=36$; orange line (`U`) has a sharp spike at $t=36$.
+3. **Plotted Series & Anomalies**: Blue line (`I`) exhibits simulated noise fluctuations and has a visible gap at $t=360$; orange line (`U`) is smooth with a sharp upward spike at $t=360$.
 4. **Axis Limits**: Lower bound is set to `0` for both X and Y axes (`X lim: 0`, `Y lim: 0`).
 5. **Table Header Colors & Content**: Table source is `caspl_df_dissip` with columns `Index`, `time`, `U`, `I`; all 3 data headers are light blue (Unitful).
 

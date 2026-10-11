@@ -112,20 +112,23 @@ function variable_examples()
 
     caspl_df_dissip =
     let
-        lng = 61
+        lng = 121
         event = 37
+        noise = randn(Xoshiro(lng), (lng,)) .* 0.05
 
-        x = range(0, 60; length=lng)
-        y(t; A=0.01, y₀ = 3.1) = y₀/(1 + A * y₀ * t)
-
-        u = y.(x)
-        i = @. 1.2 * u^2 
+        x = range(0, 20; length=lng)
         remarks = Vector{Union{String, Missing}}(missing, lng)
+
+        y(t; A, y₀) = y₀/(1 + A * y₀ * t)
+
+        u = y.(x; A=0.05, y₀ = 3.1)
+        i = @. 1.2 * u^2 + noise
 
         U = u .* u"V"
         I = i .* u"nA"
+        t = (x.*u"minute") .|> u"s"
 
-        df = DataFrame((; time=x.*u"s", U, I, remarks)) |> allowmissing
+        df = DataFrame((; time=t, U, I, remarks)) |> allowmissing
 
         df[event, "U"] += 0.268u"V"
         df[event, "I"] = missing
