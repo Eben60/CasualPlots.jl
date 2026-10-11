@@ -1,13 +1,40 @@
 # image_comparison.jl
 
 """
-    compare_images_ssim(path1::AbstractString, path2::AbstractString; threshold::Real = Sys.isapple() ? 0.98 : 0.9) -> (; passed::Bool, score::Union{Real, Missing})
+    _extract_canonical_name(path::AbstractString) -> String
+
+Extract the canonical image filename (e.g. `"foo.png"`) by stripping directory paths
+and any trailing numeric suffix (such as `_01`, `_02`).
+"""
+function _extract_canonical_name(path::AbstractString)
+    fname = basename(path)
+    m = match(r"^(.*?)(?:_(\d+))?\.png$"i, fname)
+    return m !== nothing ? String(m.captures[1]) * ".png" : fname
+end
+
+"""
+    _canonical_name_for_pair(path1::AbstractString, path2::AbstractString) -> String
+
+Determine canonical name for an image pair. Returns the shared canonical filename
+if both paths share the same stem, or `"<name1> vs <name2>"` if they differ.
+"""
+function _canonical_name_for_pair(path1::AbstractString, path2::AbstractString)
+    c1 = _extract_canonical_name(path1)
+    c2 = _extract_canonical_name(path2)
+    return c1 == c2 ? c1 : "$c1 vs $c2"
+end
+
+"""
+    compare_images_ssim(path1::AbstractString, path2::AbstractString; threshold::Real = Sys.isapple() ? 0.98 : 0.9, crop::Bool = false) -> (; passed::Bool, score::Union{Real, Missing})
 
 Loads two images using FileIO, strips any alpha channel, and computes their 
-Structural Similarity Index (SSIM). Returns a NamedTuple with `passed::Bool` 
+Structural Similarity Index (SSIM). If `crop` is `true` and the images have different 
+dimensions, both images are cropped from the top-left to their common maximal size 
+(intersection) before comparison. Returns a NamedTuple with `passed::Bool` 
 (true if `score >= threshold`) and `score` (Float64, or `missing` on failure).
 """
-function compare_images_ssim(path1, path2; threshold = Sys.isapple() ? 0.98 : 0.9)
+function compare_images_ssim(path1, path2; threshold = Sys.isapple() ? 0.98 : 0.9, crop = false)
+   
     if !isfile(path1)
         @warn "File not found: $path1"
         return (; passed = false, score = missing)
@@ -17,19 +44,33 @@ function compare_images_ssim(path1, path2; threshold = Sys.isapple() ? 0.98 : 0.
         return (; passed = false, score = missing)
     end
 
+    canonical_name = _canonical_name_for_pair(path1, path2)
+
     # Load images and strip alpha channel by converting to RGB
     img1 = RGB.(FileIO.load(path1))
     img2 = RGB.(FileIO.load(path2))
 
     if size(img1) != size(img2)
-        @info "Images have different dimensions: $(size(img1)) vs $(size(img2))"
-        return (; passed = false, score = missing)
+        if crop
+            h = min(size(img1, 1), size(img2, 1))
+            w = min(size(img1, 2), size(img2, 2))
+            @info "$(canonical_name): Images have different dimensions: $(size(img1)) vs $(size(img2)). Cropping to common maximal size: ($h, $w)"
+            img1 = @view img1[1:h, 1:w]
+            img2 = @view img2[1:h, 1:w]
+        else
+            @info "$(canonical_name): Images have different dimensions: $(size(img1)) vs $(size(img2))"
+            return (; passed = false, score = missing)
+        end
     end
 
     score = Float64(assess_ssim(img1, img2))
     passed = score >= threshold
 
-    return (; passed , score)
+    if !passed
+        @info "$(canonical_name): SSIM score $(round(score, digits=4)) is below threshold $threshold"
+    end
+
+    return (; passed, score)
 end
 
 """
@@ -68,14 +109,15 @@ function _find_screenshot_candidates(dir)
 end
 
 """
-    compare_directories_ssim(
-        source_dir::AbstractString = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots")),
-        target_dir::AbstractString = joinpath(source_dir, "tmp");
+    compare_directories_ssim(;
+        ref_dir::AbstractString = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots")),
+        target_dir::AbstractString = joinpath(ref_dir, "tmp"),
         threshold::Real = Sys.isapple() ? 0.98 : 0.9,
+        crop::Bool = false,
     ) -> (; passed::Bool, scores::Dict{String, Union{Real, Missing}})
 
-Compares screenshots between `source_dir` and `target_dir` pairwise using SSIM.
-By default, `source_dir` is the golden reference screenshot directory, and `target_dir`
+Compares screenshots between `ref_dir` and `target_dir` pairwise using SSIM.
+By default, `ref_dir` is the golden reference screenshot directory, and `target_dir`
 is the `tmp/` subdirectory within it.
 
 Selects PNG files without appended numbers if available, or the highest-numbered PNG
@@ -87,6 +129,7 @@ function compare_directories_ssim(;
     ref_dir = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots")),
     target_dir = joinpath(ref_dir, "tmp"),
     threshold = Sys.isapple() ? 0.98 : 0.9,
+    crop = false,
 )
     source_candidates = _find_screenshot_candidates(ref_dir)
     target_candidates = _find_screenshot_candidates(target_dir)
@@ -100,11 +143,7 @@ function compare_directories_ssim(;
             tgt_file = target_candidates[canonical_name]
             ref_path = joinpath(ref_dir, ref_file)
             tgt_path = joinpath(target_dir, tgt_file)
-            (; passed , score) = compare_images_ssim(ref_path, tgt_path; threshold)
-
-            if !passed
-                @info "$(canonical_name): SSIM score $(round(score, digits=4)) is below threshold $threshold"
-            end
+            (; passed, score) = compare_images_ssim(ref_path, tgt_path; threshold, crop)
 
             scores[canonical_name] = score
         end

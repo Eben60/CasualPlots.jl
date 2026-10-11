@@ -38,7 +38,9 @@ This type is fully documented, and each of its nested component types (e.g., `Da
 
 There are two complementary ways to gather the information needed for a spec:
 
-1. **Inspect the reference screenshot** using `view_file` on `docs/src/Screenshots/<name>.png`. Extract every visible detail: active tab, dropdown values, checkbox states, plot type, axis labels/ticks, title, legend, theme, table headers and data.
+1. **Inspect or capture the reference screenshot**:
+   - **If the reference screenshot already exists**: Inspect it using `view_file` on `docs/src/Screenshots/<name>.png`. Extract every visible detail: active tab, dropdown values, checkbox states, plot type, axis labels/ticks, title, legend, theme, table headers and data.
+   - **If the reference screenshot does not exist yet, but the user has the live GUI in the desired state**: As the very first step, capture the live window directly via Electron's `capturePage` API into `docs/src/Screenshots/<name>.png` (see Step 1 below). This immediately creates the reference golden file cleanly without window shadows or OS chrome. Then view this newly created reference screenshot.
 
 2. **Query the live GUI state** (when available). If live GUI state is available via Kaimon, you can read the exact observable values programmatically rather than guessing from pixels. If live GUI state is not available, ask the user if they can provide it.
    
@@ -53,10 +55,36 @@ There are two complementary ways to gather the information needed for a spec:
 
 ### Steps
 
-1. **Gather information** from the screenshot and/or the live state (whichever are available). Use both when possible — the screenshot shows the visual result, the state gives exact values.
+1. **Capture live state if reference screenshot is missing**: If `docs/src/Screenshots/<name>.png` does not exist yet, but the live GUI in the REPL is already configured in the desirable state, capture it immediately to establish the reference image:
+   ```julia
+   let
+       session = Main.app.app.session[]
+       CasualPlots.Bonito.evaljs(session, CasualPlots.Bonito.js"document.body.style.overflow = 'hidden';")
+       sleep(0.5)
+       electron_app = CasualPlots.Ele.get_electron_app()
+       electron_win = CasualPlots.Ele.get_electron_window()
+       target_path = normpath(joinpath(pkgdir(CasualPlots), "docs", "src", "Screenshots", "<name>.png"))
+       safe_path = replace(target_path, "\\" => "\\\\", "\"" => "\\\"")
+       js_code = """
+       (function() {
+           const fs = require('fs');
+           const win = electron.BrowserWindow.fromId(\$(electron_win.id));
+           return win.webContents.capturePage().then(image => {
+               fs.writeFileSync("\$(safe_path)", image.toPNG());
+               return "success";
+           }).catch(err => {
+               return err.toString();
+           });
+       })()
+       """
+       Base.run(electron_app, js_code)
+   end
+   ```
+
+2. **Gather information** from the reference screenshot and/or the live state. Use both when possible — the screenshot shows the visual result, the state gives exact values.
    > **Note**: Reference screenshots may have been taken manually and can include macOS window chrome (title bar, traffic-light buttons). The generator must always use `frame=false` (as enforced by `capture_gui_screenshot`), so ignore the window frame when writing the spec — focus only on the GUI content inside it.
 
-2. **Reverse-engineer the reproduction steps** from the gathered information. Once you have the target values from `Main.app.state`, map them to the corresponding UI interactions.
+3. **Reverse-engineer the reproduction steps** from the gathered information. Once you have the target values from `Main.app.state`, map them to the corresponding UI interactions.
    
    > [!WARNING]
    > **Never update observables directly** (e.g., `app.state.plotting.handles.xlabel_text[] = "X"`). This bypasses the reactive callbacks (`do_replot`, `block_format_update`, etc.) and causes the UI to break or reset.
@@ -68,9 +96,9 @@ There are two complementary ways to gather the information needed for a spec:
    
    Cross-reference the state docstrings mentioned in **Understanding the Application State** to learn which observable maps to which DOM interaction.
 
-3. **Ask the user if** you cannot determine the data source or a specific step from the screenshot and state alone (e.g., a custom DataFrame not created by `@populate`, an obscure file import, or non-obvious UI state hidden behind a tab).
+4. **Ask the user if** you cannot determine the data source or a specific step from the screenshot and state alone (e.g., a custom DataFrame not created by `@populate`, an obscure file import, or non-obvious UI state hidden behind a tab).
 
-4. **Write the spec** following the template below.
+5. **Write the spec** following the template below.
 
 ---
 
@@ -132,9 +160,9 @@ One-sentence description of what this screenshot demonstrates.
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
 > **Mandatory Comparison Requirement**: The produced PNG file must be compared
-> content-wise with the original screenshot
-> ([`<name>.png`](../../../../docs/src/Screenshots/<name>.png))
-> using the `view_file` tool. If the generated image differs substantially in any
+> with the original screenshot ([`<name>.png`](../../../../docs/src/Screenshots/<name>.png)).
+> First check `compare_images_ssim(ref, gen; crop=true)`. If the score is **1.0**, the visual criteria are fully satisfied and no further manual semantic analysis is needed.
+> If the score is below 1.0, compare content using the `view_file` tool. If the generated image differs substantially in any
 > of the criteria below, the task is **not done**.
 
 To verify if another screenshot matches this configuration:

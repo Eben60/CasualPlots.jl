@@ -256,9 +256,33 @@ This activates the `AgenticTesting` test environment, wraps execution in `with_s
 
 ## 8. Mandatory Verification Protocol
 
-After each screenshot generation, the agent **must** perform a detailed two-stage visual verification using the `view_file` tool:
+After each screenshot generation, verify the output by checking SSIM comparison first, falling back to detailed semantic verification only when needed:
 
-### Stage 1: Specification Comparison
+### Step 1: Automated SSIM Comparison (`compare_images_ssim`)
+
+Run SSIM comparison between the reference screenshot and the latest generated screenshot:
+
+```julia
+ref_path = "docs/src/Screenshots/<name>.png"
+gen_path = "docs/src/Screenshots/tmp/<latest_numbered_file>.png"
+res = compare_images_ssim(ref_path, gen_path; crop=true)
+```
+
+- **Pixel-Perfect Match (`res.score == 1.0`)**:
+  If the reference screenshot was captured from the live GUI state and the re-creation generator reproduces it identically, the SSIM score will be **`1.0`** (using `crop=true` to handle any macOS window frame differences).
+  > [!TIP]
+  > **When the SSIM score is 1.0, no further semantic analysis is needed.** The generator is verified bit-for-bit, and you can conclude **PASS (SSIM 1.0)** without manual table transcription.
+
+- **SSIM Score < 1.0 or Missing / Manual Reference**:
+  If the score is below threshold (e.g. minor cross-platform rendering differences, theme changes, or an original reference created manually by a user where dimensions/layouts differ), proceed to the two-stage visual inspection below to identify semantic discrepancies.
+
+---
+
+### Step 2: Semantic Visual Verification (When SSIM < 1.0)
+
+If SSIM is less than 1.0, perform the two-stage visual verification using `view_file`:
+
+#### Stage 1: Specification Comparison
 
 > [!CAUTION]
 > **No shortcuts, no inferred values.** Every value in the report must be independently read and transcribed in full—first from the spec file, then from the screenshot. Do not summarize, abbreviate, or use phrases like "7 entries" or "same as spec". The comparison (Match column) must only be determined **after** both the Spec Value and Screenshot Value columns have been fully populated with explicit literal values.
@@ -279,7 +303,7 @@ After each screenshot generation, the agent **must** perform a detailed two-stag
 
 5. **Conclude.** At the bottom, write `Stage 1 Conclusion: **PASS**` or `**FAIL**` with a brief explanation of any mismatches.
 
-### Stage 2: Reference Comparison
+#### Stage 2: Reference Comparison
 Execute Stage 2 only if Stage 1 passed. Otherwise skip directly to Failure Protocol.
 1. Use `view_file` on the original reference screenshot at `docs/src/Screenshots/<name>.png`.
 2. Compare the generated image against it. Minor differences due to GUI evolution (e.g., updated number formatting, renamed radio button text, changed positions of controls),  are acceptable. Layout, data content, and overall appearance must match. In case of substantial deviations due GUI evolution, ask user what to do.
@@ -296,7 +320,9 @@ Execute Stage 2 only if Stage 1 passed. Otherwise skip directly to Failure Proto
 
 When asked to create a generator for a new screenshot that doesn't have one yet:
 
-1. **Ask the user** how the screenshot was originally produced (which tab, which data source, which format options, etc.), or consult the existing reference image via `view_file`.
+1. **Obtain or capture the reference screenshot**:
+   - If the user already has the live GUI in the desired state, **capture it immediately** as the reference image in `docs/src/Screenshots/<name>.png` via Electron's `capturePage` API (see sub-skill `agentic_screenshot_specs.md`).
+   - Otherwise, ask the user how the screenshot was originally produced, or inspect an existing reference image via `view_file`.
 2. **Create the `.md` specification** in `test/AgenticTesting/screenshots/specifications/<name>.md` following the established format (Overview, Prerequisites, Step-by-Step, UI State, Verification Criteria).
 3. **Write the generator function** in a dedicated file: `test/AgenticTesting/src/screenshot_generators/generate_<name>_screenshot.jl`:
    ```julia
@@ -317,7 +343,7 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
    ```julia
    run_screenshot_generator(generate_<name>_screenshot)
    ```
-7. **Run, verify** (§8), and iterate until the output matches.
+7. **Run, verify** (§8), and iterate: Run `compare_images_ssim(ref, gen; crop=true)`. If the score is 1.0, verification is complete. Otherwise, perform the semantic spec verification (§8) and iterate until matching.
 
 ---
 

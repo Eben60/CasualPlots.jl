@@ -110,6 +110,31 @@ function variable_examples()
         DataFrame(m, nms)
     end
 
+    caspl_df_dissip =
+    let
+        lng = 61
+        event = 37
+
+        x = range(0, 60; length=lng)
+        y(t; A=0.01, y₀ = 3.1) = y₀/(1 + A * y₀ * t)
+
+        u = y.(x)
+        i = @. 1.2 * u^2 
+        remarks = Vector{Union{String, Missing}}(missing, lng)
+
+        U = u .* u"V"
+        I = i .* u"nA"
+
+        df = DataFrame((; time=x.*u"s", U, I, remarks)) |> allowmissing
+
+        df[event, "U"] += 0.268u"V"
+        df[event, "I"] = missing
+        df[event, "remarks"] = "light blinked"
+        df
+    end
+
+
+
     caspl_df_scores = DataFrame(
         "Name" => ["Ann", "Bob", "Charlie", "Dennis"],
         "Score 1" => [9.0, 7.8, 7.1, 14.6],
@@ -136,6 +161,7 @@ function variable_examples()
         caspl_df_unitmix, 
         caspl_df_exp,
         caspl_df_scores,
+        caspl_df_dissip,
     )
 end
 
@@ -173,6 +199,7 @@ macro populate()
             caspl_df_unitmix, 
             caspl_df_exp,
             caspl_df_scores,
+            caspl_df_dissip,
         ) = CasualPlots.variable_examples();
     end)
 end

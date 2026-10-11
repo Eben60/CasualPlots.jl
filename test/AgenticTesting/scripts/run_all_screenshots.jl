@@ -26,6 +26,7 @@ try
         run_screenshot_generator(generate_table_view_screenshot)
         run_screenshot_generator(generate_line_symbol_plot_screenshot)
         run_screenshot_generator(generate_Scatter_by_geometry_screenshot)
+        run_screenshot_generator(generate_non_linear_discharge_screenshot)
         
         println("=== All screenshots generated successfully ===")
     end

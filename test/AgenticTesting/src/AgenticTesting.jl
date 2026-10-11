@@ -27,6 +27,7 @@ include("screenshot_generators/generate_xy_source_screenshot.jl")
 include("screenshot_generators/generate_table_view_screenshot.jl")
 include("screenshot_generators/generate_save_tab_script_screenshot.jl")
 include("screenshot_generators/generate_dataframe_source_screenshot.jl")
+include("screenshot_generators/generate_non_linear_discharge_screenshot.jl")
 
 # ==========================================
 # 1. Exported API (Main testing entry points)
@@ -37,7 +38,7 @@ export generate_open_tab_screenshot, generate_dataframe_source_screenshot, gener
        generate_format_tab_limits_screenshot, generate_format_tab_lines_screenshot, 
        generate_plot_pane_maximized_screenshot, generate_save_tab_script_screenshot, 
        generate_table_view_screenshot, generate_line_symbol_plot_screenshot, 
-       generate_Scatter_by_geometry_screenshot
+       generate_Scatter_by_geometry_screenshot, generate_non_linear_discharge_screenshot
 
 # ==========================================
 # 2. Public API (Used via AgenticTesting.xyz)
