@@ -21,15 +21,15 @@ Script generation is particularly useful for:
 
 The generated code consists of three main components:
 
-1. **`cp_load_data(...)`**: Extracts and cleans the required data vectors or DataFrames, applying specified row range subsetting.
-2. **`cp_create_plot(data)`**: Constructs the `AlgebraOfGraphics` pipeline, sets themes, applies mappings, and returns the figure object.
+1. **`cp_load_data(...)`**: If necessary loads data from disk, extracts and cleans the source data, applying specified rows and columns subsetting. Returns the data as DataFrame in the "wide" form.
+2. **`cp_create_plot(plot_data)`**: Converts the DataFrame into the "tall" form, constructs the `AlgebraOfGraphics` pipeline, sets themes, applies mappings, and returns the figure object.
 3. **Execution Block**: Provides commented-out examples for displaying the figure or saving it to PNG, SVG, or PDF formats.
 
 ---
 
-## Example: Non-Linear Discharge Plot
+## Example: Plot of Capacitor Discharge
 
-The following walkthrough demonstrates how to produce and subsequently customize a script. We use sample data simulating an electrical discharge onto a non-linear load, plotting voltage ($U$) and current ($I$) against time. The DataFrame also has a `"remarks"` column containing a single non-missing entry, which we will initially ignore.
+The following walkthrough demonstrates how to produce and subsequently customize a script. We use sample data simulating a discharge of a capacitor onto a non-linear load, plotting voltage ($U$) and current ($I$) against time. The source DataFrame also has a `"remarks"` column containing a single non-missing entry, which we will initially ignore.
 
 ###     
 
@@ -71,7 +71,7 @@ The following walkthrough demonstrates how to produce and subsequently customize
     # # --- uncomment next line for high quality static output, esp. for saving ---
     # using CairoMakie
 
-    function cp_load_data(; caspl_df_dissip,
+    function cp_load_data(; data = caspl_df_dissip,
         # rows: rows range to plot. Examples: (:begin, :end), (1, 100), (:begin, 10), (10, :end)
         rows = (:begin, :end),
         )
@@ -102,7 +102,8 @@ The following walkthrough demonstrates how to produce and subsequently customize
     #  120 │   1190.0 s  0.760892 V  0.618702 nA  missing
     #  121 │   1200.0 s  0.756098 V  0.730415 nA  missing
     #                                     106 rows omitted
-        df = caspl_df_dissip
+        @assert data isa AbstractDataFrame || data isa AbstractMatrix
+        df = data isa AbstractMatrix ? DataFrame(data, [Symbol("caspl_df_dissip_$i") for i in 1:size(data, 2)]) : data
         df_selected = select(df, ["time", "U", "I"])
         if rows != (:begin, :end)
             if rows[1] == :begin
@@ -117,9 +118,10 @@ The following walkthrough demonstrates how to produce and subsequently customize
         return (; df=df_selected, x_name="time", y_name="caspl_df_dissip")
     end
 
-    function cp_create_plot(data)
+    function cp_create_plot(plot_data)
         WGLMakie.activate!() # Or CairoMakie.activate!() for static output
-        (; df, x_name, y_name) = data
+        set_theme!()
+        (; df, x_name, y_name) = plot_data
         ys = names(df)[2:end]
         x_col = Symbol(names(df)[1])
         y_col = :y
@@ -148,13 +150,13 @@ The following walkthrough demonstrates how to produce and subsequently customize
     # # --- taking exactly the same data already existing in the Main --
     #
     # # For available kwargs (like `rows`), see the cp_load_data signature
-    # data = cp_load_data(; caspl_df_dissip)
-    # fg = cp_create_plot(data)
+    # plot_data = cp_load_data()
+    # fg = cp_create_plot(plot_data)
     #
-    # # --- or, specify your input data (here my_df) ---
+    # # --- or, specify your input data (here my_data) ---
     #
-    # data = cp_load_data(; caspl_df_dissip=my_df)
-    # fg = cp_create_plot(data)
+    # plot_data = cp_load_data(; data=my_data)
+    # fg = cp_create_plot(plot_data)
     # 
     # display(fg)
     #
@@ -192,7 +194,7 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     using CairoMakie
     using Unitful: ustrip
 
-    function cp_load_data(; caspl_df_dissip,
+    function cp_load_data(; data = caspl_df_dissip,
         # rows: rows range to plot. Examples: (:begin, :end), (1, 100), (:begin, 10), (10, :end)
         rows = (:begin, :end),
         )
@@ -223,7 +225,8 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     #  120 │   1190.0 s  0.760892 V  0.618702 nA  missing
     #  121 │   1200.0 s  0.756098 V  0.730415 nA  missing
     #                                     106 rows omitted
-        df = caspl_df_dissip
+        @assert data isa AbstractDataFrame || data isa AbstractMatrix
+        df = data isa AbstractMatrix ? DataFrame(data, [Symbol("caspl_df_dissip_$i") for i in 1:size(data, 2)]) : data
         df_selected = select(df, ["time", "U", "I", "remarks"])
         if rows != (:begin, :end)
             if rows[1] == :begin
@@ -238,9 +241,10 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
         return (; df=df_selected, x_name="time", y_name="caspl_df_dissip")
     end
 
-    function cp_create_plot(data)
+    function cp_create_plot(plot_data)
         CairoMakie.activate!()
-        (; df, x_name, y_name) = data
+        set_theme!()
+        (; df, x_name, y_name) = plot_data
         
         # Extract non-missing remarks before stacking
         remarks_rows = filter(:remarks => !ismissing, df)
@@ -286,13 +290,13 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     # --- taking exactly the same data already existing in the Main --
 
     # For available kwargs (like `rows`), see the cp_load_data signature
-    data = cp_load_data(; caspl_df_dissip)
-    fg = cp_create_plot(data)
+    plot_data = cp_load_data()
+    fg = cp_create_plot(plot_data)
     #
-    # # --- or, specify your input data (here my_df) ---
+    # # --- or, specify your input data (here my_data) ---
     #
-    # data = cp_load_data(; caspl_df_dissip=my_df)
-    # fg = cp_create_plot(data)
+    # plot_data = cp_load_data(; data=my_data)
+    # fg = cp_create_plot(plot_data)
     # 
     display(fg)
     #
@@ -310,7 +314,7 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     ```diff
     --- initial_generated.jl
     +++ customized.jl
-    @@ -1,103 +1,120 @@
+    @@ -1,10 +1,10 @@
     -# Auto-generated by CasualPlots.jl
     +# Auto-generated by CasualPlots.jl and customized
      using DataFrames
@@ -322,46 +326,18 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     +using CairoMakie
     +using Unitful: ustrip
      
-     function cp_load_data(; caspl_df_dissip,
+     function cp_load_data(; data = caspl_df_dissip,
          # rows: rows range to plot. Examples: (:begin, :end), (1, 100), (:begin, 10), (10, :end)
-         rows = (:begin, :end),
-         )
-     
-         @assert length(rows) == 2 &&
-             (rows[1] isa Integer || rows[1] == :begin) &&
-             (rows[2] isa Integer || rows[2] == :end)
-     
-         # Assuming caspl_df_dissip is available in the executing environment
-     # 121×4 DataFrame
-     #  Row │ time        U           I            remarks
-     #      │ Quantity…?  Quantity…?  Quantity…?   String?
-     # ─────┼──────────────────────────────────────────────
-     #    1 │      0.0 s       3.1 V   11.5378 nA  missing
-     #    2 │     10.0 s   3.02193 V   11.0363 nA  missing
-     #    3 │     20.0 s    2.9477 V   10.4015 nA  missing
-     #    4 │     30.0 s   2.87703 V   9.99002 nA  missing
-     #    5 │     40.0 s   2.80967 V   9.41493 nA  missing
-     #    6 │     50.0 s   2.74539 V   9.14506 nA  missing
-     #    7 │     60.0 s   2.68398 V   8.60835 nA  missing
-     #    8 │     70.0 s   2.62526 V   8.19418 nA  missing
-     #   ⋮  │     ⋮           ⋮            ⋮          ⋮
-     #  115 │   1140.0 s  0.785805 V  0.714534 nA  missing
-     #  116 │   1150.0 s  0.780693 V  0.697325 nA  missing
-     #  117 │   1160.0 s  0.775646 V  0.671721 nA  missing
-     #  118 │   1170.0 s  0.770665 V  0.715101 nA  missing
-     #  119 │   1180.0 s  0.765747 V  0.682911 nA  missing
-     #  120 │   1190.0 s  0.760892 V  0.618702 nA  missing
-     #  121 │   1200.0 s  0.756098 V  0.730415 nA  missing
+    @@ -39,7 +39,7 @@
      #                                     106 rows omitted
-         df = caspl_df_dissip
+         @assert data isa AbstractDataFrame || data isa AbstractMatrix
+         df = data isa AbstractMatrix ? DataFrame(data, [Symbol("caspl_df_dissip_$i") for i in 1:size(data, 2)]) : data
     -    df_selected = select(df, ["time", "U", "I"])
     +    df_selected = select(df, ["time", "U", "I", "remarks"])
          if rows != (:begin, :end)
              if rows[1] == :begin
                  df_selected = df_selected[begin:rows[2], :]
-             elseif rows[2] == :end
-                 df_selected = df_selected[rows[1]:end, :]
-             else
+    @@ -49,15 +49,22 @@
                  df_selected = df_selected[rows[1]:rows[2], :]
              end
          end
@@ -370,10 +346,11 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
          return (; df=df_selected, x_name="time", y_name="caspl_df_dissip")
      end
      
-     function cp_create_plot(data)
+     function cp_create_plot(plot_data)
     -    WGLMakie.activate!() # Or CairoMakie.activate!() for static output
     +    CairoMakie.activate!()
-         (; df, x_name, y_name) = data
+         set_theme!()
+         (; df, x_name, y_name) = plot_data
     -    ys = names(df)[2:end]
     +    
     +    # Extract non-missing remarks before stacking
@@ -386,11 +363,7 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
          x_col = Symbol(names(df)[1])
          y_col = :y
          group_col = :group
-         df = stack(df, ys; variable_name=:group, value_name=:y)
-         final_x_name = "time"
-         final_y_name = "U[V], I[nA]"
-         title = "Discharge onto non-linear load"
-         plt = AlgebraOfGraphics.data(df) * mapping(x_col => final_x_name, y_col => final_y_name) * mapping(; color = group_col => "") * visual(Lines)
+    @@ -69,11 +76,21 @@
          
          limits = (0.0, nothing, 0.0, nothing)
          
@@ -403,34 +376,35 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     -        axis=(; title, limits, xreversed=false, yreversed=false)
     +        axis=(; title, limits, xreversed=false, yreversed=false, backgroundcolor=salad_green)
          )
-         
+    +    
     +    # Annotate remarks on the plot
     +    ax = fg.grid[1, 1].axis
     +    for r in eachrow(remarks_rows)
     +        t_val = Float64(ustrip(r.time))
     +        text!(ax, t_val, 1; text = "▲ $(r.remarks)", align = (:left, :bottom), fontsize = 11)
     +    end
-    +    
+         
          return fg
      end
-     
-     # Execution 
+    @@ -82,18 +99,18 @@
      #
      # uncomment and run the corresponding lines to generate, display, and/or save the plot
      #
     -# # --- taking exactly the same data already existing in the Main --
+    -#
+    -# # For available kwargs (like `rows`), see the cp_load_data signature
+    -# plot_data = cp_load_data()
+    -# fg = cp_create_plot(plot_data)
     +# --- taking exactly the same data already existing in the Main --
     +
-     # For available kwargs (like `rows`), see the cp_load_data signature
-    -# data = cp_load_data(; caspl_df_dissip)
-    -# fg = cp_create_plot(data)
-    +data = cp_load_data(; caspl_df_dissip)
-    +fg = cp_create_plot(data)
+    +# For available kwargs (like `rows`), see the cp_load_data signature
+    +plot_data = cp_load_data()
+    +fg = cp_create_plot(plot_data)
      #
-     # # --- or, specify your input data (here my_df) ---
+     # # --- or, specify your input data (here my_data) ---
      #
-     # data = cp_load_data(; caspl_df_dissip=my_df)
-     # fg = cp_create_plot(data)
+     # plot_data = cp_load_data(; data=my_data)
+     # fg = cp_create_plot(plot_data)
      # 
     -# display(fg)
     +display(fg)

@@ -31,8 +31,8 @@ using CairoMakie
         include_string(test_mod, code)
 
         # Explicitly execute the functions and save the plot
-        data = Core.eval(test_mod, :(cp_load_data(; _casualplots_e2e_test_x=Main._casualplots_e2e_test_x, _casualplots_e2e_test_y=Main._casualplots_e2e_test_y)))
-        fg = Core.eval(test_mod, :(cp_create_plot($data)))
+        plot_data = Core.eval(test_mod, :(cp_load_data(; x_data=Main._casualplots_e2e_test_x, y_data=Main._casualplots_e2e_test_y)))
+        fg = Core.eval(test_mod, :(cp_create_plot($plot_data)))
         
         CairoMakie.activate!()
         CairoMakie.save(png_path, fg.figure)
@@ -75,8 +75,8 @@ end
         include_string(test_mod, code)
 
         # Explicitly execute the functions and save the plot
-        data = Core.eval(test_mod, :(cp_load_data(; _casualplots_e2e_df=Main._casualplots_e2e_df)))
-        fg = Core.eval(test_mod, :(cp_create_plot($data)))
+        plot_data = Core.eval(test_mod, :(cp_load_data(; data=Main._casualplots_e2e_df)))
+        fg = Core.eval(test_mod, :(cp_create_plot($plot_data)))
         
         CairoMakie.activate!()
         CairoMakie.save(png_path, fg.figure)
@@ -107,7 +107,7 @@ end
         
 
         # Uncomment the data loading and plotting
-        script_content = replace(script_content, r"^# (data = cp_load_data\(.*\))$"m => s"\1"; count=1)
+        script_content = replace(script_content, r"^# (plot_data = cp_load_data\(.*\))$"m => s"\1"; count=1)
         script_content = replace(script_content, r"^# (fg = cp_create_plot\(.*\))$"m => s"\1"; count=1)
         # Uncomment CairoMakie usage
         script_content = replace(script_content, r"^# (using CairoMakie)$"m => s"\1")

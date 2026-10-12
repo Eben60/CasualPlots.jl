@@ -49,7 +49,8 @@ test/AgenticTesting/
 │       ├── generate_table_view_screenshot.jl
 │       └── generate_xy_source_screenshot.jl
 ├── scripts/
-│   └── run_all_screenshots.jl               # Runs all generators sequentially via run_screenshot_generator
+│   ├── run_all_screenshots.jl               # Runs all generators sequentially via run_screenshot_generator
+│   └── run_screenshots_with_scripts.jl      # Runs generators with script generation & verifies rendered plots
 ├── screenshots/
 │   ├── specifications/
 │   │   └── <name>.md                        # Detailed spec per screenshot (see §4)
@@ -58,6 +59,12 @@ docs/src/Screenshots/
 ├── <name>.png                               # Current reference screenshots (the "golden" files)
 └── tmp/                                     # Output directory for generated screenshots
     └── <name>.png, <name>_01.png, ...       # Auto-numbered to avoid overwrites
+tmp/
+├── genscripts/                              # Auto-generated Julia scripts from screenshots
+└── genplots/                                # Standalone PNG figures rendered from genscripts (808×610)
+.agents/skills/casualplots-screenshots/references/
+├── agentic_screenshot_specs.md              # Guide for creating screenshot specification files
+└── script_generation_verification.md        # Script generation verification & size factor calibration guide
 ```
 
 ---
@@ -251,6 +258,19 @@ include("test/AgenticTesting/scripts/run_all_screenshots.jl")
 ```
 
 This activates the `AgenticTesting` test environment, wraps execution in `with_screenshot_env(; nofancy=true)`, and calls `run_screenshot_generator` for each generator in sequence.
+
+### Running Screenshots with Script Generation & Standalone Plot Verification
+
+Screenshot generators can automatically produce standalone Julia scripts (`makescript = true`) which render figures via `WGLMakie` to verify visual parity against GUI screenshots, thus also verifying the correctness of the generated script.
+
+To run the verification suite:
+```julia
+include("test/AgenticTesting/scripts/run_screenshots_with_scripts.jl")
+```
+Supported `verify_against` options: `:golden` (default), `:produced`, or `:both`.
+
+For full details:
+👉 See the dedicated reference document: **[Script Generation Verification & Size Factor Calibration](references/script_generation_verification.md)**.
 
 ---
 

@@ -27,6 +27,7 @@ function capture_gui_screenshot(
     timeout = 15,
     makescript = false,
     scriptfile = nothing,
+    fig_size = (808, 610),
 )
     # 1. Reset theme and start App
     CasualPlots.apply_theme!(nothing, CasualPlots.DEFAULT_THEME)
@@ -55,7 +56,7 @@ function capture_gui_screenshot(
         if makescript && !isnothing(scriptfile)
             mkpath(dirname(scriptfile))
             println("Generating script to: ", scriptfile)
-            res = CasualPlots.generate_julia_code(local_app; file = scriptfile)
+            res = CasualPlots.generate_julia_code(local_app; file = scriptfile, fig_size = fig_size)
             if res.success
                 println("Script saved successfully to: ", scriptfile)
             else
@@ -142,6 +143,7 @@ function run_screenshot_generator(
     dir = nothing,
     makescript = false,
     scriptfile = nothing,
+    fig_size = (808, 610),
 )
     isnothing(filename) && (filename = generator_func())
     isnothing(dir) && (dir = normpath(joinpath(@__DIR__, "..", "..", "..", "docs", "src", "Screenshots", "tmp")))
@@ -154,8 +156,8 @@ function run_screenshot_generator(
 
     println("--- Generating screenshot: $filename ---")
 
-    capture_gui_screenshot(generator_func; filename, dir, makescript, scriptfile)
+    screenshot_path = capture_gui_screenshot(generator_func; filename, dir, makescript, scriptfile, fig_size)
 
     println("--- Generation complete ---")
-    return nothing
+    return screenshot_path
 end

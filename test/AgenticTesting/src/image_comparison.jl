@@ -154,3 +154,67 @@ function compare_directories_ssim(;
     return (; passed = passed, scores = scores)
 end
 
+"""
+    crop_screenshot_plot(screenshot::AbstractArray; rows = 40:649, cols = 362:1169) -> AbstractArray
+    crop_screenshot_plot(screenshot_path::AbstractString; rows = 40:649, cols = 362:1169) -> Matrix{RGB}
+
+Crop the plot canvas area from a full CasualPlots GUI screenshot.
+Defaults to `rows = 40:649` and `cols = 362:1169` (the 808×610 plot canvas within a 1200×960 window).
+"""
+function crop_screenshot_plot(screenshot::AbstractArray; rows = 40:649, cols = 362:1169)
+    return screenshot[rows, cols]
+end
+
+function crop_screenshot_plot(screenshot_path::AbstractString; rows = 40:649, cols = 362:1169)
+    isfile(screenshot_path) || error("Screenshot file not found: $screenshot_path")
+    img = RGB.(FileIO.load(screenshot_path))
+    return crop_screenshot_plot(img; rows = rows, cols = cols)
+end
+
+"""
+    compare_screenshot_plot_ssim(
+        screenshot_path::AbstractString,
+        plot_path::AbstractString;
+        threshold::Real = Sys.isapple() ? 0.98 : 0.9,
+        crop_rows = 40:649,
+        crop_cols = 362:1169,
+    ) -> (; passed::Bool, score::Union{Real, Missing})
+
+Crops the plot canvas from `screenshot_path` and computes its SSIM comparison against
+the standalone rendered figure in `plot_path`. Returns a NamedTuple with `passed::Bool`
+and `score` (Float64 or `missing` if either file is not found).
+"""
+function compare_screenshot_plot_ssim(
+    screenshot_path,
+    plot_path;
+    threshold = Sys.isapple() ? 0.98 : 0.9,
+    crop_rows = 40:649,
+    crop_cols = 362:1169,
+)
+    if !isfile(screenshot_path)
+        @warn "Screenshot file not found: $screenshot_path"
+        return (; passed = false, score = missing)
+    end
+    if !isfile(plot_path)
+        @warn "Plot file not found: $plot_path"
+        return (; passed = false, score = missing)
+    end
+
+    img_shot = RGB.(FileIO.load(screenshot_path))
+    img_plot = RGB.(FileIO.load(plot_path))
+
+    cropped = crop_screenshot_plot(img_shot; rows = crop_rows, cols = crop_cols)
+
+    if size(cropped) != size(img_plot)
+        h = min(size(cropped, 1), size(img_plot, 1))
+        w = min(size(cropped, 2), size(img_plot, 2))
+        cropped = @view cropped[1:h, 1:w]
+        img_plot = @view img_plot[1:h, 1:w]
+    end
+
+    score = Float64(assess_ssim(cropped, img_plot))
+    passed = score >= threshold
+
+    return (; passed = passed, score = score)
+end
+

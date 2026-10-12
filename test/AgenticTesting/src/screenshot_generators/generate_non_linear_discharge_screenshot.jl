@@ -52,8 +52,8 @@ function generate_non_linear_discharge_screenshot(session, local_app)
     wait_for_ui_settle(session; delay=1.0)
     wait_for_observable(local_app.state.misc.block_format_update, false; timeout=15.0)
 
-    set_input_value(session, "#input-xlabel", "time [s]")
-    wait_for_observable(local_app.state.plotting.handles.xlabel_text, "time [s]")
+    # set_input_value(session, "#input-xlabel", "time [s]")
+    # wait_for_observable(local_app.state.plotting.handles.xlabel_text, "time [s]")
 
     set_input_value(session, "#input-ylabel", "U[V], I[nA]")
     wait_for_observable(local_app.state.plotting.handles.ylabel_text, "U[V], I[nA]")
