@@ -6,4 +6,4 @@ Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 CasualPlots = {path = ".."}
 
 [compat]
-julia = "1.12"
+julia = "1.13"
