@@ -1,7 +1,8 @@
 using Pkg
 main_pkg_path = (joinpath(@__DIR__, "../") |> normpath)
 Pkg.activate(@__DIR__)
-Pkg.develop(path = main_pkg_path)
+
+debug = true
 
 include("makedocs.jl")
 

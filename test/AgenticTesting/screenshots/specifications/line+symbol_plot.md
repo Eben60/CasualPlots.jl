@@ -70,7 +70,7 @@ Demonstrates the **Format** tab configured for a **Line+Symbol** plot type, usin
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`line+symbol_plot.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/line+symbol_plot.png)) using the `view_file` tool. If the generated image differs substantially in any of the criteria below, the task is **not done**.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`line+symbol_plot.png`](../../../../docs/src/Screenshots/line+symbol_plot.png)) using the `view_file` tool. If the generated image differs substantially in any of the criteria below, the task is **not done**.
 
 To verify if another screenshot matches this configuration:
 1. **Plot Type**: Line+Symbol plot with both lines and circle markers visible on each series.

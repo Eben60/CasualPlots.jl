@@ -48,11 +48,13 @@ When using `CasualPlots.jl`, the source selection dropdowns automatically popula
 
 ### b). DataFrame Mode
 
-1. In the **Source** tab, select **DataFrame** as the Source Type.
-2. Choose a DataFrame from the dropdown (e.g., `caspl_df_simple`).
+DataFrames in `Main` (as well as 2D `Matrix` variables) are detected automatically. DataFrames are expected to follow the ["wide" format](https://aog.makie.org/stable/examples/data-manipulations/wide-data#Long-vs-Wide-Data-Formats).
+
+1. In the **Source** tab, select **File/DataFrame/Matrix** as the Source Type.
+2. Choose a DataFrame or Matrix from the dropdown (e.g., `caspl_df_simple`).
 3. Select columns using the column checkboxes. The first checked column is assigned to the X-axis, and subsequent checked columns are plotted on the Y-axis.
 4. Optionally adjust the row index range (`Range From` / `Range To`).
-5. Click **(Re-)Plot**. The DateTable will be filled in, and data plotted
+5. Click **(Re-)Plot**. The DataTable will be filled in, and the data plotted.
 
 !!! details "📸 Screenshot: DataFrame Selection, every third column selected, a sub-range selected"
     *🔍 [Click to view full resolution](Screenshots/dataframe_source_selection.png)*
@@ -61,6 +63,8 @@ When using `CasualPlots.jl`, the source selection dropdowns automatically popula
 ---
 
 ### c). File Import (CSV & XLSX)
+
+Supported disk formats are **CSV/TSV** and **XLSX** (Excel). The GUI provides a subset of the file reading options available in the respective packages. If you have a file with complex formatting, you can load it into a `DataFrame` manually in the REPL; the data will then be available as a standard variable.
 
 To load external files from disk:
 
@@ -73,7 +77,7 @@ To load external files from disk:
    - Delimiter and decimal separator formats for CSV/TSV files.
 4. Click **Open File** and select a file.
    - For **CSV** files, data is parsed immediately.
-   - For **Excel (XLSX)** files, data is parsed immediately after selecting a sheet from the dropdown.
+   - For **Excel (XLSX)** files with multiple tables, the first worksheet is opened initially. You can select a different sheet from the dropdown.
    - Use the **Reload** button to re-parse the data if you adjust any reading options after the initial load.
 5. Loaded file data becomes available under `"opened file"` in the DataFrame source selection dropdown.
 6. Proceed in DataFrame Mode.
@@ -81,6 +85,17 @@ To load external files from disk:
 !!! details "📸 Screenshot: Open Tab & File Reading Options"
     *🔍 [Click to view full resolution](Screenshots/open_file_tab.png)*
     [![Open File Tab](Screenshots/open_file_tab.png)](Screenshots/open_file_tab.png)
+
+---
+
+### d). Data Cleansing and Normalization
+
+Before plotting, the application automatically cleanses and normalizes selected data:
+
+- **Non-numeric values**: If a column contains fewer than 10% non-numeric values, `CasualPlots` replaces them with `missing` (displaying a warning modal) so the remaining valid data can be plotted. If non-numeric values exceed 10%, the column is left as-is: an X-axis column is treated as categorical, while a Y-axis column may result in a downstream plotting error.
+- **Unitful quantities**:
+  - **Within a column**: Compatible units (e.g., `m` and `cm`) are converted to a single common unit. Incompatible physical dimensions (e.g., `m` and `m^2`) or a mix of units and plain numbers raise an error.
+  - **Across multiple Y columns**: If multiple Y columns have compatible units, they are unified to a single common unit on the Y-axis. If multiple Y columns have incompatible physical dimensions (e.g., plotting voltage and current on the same axis), `CasualPlots` displays a warning and strips the units so the values can still be plotted together.
 
 ---
 
@@ -99,6 +114,10 @@ Select **Lines** or **Scatter** plot type. Options include:
 !!! details "📸 Screenshot: Format Tab & Lines Plot, Customized attributes"
     *🔍 [Click to view full resolution](Screenshots/format_tab_lines.png)*
     [![Format Tab Lines](Screenshots/format_tab_lines.png)](Screenshots/format_tab_lines.png)
+
+!!! details "📸 Screenshot: Scatter Plot, Differentiated by Geometry"
+    *🔍 [Click to view full resolution](Screenshots/Scatter_by_geometry.png)*
+    [![Scatter Plot Geometry](Screenshots/Scatter_by_geometry.png)](Screenshots/Scatter_by_geometry.png)
 
 ---
 
@@ -165,17 +184,32 @@ Column header colors indicate data types:
 
 ---
 
-## 6. Exporting Plots & Script Generation
+## 6. REPL Access to the Live Plot
+
+The active plot's `Makie.Figure` and `Axis` objects are exported directly to the `Main` REPL environment as `cp_figure` and `cp_figure_ax`. You can inspect or modify them from the REPL; changes update the interactive GUI display immediately:
+
+```julia-repl
+# Directly modify the axis in the REPL; changes reflect in the GUI immediately
+julia> hidespines!(cp_figure_ax, :r, :t)
+```
+
+!!! note
+    Modifications made directly to `cp_figure` or `cp_figure_ax` are included when saving image files (`PNG`, `SVG`, `PDF`), but are **not** reflected in scripts generated by **Create Script**.
+
+---
+
+## 7. Exporting Plots & Script Generation
 
 Navigate to the **Save** tab:
 
 ### Saving Image Files
-- Select file or enter filepath, then click **Save Plot** to save static vector or raster outputs (PNG, SVG, or PDF).
+- Specify a file path (or click **Select File...**) with a `.png`, `.svg`, or `.pdf` extension, then click **Save Plot** to save static vector or raster outputs. If the destination file already exists, a confirmation prompt prevents accidental overwriting.
 
 ### Script Generation
-- Click **Create Script** to generate a standalone Julia `.jl` script.
-- The generated code uses `AlgebraOfGraphics.jl` and `WGLMakie.jl`/`CairoMakie.jl` to reproduce the plot without requiring the CasualPlots GUI.
+- Click **Create Script** to generate a standalone Julia `.jl` script. If the target file already exists, a confirmation prompt appears.
+- The generated code uses `AlgebraOfGraphics.jl` and `WGLMakie.jl`/`CairoMakie.jl` to reproduce the plot without requiring the CasualPlots GUI. See **[Script Generation](script_generation.md)** for a detailed walkthrough.
 
 !!! details "📸 Screenshot: Save Tab & Code Generation"
     *🔍 [Click to view full resolution](Screenshots/save_tab_script.png)*
     [![Save Tab](Screenshots/save_tab_script.png)](Screenshots/save_tab_script.png)
+

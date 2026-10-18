@@ -19,7 +19,16 @@ end
 
 # Forward Display (REPL, Notebooks, IDEs)
 Base.show(io::IO, m::MIME, cp::CasualPlotApp) = show(io, m, cp.app)
-Base.display(d::AbstractDisplay, cp::CasualPlotApp) = display(d, cp.app)
+Base.show(io::IO, m::MIME"text/plain", cp::CasualPlotApp) = show(io, m, cp.app)
+# Forward 2-argument `display` for all `AbstractDisplay` subtypes defined in `Bonito`
+# (e.g., BrowserDisplay, ElectronDisplay). Generating methods only for Bonito's concrete
+# display types forwards Bonito-specific displays while preventing method ambiguities
+# with standard Julia displays (TextDisplay, REPLDisplay, VSCode inline displays).
+for D in subtypes(AbstractDisplay)
+    if Base.moduleroot(parentmodule(D)) === Bonito
+        @eval Base.display(d::$D, cp::CasualPlotApp) = display(d, cp.app)
+    end
+end
 Base.display(cp::CasualPlotApp) = display(cp.app)
 
 # Forward Web serving

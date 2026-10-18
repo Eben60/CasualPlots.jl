@@ -75,7 +75,7 @@ Demonstrates the **Source** tab in **X, Y Arrays** mode, where independent 1D/2D
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`xy_source_selection.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/xy_source_selection.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`xy_source_selection.png`](../../../../docs/src/Screenshots/xy_source_selection.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Source Tab**: "X, Y Arrays" radio button is checked with `caspl_x_10` and `caspl_ys10` selected.

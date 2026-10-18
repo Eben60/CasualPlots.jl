@@ -1,19 +1,35 @@
-using ShareAdd
-@usingany CasualPlots, AgenticTesting
-CasualPlots.@populate()
+using Pkg
 
-println("=== Running all screenshot generators ===")
+initial_env = Base.active_project()
+target_env = normpath(joinpath(@__DIR__, ".."))
+target_project = normpath(joinpath(target_env, "Project.toml"))
+already_target = initial_env !== nothing && normpath(initial_env) == target_project
 
-include("run_dataframe_source_screenshot.jl")
-include("run_xy_source_screenshot.jl")
-include("run_open_tab_screenshot.jl")
-include("run_format_tab_barplot_dodged.jl")
-include("run_format_tab_barplot_stacked.jl")
-include("run_format_tab_limits.jl")
-include("run_format_tab_lines.jl")
-include("run_plot_pane_maximized.jl")
-include("run_save_tab_script.jl")
-include("run_table_view.jl")
-include("run_line_symbol_plot.jl")
+try
+    already_target || Pkg.activate(target_env)
+    using AgenticTesting, CasualPlots
+    using CSV, XLSX
+    Core.eval(Main, :(CasualPlots.@populate()))
 
-println("=== All screenshots generated successfully ===")
+    with_screenshot_env(; nofancy=true) do
+        println("=== Running all screenshot generators ===")
+
+        run_screenshot_generator(generate_dataframe_source_screenshot)
+        run_screenshot_generator(generate_xy_source_screenshot)
+        run_screenshot_generator(generate_open_tab_screenshot)
+        run_screenshot_generator(generate_format_tab_barplot_dodged_screenshot)
+        run_screenshot_generator(generate_format_tab_barplot_stacked_screenshot)
+        run_screenshot_generator(generate_format_tab_limits_screenshot)
+        run_screenshot_generator(generate_format_tab_lines_screenshot)
+        run_screenshot_generator(generate_plot_pane_maximized_screenshot)
+        run_screenshot_generator(generate_save_tab_script_screenshot)
+        run_screenshot_generator(generate_table_view_screenshot)
+        run_screenshot_generator(generate_line_symbol_plot_screenshot)
+        run_screenshot_generator(generate_Scatter_by_geometry_screenshot)
+        run_screenshot_generator(generate_non_linear_discharge_screenshot)
+        
+        println("=== All screenshots generated successfully ===")
+    end
+finally
+    already_target || (initial_env !== nothing ? Pkg.activate(initial_env) : Pkg.activate())
+end

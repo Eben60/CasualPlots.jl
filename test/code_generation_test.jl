@@ -23,9 +23,10 @@ Main.eval(:(my_df = DataFrame(col_A = 1:3, col_B = 1:3)))
     
     code = generate_julia_code(state).code
     
-    @test occursin("function cp_load_data(; xx100, yy100,", code)
-    @test occursin("data = cp_load_data(; xx100, yy100)", code)
-    @test occursin("cp_create_plot(data)", code)
+    @test occursin("function cp_load_data(; x_data = xx100, y_data = yy100,", code)
+    @test occursin("plot_data = cp_load_data()", code)
+    @test occursin("plot_data = cp_load_data(; x_data=my_x, y_data=my_y)", code)
+    @test occursin("cp_create_plot(plot_data)", code)
     
     @test occursin("df[!, \"xx100\"] = x_data", code)
     @test occursin("CasualPlots.clean_plot_data!(df_selected, valid_cols)", code)
@@ -46,8 +47,10 @@ end
     
     code = generate_julia_code(state).code
     
-    @test occursin("function cp_load_data(; my_df,", code)
-    @test occursin("data = cp_load_data(; my_df)", code)
+    @test occursin("function cp_load_data(; data = my_df,", code)
+    @test occursin("@assert data isa AbstractDataFrame || data isa AbstractMatrix", code)
+    @test occursin("plot_data = cp_load_data()", code)
+    @test occursin("plot_data = cp_load_data(; data=my_data)", code)
     @test occursin("CasualPlots.clean_plot_data!(df_selected, [\"col_A\", \"col_B\"])", code)
     # Uses CasualPlots here
     @test occursin("using CasualPlots", code)
@@ -66,7 +69,7 @@ end
     code = generate_julia_code(state).code
     
     @test occursin("function cp_load_data(; file", code)
-    @test occursin("data = cp_load_data()", code)
+    @test occursin("plot_data = cp_load_data()", code)
     @test occursin("using CSV", code)
     @test occursin("CSV.read", code)
     @test occursin("using CasualPlots", code)
@@ -204,13 +207,13 @@ end
     state.data_selection.range_from[] = nothing
     state.data_selection.range_to[] = nothing
     code1 = generate_julia_code(state).code
-    @test occursin("data = cp_load_data(; my_df)\n", code1)
+    @test occursin("plot_data = cp_load_data()\n", code1)
     
     # 1b. Full range (bounds matched explicitly, should also omit `rows` kwarg in call)
     state.data_selection.range_from[] = 1
     state.data_selection.range_to[] = 100
     code1b = generate_julia_code(state).code
-    @test occursin("data = cp_load_data(; my_df)\n", code1b)
+    @test occursin("plot_data = cp_load_data()\n", code1b)
 
     # 2. Start to a specific end
     state.data_selection.range_from[] = 1

@@ -70,7 +70,7 @@ Demonstrates the **Save** tab configured for Julia script generation, displaying
 
 ## 5. Key Visual Verification Criteria
 > [!IMPORTANT]
-> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`save_tab_script.png`](file:///Users/elk/Julia/1-Registered-Packages/CasualPlots.jl/docs/src/Screenshots/save_tab_script.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
+> **Mandatory Comparison Requirement**: The produced PNG file must be compared content-wise with the original screenshot ([`save_tab_script.png`](../../../../docs/src/Screenshots/save_tab_script.png)). If the generated image differs substantially in any of the criteria below or overall visual appearance, the task is **not done** and the generator script must be adjusted and re-run.
 
 To verify if another screenshot matches this configuration:
 1. **Save Tab Active**: Tab is `Save` with `Select File...`, `Save Plot`, and `Create Script` buttons visible.

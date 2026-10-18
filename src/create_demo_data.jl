@@ -110,6 +110,40 @@ function variable_examples()
         DataFrame(m, nms)
     end
 
+    caspl_df_dissip =
+    let
+        lng = 121
+        event = 37
+        noise = randn(Xoshiro(lng), (lng,)) .* 0.05
+
+        x = range(0, 20; length=lng)
+        remarks = Vector{Union{String, Missing}}(missing, lng)
+
+        y(t; A, y₀) = y₀/(1 + A * y₀ * t)
+
+        u = y.(x; A=0.05, y₀ = 3.1)
+        i = @. 1.2 * u^2 + noise
+
+        U = u .* u"V"
+        I = i .* u"nA"
+        t = (x.*u"minute") .|> u"s"
+
+        df = DataFrame((; time=t, U, I, remarks)) |> allowmissing
+
+        df[event, "U"] += 0.268u"V"
+        df[event, "I"] = missing
+        df[event, "remarks"] = "light blinked"
+        df
+    end
+
+
+
+    caspl_df_scores = DataFrame(
+        "Name" => ["Ann", "Bob", "Charlie", "Dennis"],
+        "Score 1" => [9.0, 7.8, 7.1, 14.6],
+        "Score 2" => [8.8, 12.0, 15.2, 5.3],
+    )
+
     return (; 
         caspl_x_10, 
         caspl_ys10, 
@@ -129,6 +163,8 @@ function variable_examples()
         caspl_df_unitful, 
         caspl_df_unitmix, 
         caspl_df_exp,
+        caspl_df_scores,
+        caspl_df_dissip,
     )
 end
 
@@ -142,6 +178,7 @@ Variables created include:
 - `caspl_x_10`, `caspl_ys10`, `caspl_z10`, `caspl_2d_sinsin`, etc. (Vectors and Matrices)
 - `caspl_u_10`, `caspl_cm_25`, etc. (Unitful arrays)
 - `caspl_df_simple`, `caspl_df_large`, `caspl_df_unitful`, etc. (DataFrames)
+- `caspl_df_scores` (Categorical barplot demo)
 """
 macro populate()
     return esc(quote
@@ -164,6 +201,8 @@ macro populate()
             caspl_df_unitful, 
             caspl_df_unitmix, 
             caspl_df_exp,
+            caspl_df_scores,
+            caspl_df_dissip,
         ) = CasualPlots.variable_examples();
     end)
 end

@@ -4,20 +4,23 @@
 CasualPlots aims to provide a graphical user interface (GUI) to simplify the creation of plots in Julia. 
 The tool is positioned in the middle ground between purely script-based plotting and standalone GUI plotting applications.
 
-Package local path: $(pathof(CasualPlots))
-
 Usage example:
 ```julia-repl
 julia> using CasualPlots
 julia> app = casualplots_app()
 julia> Ele.serve_app(app) # Open GUI in Electron window
 ```
+
+Documentation: https://eben60.github.io/CasualPlots.jl/
+$(isnothing(get(ENV, "CI", nothing)) ? ("\n" * "Package local path: " * pathof(CasualPlots)) : "")
 """
 module CasualPlots
 
-using Bonito, BonitoWidgets, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie, DataFrames, Dates
+using Bonito, BonitoWidgets, Observables, AlgebraOfGraphics, WGLMakie, CairoMakie
+using DataFrames, Dates, Random
 using Unitful
 using DataStructures: DefaultDict
+using InteractiveUtils: subtypes
 import Printf
 
 include("electron.jl")
