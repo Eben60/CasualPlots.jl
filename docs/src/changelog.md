@@ -1,5 +1,17 @@
 # Changelog
 
+### [0.11.0]
+
+_2026-10-18_
+
+**Added**
+- Documenter based documentation
+
+**Changed/Internal**
+- Minor improvements in script generation
+- [`CasualPlots.last_error`](@ref) made public.
+- Multiple internal changes, esp. related to semi-automatic GUI testing
+
 ### [0.10.0]
 
 _2026-09-20_
