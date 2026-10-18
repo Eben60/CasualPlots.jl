@@ -10,6 +10,7 @@ _2026-10-18_
 **Changed/Internal**
 - Minor improvements in script generation
 - [`CasualPlots.last_error`](@ref) made public.
+- Added `Aqua.jl` test and fixed found ambiguities
 - Multiple internal changes, esp. related to semi-automatic GUI testing
 
 ### [0.10.0]

@@ -20,6 +20,7 @@ using Bonito, BonitoWidgets, Observables, AlgebraOfGraphics, WGLMakie, CairoMaki
 using DataFrames, Dates, Random
 using Unitful
 using DataStructures: DefaultDict
+using InteractiveUtils: subtypes
 import Printf
 
 include("electron.jl")

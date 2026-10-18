@@ -13,5 +13,3 @@ using CasualPlots: var_to_string
 
 # Test with string input
 @test var_to_string("myvar") == "myvar"
-
-# Note: select_cols is already tested in data_transformations_test.jl
