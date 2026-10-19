@@ -80,7 +80,8 @@ julia> close(app)  # close the app when finished
 #### Serving to a Web Browser
 
 ```julia-repl
-using Bonito
+julia> using Bonito
+
 julia> app = casualplots_app()
 
 julia> server = Bonito.Server(app, "127.0.0.1", 8000)
@@ -116,9 +117,9 @@ For a complete walkthrough of selecting data, formatting plots, customizing live
 - **[Script Generation](script_generation.md)** — How to generate and customize standalone Julia plotting scripts.
 - **[Introduction to AlgebraOfGraphics](aog_intro.md)** — A practical guide to `AlgebraOfGraphics.jl` for customizing generated scripts.
 
-## Exported and Selected Public Variables
+## Exported and Selected Public Entities
 
-For the full list, see the API section
+For the full list, see the [API Reference](api.md).
 
 ### Exported Entities
 
@@ -144,7 +145,7 @@ Ele.serve_app
 <p>Star on <a href="https://github.com/Eben60/CasualPlots.jl">GitHub</a> (that one is <span style="color: red; font-weight: bold;">important</span>!), open an issue, or contact <a href="https://discourse.julialang.org/u/eben60/summary">me</a> on Julia Discourse.</p>
 ```
 
-### AI usage disclosure
+### AI Usage Disclosure
 
 Google [Antigravity](https://antigravity.google/) was used extensively for coding and documentation under the author's supervision.
 

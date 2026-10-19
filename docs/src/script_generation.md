@@ -21,8 +21,8 @@ Script generation is particularly useful for:
 
 The generated code consists of three main components:
 
-1. **`cp_load_data(...)`**: If necessary loads data from disk, extracts and cleans the source data, applying specified rows and columns subsetting. Returns the data as DataFrame in the "wide" form.
-2. **`cp_create_plot(plot_data)`**: Converts the DataFrame into the "tall" form, constructs the `AlgebraOfGraphics` pipeline, sets themes, applies mappings, and returns the figure object.
+1. **`cp_load_data(...)`**: Loads data from disk if necessary, extracts and cleans the source data, and applies specified row and column selection. Returns the data as a DataFrame in "wide" format.
+2. **`cp_create_plot(plot_data)`**: Converts the DataFrame into "long" (tall) format, constructs the `AoG` pipeline, sets themes, applies mappings, and returns the figure object.
 3. **Execution Block**: Provides commented-out examples for displaying the figure or saving it to PNG, SVG, or PDF formats.
 
 ---
@@ -30,8 +30,6 @@ The generated code consists of three main components:
 ## Example: Plot of Capacitor Discharge
 
 The following walkthrough demonstrates how to produce and subsequently customize a script. We use sample data simulating a discharge of a capacitor onto a non-linear load, plotting voltage ($U$) and current ($I$) against time. The source DataFrame also has a `"remarks"` column containing a single non-missing entry, which we will initially ignore.
-
-###     
 
 1. Launch the application and populate demo data:
    ```julia

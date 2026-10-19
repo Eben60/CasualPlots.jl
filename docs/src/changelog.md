@@ -5,13 +5,13 @@
 _2026-10-18_
 
 **Added**
-- Documenter based documentation
+- Documenter-based documentation
 
 **Changed/Internal**
 - Minor improvements in script generation
-- [`CasualPlots.last_error`](@ref) made public.
-- Added `Aqua.jl` test and fixed found ambiguities
-- Multiple internal changes, esp. related to semi-automatic GUI testing
+- [`CasualPlots.last_error`](@ref) made public
+- Added `Aqua.jl` tests and fixed detected ambiguities
+- Multiple internal changes, especially related to semi-automatic GUI testing
 
 ### [0.10.0]
 
@@ -19,10 +19,10 @@ _2026-09-20_
 
 **Added**
 - Log-scale option.
-- Matrices can now be selected as source alongside with `DataFrame`s
+- Matrices can now be selected as data sources alongside `DataFrame`s
 - Auto-select the first sheet by default when opening `XLSX` files.
 - Visual loading indicator in the Plot pane during heavy operations (e.g., initial JIT compilation).
-- [`CasualPlots.last_error`](@ref) to display error stack in REPL.
+- Added [`CasualPlots.last_error`](@ref) to display the error backtrace in the REPL.
 
 **Changed/Internal**
 - Centralized REPL logging into `show_modal!` to automatically mirror GUI popups to the REPL.

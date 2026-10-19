@@ -1,6 +1,6 @@
 # Introduction to AlgebraOfGraphics (AoG)
 
-`CasualPlots.jl` uses `AoG` under the hood, and the standalone scripts it generates are using `AoG`. To customize a generated script, you need a working grasp of `AoG` basics.
+`CasualPlots.jl` uses `AoG` under the hood, and the standalone scripts it generates also use `AoG`. To customize a generated script, you need a working grasp of `AoG` basics.
 
 `AoG` builds plots by combining layers (`data * mapping * visual`). While the underlying logic is straightforward once understood, the official documentation is geared toward statistical and observational data analysis, which can make the initial learning curve steep for experimental scientists and engineers who mainly need standard 2D `Scatter`, `Lines`, and `BarPlot` figures. This chapter introduces `AoG` from that perspective, starting from a single vector and building up to multi-layer plots with physical units and error bars.
 
@@ -15,7 +15,7 @@ For further reading and comprehensive reference, see:
 
 ## Simple Plots from a Vector
 
-Let's start with the most simple dataset - a one-dimensional array of data - and see how we can visualize it in different ways.
+Let's start with the simplest dataset — a one-dimensional array of data — and see how we can visualize it in different ways.
 
 ### Scatter Plot
 
@@ -128,7 +128,7 @@ plt1 = data(df) * mapping(:v, :f; group=:T, color=:T => nonnumeric) * visual(Lin
 fig1 = plt1 |> draw
 ```
 
-The `color=:T => nonnumeric` transformation tells AlgebraOfGraphics to treat temperature as a categorical variable for marker (in this case, lines) colors.
+The `color=:T => nonnumeric` transformation tells AlgebraOfGraphics to treat temperature as a categorical variable for marker (in this case, line) colors.
 
 ![Theoretical Air Drag Curves](assets/fig1_air_drag_theory.png)
 
@@ -227,7 +227,7 @@ This creates a single plot showing both datasets, making it easy to compare theo
 
 ### Advanced Layering: Error Bars and Custom Scales
 
-Finally, we add error bars in both x and y directions. To avoid cluttering the legend, we use a named scale `:err` for the error bars to be able to hide them:
+Finally, we add error bars in both x and y directions. To avoid cluttering the legend, we use a named scale `:err` for the error bars so we can hide them:
 
 ```julia
 # Y-direction error bars
@@ -249,7 +249,7 @@ fg1234 = draw(plt4 + plt3 + plt2 + plt1,
 
 Key features demonstrated here:
 
-- **Named scales**: Using `scale(:err)` creates a separate color scale that can be configured independently
+- **Named scales**: `scale(:err)` creates a custom scale identifier. Here, because it is passed to the `color` mapping, AoG assigns it to an independent color scale that can be configured separately.
 - **Scale configuration**: `scales(; err = (; legend = false))` hides the legend for the `:err` scale
 - **Axis customization**: `limits = (0, nothing, 0, nothing)` sets both axes to start at 0 while letting the maximum values be determined automatically
 - **Layer ordering**: Layers are drawn in the order they appear (plt4 → plt3 → plt2 → plt1), so error bars appear behind the data points

@@ -34,7 +34,7 @@ julia> cp_figure_ax.title = "New Title"
 
 ## Docstrings
 
-### Exported entities
+### Exported Entities
 
 ```@autodocs
 Modules = [CasualPlots, CasualPlots.Ele]
@@ -42,7 +42,7 @@ Order   = [:type, :function, :macro, :constant, :module]
 Filter  = is_exported
 ```
 
-### Public entities
+### Public Entities
 
 ```@autodocs
 Modules = [CasualPlots, CasualPlots.Ele]
@@ -50,7 +50,7 @@ Order   = [:type, :function, :macro, :constant, :module]
 Filter  = t -> (!is_exported(t) && is_public(t))
 ```
 
-### Internal entities
+### Internal Entities
 
 ```@autodocs
 Modules = [CasualPlots, CasualPlots.Ele]

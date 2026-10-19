@@ -145,7 +145,7 @@ When **BarPlot** is selected with a categorical X column (e.g., categories `Grou
 In the **Format** tab:
 - **Axis Limits (`X lim:`, `Y lim:`)**: Set explicit numerical bounds (lower and upper, separated by an en-dash). Placeholders display the current automatic data bounds.
 - **Log Scale (`log:`)**: Toggle the `log:` checkbox on the X or Y axis to display data on a logarithmic ($\log_{10}$) scale.
-- **Axis Reversal (`rev.:`)**: Toggle the `rev.:` checkbox to invert axis directions (i.e. displaying values from high to low).
+- **Axis Reversal (`rev.:`)**: Toggle the `rev.:` checkbox to invert axis directions (i.e., displaying values from high to low).
 - **Categorical Data**: If an axis contains categorical data (e.g., strings), custom limits, log scale, and reversal controls are automatically disabled for that axis.
 - **Interactive Synchronization**: Zooming and panning in the Plot pane automatically synchronizes the current view limits back to the input fields.
 
