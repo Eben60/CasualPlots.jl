@@ -1,7 +1,10 @@
 # gui_test_bonito_driven.jl — Julia-driven GUI test via Bonito WebSocket
+# tests End-to-End User Flow
+# WIP
 #
 # Prerequisites: 
-#   include("src/scripts/casualplots_test_setup.jl")
+# using CasualPlots
+# CasualPlots:@populate
 #   app = casualplots_app()
 #   server = Bonito.Server(app, "127.0.0.1", 9385)
 #   # Then open http://localhost:9385/ in browser
@@ -11,7 +14,10 @@
 using Test
 using ShareAdd; @usingany AgenticTesting
 
-session = get_active_session()
+using AgenticTesting: get_element_info, get_dropdown_options, select_dropdown_value,
+    click_button, set_radio_value, get_checkboxes_state, toggle_checkbox
+
+session = AgenticTesting.get_active_session()
 @info "Session acquired" session.id session.status
 
 # ============================================================

@@ -1,3 +1,9 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://eben60.github.io/CasualPlots.jl/) 
+[![Build Status](https://github.com/Eben60/CasualPlots.jl/workflows/CI/badge.svg)](https://github.com/Eben60/CasualPlots.jl/actions?query=workflow%3ACI) 
+[![Aqua QA](https://raw.githubusercontent.com/JuliaTesting/Aqua.jl/master/badge.svg)](https://github.com/JuliaTesting/Aqua.jl)
+
+
 # CasualPlots.jl
 
 `CasualPlots.jl` is a GUI-based plotting application for Julia. It is positioned in the middle ground between purely script-based plotting and standalone GUI plotting tools. 
@@ -74,6 +80,7 @@ julia> close(app)  # close the app when finished
 #### Serving to a Web Browser
 
 ```julia-repl
+using Bonito
 julia> app = casualplots_app()
 
 julia> server = Bonito.Server(app, "127.0.0.1", 8000)
@@ -131,9 +138,11 @@ Ele.serve_app
 
 ## Miscellaneous
 
-### Likes & dislikes?
+### 👍Likes & 👎dislikes?
 
-Star on [GitHub](https://github.com/Eben60/CasualPlots.jl), open an issue, contact [me](https://discourse.julialang.org/u/eben60/summary) on Julia Discourse.
+```@raw html
+<p>Star on <a href="https://github.com/Eben60/CasualPlots.jl">GitHub</a> (that one is <span style="color: red; font-weight: bold;">important</span>!), open an issue, or contact <a href="https://discourse.julialang.org/u/eben60/summary">me</a> on Julia Discourse.</p>
+```
 
 ### AI usage disclosure
 
@@ -141,6 +150,6 @@ Google [Antigravity](https://antigravity.google/) was used extensively for codin
 
 ### Copyright and License
 
-© 2026 Ben Elkin (Eben60)
+© 2025-2026 Ben Elkin (Eben60)
 
 Released under the MIT License (see the `LICENSE` file for details).

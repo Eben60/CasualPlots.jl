@@ -176,8 +176,8 @@ The following walkthrough demonstrates how to produce and subsequently customize
 
 The generated script serves as a starting point for further customizations that are not directly available through the GUI. By modifying the code, you can leverage the full power of both [`AlgebraOfGraphics.jl`](https://github.com/MakieOrg/AlgebraOfGraphics.jl) and [`Makie.jl`](https://github.com/MakieOrg/Makie.jl). Here, we limit ourselves to the following customizations:
 
-1. Rename the units in the Legend
-2. Change the backgroung color
+1. Customize the legend to show units. Use mathematical typesetting: variable symbols ($U$, $I$) in standard math italics, and units with brackets ($[\text{V}]$, $[\text{nA}]$) in upright roman text.
+2. Change the background color of the plot.
 3. Insert the comment(s) from the "remarks" column into the plot at the event time.
 
 Furthermore, we switch to the static `CairoMakie` backend for optimal output quality.
@@ -249,9 +249,7 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
         # Extract non-missing remarks before stacking
         remarks_rows = filter(:remarks => !ismissing, df)
 
-        # Rename columns to include units in legend labels
-        df = rename(df, "U" => "U[V]", "I" => "I[nA]")
-        ys = ["U[V]", "I[nA]"]
+        ys = ["U", "I"]
         
         x_col = Symbol(names(df)[1])
         y_col = :y
@@ -267,7 +265,10 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
         # Custom salad-green background color
         salad_green = "#eef8ee"
         
-        fg = draw(plt; 
+        # Explicitly set legend labels with units in mathematical type
+        color_scales = scales(Color = (; categories = ["U" => L"U\ [\text{V}]", "I" => L"I\ [\text{nA}]"]))
+        
+        fg = draw(plt, color_scales; 
             figure=(; size=(800, 600)), 
             legend=(show=true,), 
             axis=(; title, limits, xreversed=false, yreversed=false, backgroundcolor=salad_green)
@@ -337,7 +338,7 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
          if rows != (:begin, :end)
              if rows[1] == :begin
                  df_selected = df_selected[begin:rows[2], :]
-    @@ -49,15 +49,22 @@
+    @@ -49,15 +49,20 @@
                  df_selected = df_selected[rows[1]:rows[2], :]
              end
          end
@@ -356,21 +357,23 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
     +    # Extract non-missing remarks before stacking
     +    remarks_rows = filter(:remarks => !ismissing, df)
     +
-    +    # Rename columns to include units in legend labels
-    +    df = rename(df, "U" => "U[V]", "I" => "I[nA]")
-    +    ys = ["U[V]", "I[nA]"]
+    +    ys = ["U", "I"]
     +    
          x_col = Symbol(names(df)[1])
          y_col = :y
          group_col = :group
-    @@ -69,11 +76,21 @@
+    @@ -69,12 +74,25 @@
          
          limits = (0.0, nothing, 0.0, nothing)
          
     +    # Custom salad-green background color
     +    salad_green = "#eef8ee"
     +    
-         fg = draw(plt; 
+    +    # Explicitly set legend labels with units in mathematical type
+    +    color_scales = scales(Color = (; categories = ["U" => L"U\ [\text{V}]", "I" => L"I\ [\text{nA}]"]))
+    +    
+    -    fg = draw(plt; 
+    +    fg = draw(plt, color_scales; 
              figure=(; size=(800, 600)), 
              legend=(show=true,), 
     -        axis=(; title, limits, xreversed=false, yreversed=false)
@@ -386,7 +389,7 @@ The first two customizations are implemented directly within the `AlgebraOfGraph
          
          return fg
      end
-    @@ -82,18 +99,18 @@
+    @@ -82,18 +100,18 @@
      #
      # uncomment and run the corresponding lines to generate, display, and/or save the plot
      #

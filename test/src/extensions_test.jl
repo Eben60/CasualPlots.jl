@@ -4,7 +4,7 @@ using XLSX
 using Test
 using DataFrames
 
-const ASSETS_DIR = joinpath(@__DIR__, "assets")
+const ASSETS_DIR = normpath(joinpath(@__DIR__, "..", "assets"))
 
 # CSV Extension Tests
 @testset "read_csv basic functionality" begin
