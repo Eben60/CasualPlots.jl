@@ -60,6 +60,7 @@ using PrecompileTools
                 # Cleanup
                 global cp_figure = nothing
                 global cp_figure_ax = nothing
+                global cp_file_df = nothing
 
                 sleep(0.3)
                 try close(app) catch end

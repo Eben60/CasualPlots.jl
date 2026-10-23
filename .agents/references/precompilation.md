@@ -11,7 +11,7 @@ CasualPlots uses **PrecompileTools.jl** to reduce Time-To-First-Plot (TTFP). The
 
 2. **Plotting Pipeline** (via hidden Electron window):
    - Full `casualplots_app()` creation and serving
-   - `create_plot()` calls for all three plot types: `Lines`, `Scatter`, `BarPlot`
+   - `create_plot_df_long()` calls for all three plot types: `Lines`, `Scatter`, `BarPlot`
    - WGLMakie rendering pipeline
 
 ## Electron Hidden Window
@@ -27,7 +27,7 @@ This allows precompilation to run the full Electron/Bonito/WGLMakie stack withou
 ## Known Limitations
 
 - **WGLMakie Task Serialization**: WGLMakie creates internal tasks for WebGL communication that cannot be serialized into the precompile cache. Aggressive cleanup is required:
-  - Clear global plot references (`cp_figure`, `cp_figure_ax`)
+  - Clear global plot and file references (`cp_figure`, `cp_figure_ax`, `cp_file_df`)
   - Close app and Electron display
   - Multiple `GC.gc()` + `yield()` cycles
   

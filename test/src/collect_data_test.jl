@@ -81,6 +81,20 @@ end
     @test !(:test_not_df in df_names)
 end
 
+@testset "collect_dataframes_from_main skips cp_file_df" begin
+    using CasualPlots: collect_dataframes_from_main, store_and_display_dataframe!, initialize_app_state, initialize_output_observables
+
+    state = initialize_app_state()
+    outputs = initialize_output_observables()
+    df_file = DataFrame(x = 1:5, y = 6:10)
+    store_and_display_dataframe!(df_file, "dummy.csv", outputs, state)
+
+    @test CasualPlots.cp_file_df === df_file
+
+    df_names = collect_dataframes_from_main()
+    @test !(:cp_file_df in df_names)
+end
+
 @testset "get_dataframe_columns" begin
     using CasualPlots: get_dataframe_columns
 

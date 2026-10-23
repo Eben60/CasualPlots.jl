@@ -132,7 +132,7 @@ function inject_window_controls(; xObs, yObs, wObs, hObs, orig_x, orig_y, orig_w
     return DOM.div(marker, DOM.script(setup); style=Styles("display" => "none"))
 end
 
-function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, table_title, state, overwrite_trigger, cancel_trigger)
+function assemble_layout(ctrlpane_content, help_visibility, plot_observable, table_observable, table_title, state)
     # Control pane: tabs on top, help section at bottom
     ctrlpane_split = DOM.div(
         DOM.div(ctrlpane_content; class="ctrl-pane-content"),
@@ -196,7 +196,7 @@ function assemble_layout(ctrlpane_content, help_visibility, plot_observable, tab
     )
     
     # --- Modal dialog ---
-    modal = create_modal_container(state, overwrite_trigger, cancel_trigger)
+    modal = create_modal_container(state; plot_observable=plot_observable, table_observable=table_observable)
     
     # --- Global CSS ---
     global_style = DOM.style(GLOBAL_CSS)

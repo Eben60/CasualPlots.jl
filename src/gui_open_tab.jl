@@ -326,21 +326,22 @@ function create_open_tab_content(outputs, state)
             msg = "No file loaded to reload"
             @warn msg
             show_modal!(state, msg; type=:warning)
-            return
+            return nothing
         end
         
         ext = lowercase(splitext(filepath)[2])
+        success = false
         
         if ext in [".csv", ".tsv"]
             # Reload CSV/TSV file
-            load_csv_to_table(filepath, outputs, state)
-            @info "Reloaded CSV file: $(basename(filepath))"
+            success = load_csv_to_table(filepath, outputs, state; reload=true)
+            success && @info "Reloaded CSV file: $(basename(filepath))"
         elseif ext == ".xlsx"
             # Reload XLSX sheet (use currently selected sheet)
             sheet = selected_sheet[]
             if !isempty(sheet)
-                load_xlsx_sheet_to_table(filepath, sheet, outputs, state)
-                @info "Reloaded XLSX sheet: $(basename(filepath)):$sheet"
+                success = load_xlsx_sheet_to_table(filepath, sheet, outputs, state; reload=true)
+                success && @info "Reloaded XLSX sheet: $(basename(filepath)):$sheet"
             else
                 msg = "No sheet selected for XLSX reload"
                 @warn msg
@@ -351,6 +352,9 @@ function create_open_tab_content(outputs, state)
             @warn msg
             show_modal!(state, msg; type=:warning)
         end
+
+        success && handle_after_reload!(state, outputs)
+        return nothing
     end
     
     # Render view

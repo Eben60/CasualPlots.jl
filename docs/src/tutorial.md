@@ -37,10 +37,14 @@ When using `CasualPlots.jl`, the source selection dropdowns automatically popula
    - *Note: X variables from `Main` must be 1-dimensional arrays (vectors) containing `Real` numbers or `Unitful` quantities.*
 3. Select a Y variable of matching length.
    - *Note: Y variables from `Main` can be 1D vectors or 2D matrices containing `Real` numbers or `Unitful` quantities. The first dimension (rows) must match the length of X.*
-4. Optionally adjust the row index range (`Range From` / `Range To`).
-5. Click **(Re-)Plot** to generate the plot and populate the table.
+4. Optionally adjust the row index range (`Range From` / `Range To`). The **Table Pane** updates immediately as you select X, Y, or adjust the row range.
+5. Click **(Re-)Plot** to generate the plot.
 
-!!! details "📸 Screenshot: Array X,Y Selection"
+!!! details "📸 Screenshot: Array X,Y Selection (Table Populated Before Plotting)"
+    *🔍 [Click to view full resolution](Screenshots/xy_source_selection_unplotted.png)*
+    [![Array X,Y Selection Before Plotting](Screenshots/xy_source_selection_unplotted.png)](Screenshots/xy_source_selection_unplotted.png)
+
+!!! details "📸 Screenshot: Array X,Y Selection (After Clicking (Re-)Plot)"
     *🔍 [Click to view full resolution](Screenshots/xy_source_selection.png)*
     [![Array X,Y Selection](Screenshots/xy_source_selection.png)](Screenshots/xy_source_selection.png)
 
@@ -51,10 +55,10 @@ When using `CasualPlots.jl`, the source selection dropdowns automatically popula
 DataFrames in `Main` (as well as 2D `Matrix` variables) are detected automatically. DataFrames are expected to follow the ["wide" format](https://aog.makie.org/stable/examples/data-manipulations/wide-data#Long-vs-Wide-Data-Formats).
 
 1. In the **Source** tab, select **File/DataFrame/Matrix** as the Source Type.
-2. Choose a DataFrame or Matrix from the dropdown (e.g., `caspl_df_simple`).
-3. Select columns using the column checkboxes. The first checked column is assigned to the X-axis, and subsequent checked columns are plotted on the Y-axis.
+2. Choose a DataFrame or Matrix from the dropdown (e.g., `caspl_df_simple`). The **Table Pane** immediately displays the `Index` column for the selected source.
+3. Select columns using the column checkboxes. Checked columns appear immediately in the **Table Pane** in their DataFrame order; the first checked column is assigned to the X-axis, and subsequent checked columns are plotted on the Y-axis.
 4. Optionally adjust the row index range (`Range From` / `Range To`).
-5. Click **(Re-)Plot**. The DataTable will be filled in, and the data plotted.
+5. Click **(Re-)Plot** to generate the plot.
 
 !!! details "📸 Screenshot: DataFrame Selection, every third column selected, a sub-range selected"
     *🔍 [Click to view full resolution](Screenshots/dataframe_source_selection.png)*
@@ -171,7 +175,7 @@ The GUI utilizes a flexible windowing system. The **Plot Pane** and **Table Pane
 
 ## 5. Data Table & Header Coloring
 
-The **Table Pane** updates dynamically whenever data is plotted.
+The **Table Pane** updates immediately as you select sources, toggle columns, or adjust the row index range, and is also refreshed on **(Re-)Plot**.
 
 Column header colors indicate data types:
 - 🟩 **Green**: Numeric data (`Float64`, `Int64`).
@@ -184,17 +188,41 @@ Column header colors indicate data types:
 
 ---
 
-## 6. REPL Access to the Live Plot
+## 6. REPL Access, Hot-Patching Data, and the (Re-)Plot Button
 
-The active plot's `Makie.Figure` and `Axis` objects are exported directly to the `Main` REPL environment as `cp_figure` and `cp_figure_ax`. You can inspect or modify them from the REPL; changes update the interactive GUI display immediately:
+### a). Modifying the Live Plot (`cp_figure` and `cp_figure_ax`)
+
+The active plot's `Makie.Figure` and `Axis` objects are exported to `Main` as `cp_figure` and `cp_figure_ax`. You can inspect or modify plot attributes directly in the REPL:
 
 ```julia-repl
 # Directly modify the axis in the REPL; changes reflect in the GUI immediately
 julia> hidespines!(cp_figure_ax, :r, :t)
 ```
 
+### b). How the (Re-)Plot Button Works
+
+- **Table vs. Plot**: Selecting a source, toggling columns, or editing the row index range updates the **Table Pane** immediately. The **Plot Pane** continues to show the last plotted dataset until you click **(Re-)Plot**.
+- **Format Isolation**: Changing visual settings in the **Format** tab (plot type, theme, axis limits, or labels) re-renders the cached dataset from the most recent **(Re-)Plot** without re-reading the source or applying unplotted selection changes.
+- **Fresh Re-Read**: Every click on **(Re-)Plot** reads the source data anew, cleanses it, and refreshes both the **Plot Pane** and the **Table Pane**.
+
+### c). Hot-Patching Workspace Variables and Loaded Files
+
+- **Workspace Variables (`Main`)**: `CasualPlots` accesses workspace sources **by variable name** in `Main`, not by object reference. Therefore, both in-place edits (e.g., `caspl_df_simple[5, :y1] = 0.0` or `deleteat!(caspl_x_10, 3)`) and variable reassignments (e.g., `caspl_y_10 = 2 .* caspl_x_10` or `caspl_df_simple = filter(...)`) are picked up when you click **(Re-)Plot**.
+- **Loaded Files (`cp_file_df` and `Reload`)**:
+  - When a file is loaded via the **Open** tab, the parsed `DataFrame` is exported as `cp_file_df`. You can modify `cp_file_df` **in place** in the REPL (e.g., `cp_file_df[5, :col] = 0.0` or `deleteat!(cp_file_df, 5)`) and click **(Re-)Plot** to update the plot and table.
+  - Because the `"opened file"` source references that internal `DataFrame` object directly rather than looking up the symbol `cp_file_df` in `Main`, rebinding `cp_file_df = ...` in the REPL does not update the `"opened file"` source; instead, it creates a separate `DataFrame` variable in `Main`.
+  - If you edit the file on disk or change the file reading options in the **Open** tab, click **Reload** to re-read the file into `cp_file_df`. **Reload** preserves your column selection and, if the opened file is currently plotted, runs the **(Re-)Plot** update automatically.
+
 !!! note
-    Modifications made directly to `cp_figure` or `cp_figure_ax` are included when saving image files (`PNG`, `SVG`, `PDF`), but are **not** reflected in scripts generated by **Create Script**.
+    Modifications made directly to `cp_figure` or `cp_figure_ax` are included when saving image files (`PNG`, `SVG`, `PDF`), but neither those modifications nor interactive in-place edits to `cp_file_df` are reflected in scripts generated by **Create Script** (which re-reads the source file from disk).
+
+### d). Structural Change Detection
+
+When **(Re-)Plot** (or **Reload** on a plotted file) re-reads a source, it checks the data structure against the baseline recorded when the source was selected:
+
+- **Unchanged structure**: If only data values changed, the plot and table update immediately.
+- **Compatible structural changes**: If the structure changed in a way that still supports the current selection—for example, the row count changed while the full range (or a still-valid sub-range) is selected, or columns *after* the last selected `DataFrame` column were added, removed, or modified—a **warning dialog** lists the changes and lets you either **Continue** (updating bounds and replotting) or **Select data anew** (clearing the plot and resetting the selection).
+- **Incompatible structural changes**: If the current selection can no longer be plotted—for example, a custom row range exceeds the new row bounds, X and Y lengths no longer match, a selected `DataFrame` column (or any column preceding the last selected one) was removed, renamed, or changed element type, or the variable is no longer a valid source—an **error dialog** explains the reason, blanks the Plot and Table panes, and resets the selection.
 
 ---
 

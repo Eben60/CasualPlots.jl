@@ -23,6 +23,7 @@
 ### Error Handling & Logging
 *   **User-Facing Errors/Warnings**: Any errors and warnings in code run from the GUI (e.g., callbacks, file reading, script generation) must call `show_modal!` to inform the user, rather than silently failing or exclusively logging to the REPL. Caught GUI errors also save their backtrace automatically, which can be viewed in the REPL using `CasualPlots.last_error()`.
 *   **Error Propagation Rule**: Low-level functions (like data fetchers) should not catch expected errors. Instead, errors should naturally propagate up to the outermost reactive boundaries (e.g., `on(...)` blocks in `setup_callbacks.jl`), which must catch them and call `show_modal!`. When an error is caught in a plot/table callback, the respective panes should be blanked (`outputs.plot[] = DOM.div("")`).
+*   **Structural Continuity & Modals**: Structural data changes detected during (Re-)Plot or file Reload raise either a 2-button warning dialog (`show_modal!(type=:warning)`) if changes are compatible with the selection (letting the user choose "Continue" or "Select data anew"), or a `DataContinuityError` displaying an error dialog (`show_modal!(type=:error)`), blanking the panes and resetting the selection if incompatible.
 *   **"Skippable" Errors Exception**: An exception to the propagation rule is for "skippable" errors during bulk iteration, which need not be presented to user. 
 
 ### File Structure (src/)
@@ -40,6 +41,7 @@ javascripts.js                  # Global JavaScript functions (namespaced window
 # Core Logic
 plot_types.jl                   # Declarative plot type configuration system (SinglePlotConfig, CompoundPlot, EnumAttribute)
 plotting.jl                     # Plot generation using AlgebraOfGraphics
+source_continuity.jl            # Data continuity validation and SourceSignature snapshots
 setup_callbacks.jl              # Core reactive callbacks (do_replot, source, format, DataFrame)
 label_update_callbacks.jl       # Label text field callbacks
 dropdowns_setup.jl              # Dropdown menu creation (X, Y, DataFrame)
@@ -101,7 +103,7 @@ Diagrams are in the linked files:
 
 ### Critical Implementation Patterns
 
-See [Callback & Formatting Flow](.agents/references/callback_and_formatting_flow.md) for the full source selection pipeline (X,Y, DataFrame, File Import), format persistence strategy (`RESET_FORMAT_OPTION`), and legend behavior.
+See [Callback & Formatting Flow](.agents/references/callback_and_formatting_flow.md) for the full source selection pipeline (X,Y, DataFrame, File Import), the decoupled Table Pane behavior, (Re-)Plot data re-reading and continuity verification, format persistence strategy (`RESET_FORMAT_OPTION`), and legend behavior.
 
 See [Data Cleansing](.agents/references/data_cleansing.md) for `clean_plot_data!`, Unitful unification, and numeric normalization.
 
@@ -119,13 +121,12 @@ See [Plot Architecture](.agents/references/plot_architecture.md) for the declara
 
 - Only support for the most common 2‑D plot types (`Scatter`, `Lines`, `BarPlot`, and maybe a few others) is planned
 
-#### Planned Enhancements (as of v0.10.0)
+#### Planned Enhancements (as of v0.12.0)
 
 - More plot format options, e.g. palettes
 - Support for multiple independent data sources in a diagram
     - Dual-Y or dual-X axes with different scales
 - Optional regression‑fit integration
-- Extensive Documenter.jl based documentation
 
 ### Development Workflows & Testing
 
@@ -147,6 +148,7 @@ export casualplots_app      # Main app launcher
 export CasualPlotApp        # Wrapper around Bonito.App containing reactive state
 export cp_figure            # Global Figure object
 export cp_figure_ax         # Global Axis object  
+export cp_file_df           # Global DataFrame object from opened file
 export Ele                  # Displaying Bonito `app` in Electron window 
 ```
 
@@ -156,14 +158,15 @@ All reference screenshots are stored in `docs/src/Screenshots/`, with correspond
 
 For instructions on automated creation of GUI screenshots, see the **casualplots-screenshots** skill ([SKILL.md](.agents/skills/casualplots-screenshots/SKILL.md)).
 
-For annotated screenshots of the GUI in action within the user documentation, refer to the **[Tutorial (WIP)](docs/src/tutorial.md)**, which covers:
+For annotated screenshots of the GUI in action within the user documentation, refer to the **[Tutorial](docs/src/tutorial.md)**, which covers:
 
 - **Data Selection** — X,Y Arrays mode and DataFrame mode (§2a, §2b)
 - **File Import** — Open tab with CSV/XLSX options (§2c)
 - **Plot Formatting** — Lines/Scatter plots, BarPlot (Dodged & Stacked), Axis Limits & Log Scale (§3)
 - **Window Management** — Maximized Plot Pane (§4)
 - **Data Table** — Column header color coding by type (§5)
-- **Export & Script Generation** — Save tab (§6)
+- **REPL Access & Hot-Patching** — `cp_figure`, `cp_file_df`, and (Re-)Plot behavior (§6)
+- **Export & Script Generation** — Save tab (§7)
 
 ## Development Status
 **Status**: Work In Progress (WIP) - Core functionality operational, ongoing refinement and feature additions.

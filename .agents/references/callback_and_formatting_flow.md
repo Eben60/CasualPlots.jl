@@ -14,34 +14,47 @@ Both **X,Y Source**, **DataFrame Source**, and **Open File** modes feed into the
     - Clears current Y selection.
     - Sets `data_bounds_from`/`data_bounds_to` from the X array's first/last indices.
     - Initializes `range_from`/`range_to` to match bounds.
+    - **Immediately updates Table Pane** to show `[Index, X]` over the active range. Clears Plot Pane.
 2.  **Step 2: Y Selection** (`setup_source_callback`)
     - User selects Y variable.
+    - Captures baseline `SourceSignature` snapshot.
     - Updates `current_plot_x`, `current_plot_y` for tracking.
+    - **Immediately updates Table Pane** to append Y columns: `[Index, X, Y...]`.
     - **Does NOT auto-plot** - waits for user to click "(Re-)Plot" button.
-    - *On invalid selection*: Clears plot, table, and state.
-3.  **Step 3: (Re-)Plot** (`setup_array_plot_trigger_callback`)
+    - *On invalid selection*: Clears plot, resets table to `[Index, X]`, and resets state.
+3.  **Step 3: (Re-)Plot** (`run_rpb!`)
     - User clicks "(Re-)Plot" button.
-    - Validates range values (uses bounds as defaults if empty).
+    - Fresh read of X and Y from `Main`.
+    - Validates structural continuity against baseline `SourceSignature` (`check_continuity`):
+      - If fatal changes (length mismatch, range out of bounds): shows error modal, blanks panes, resets selection.
+      - If resumable changes (row count changed): shows 2-button warning modal ("Continue" or "Select data anew").
+      - If identical or accepted: proceeds with replot.
+    - Cleanses data via `clean_plot_data!`, caches cleaned data in `cached_cleaned_df`.
     - Calls `do_replot` with range parameters.
-    - Updates table view with range-filtered data.
+    - Refreshes Table Pane.
     - Applies non-default formatting options via `apply_custom_formatting!`.
 
 ### B. DataFrame / Matrix Source Selection (Main or Opened File)
 
 1.  **Step 1: Source Selection**
     - User selects a DataFrame or 2D Matrix from `Main` OR selects "opened file" (if file loaded via Open tab).
+    - Captures baseline `SourceSignature` snapshot.
     - If needed (opened file), strings are normalized (`normalize_strings!`) at load time.
     - Triggers population of column checkboxes (or generated column names `Col1`, `Col2`, etc. for matrices).
     - Clears current column selection.
-2.  **Step 2: Column Selection & Plotting** (`setup_dataframe_callbacks`)
-    - User selects columns (checkboxes).
+    - **Immediately updates Table Pane** to display only the `Index` column over the full row range.
+2.  **Step 2: Column Selection & Table Decoupling** (`setup_table_refresh_callback` -> `refresh_table!`)
+    - Checking or unchecking columns updates the Table Pane **immediately**: `[Index, Col_1, Col_2, ...]`.
+    - Columns maintain their natural DataFrame order regardless of the checking sequence.
+    - Range field adjustments immediately update the row slice in the Table Pane.
+3.  **Step 3: (Re-)Plot** (`run_rpb!`)
     - **Plotting is triggered manually**: User must click "(Re-)Plot" button.
-    - `plot_trigger` observable fires:
-        - Validates selection (at least 2 columns).
-        - **Data Cleansing and Normalization**: Calls `clean_plot_data!` to manage unit conversions and normalize non-numeric values (see [data_cleansing.md](data_cleansing.md)).
-        - Calls `update_dataframe_plot` helper.
-        - Generates plot with **default labels** (resets legend title).
-        - Updates table view.
+    - Fresh read from `Main` (by variable name) or `cp_file_df` (`acquire_source`).
+    - Validates structural continuity against `SourceSignature` (`check_continuity`).
+    - Cleanses data via `clean_plot_data!` and caches in `cached_cleaned_df` (`prepare_plot_data!`).
+    - Calls `finish_rpb!` -> `replot_from_cache!` -> `do_replot`.
+    - Generates plot with default labels on first plot from that source, or preserves user labels.
+    - Refreshes Table Pane (`refresh_table!`).
 
 ### C. File Import with Reading Options (Open Tab)
 
@@ -56,10 +69,14 @@ The Open tab provides configurable file reading options before/after loading:
     - CSV/TSV: Options passed to `CSV.read()` via `collect_csv_options()`
     - XLSX: Options passed to `XLSX.readtable()` via `collect_xlsx_options()`. The first sheet is auto-selected and loaded by default.
     - Both call `skip_rows!()` for post-load row processing
+    - Loaded `DataFrame` is stored internally in `opened_file_df` and exported globally to the REPL as `cp_file_df`.
+    - Shows whole-file preview in the Table Pane until a source is selected.
 3.  **Reload Button**:
     - Enabled when a file is loaded (CSV) or sheet selected (XLSX)
-    - Re-reads the same file (`opened_file_path`) with current options
-    - Useful for adjusting options after seeing initial import results
+    - Re-reads the file from disk with current options and updates `cp_file_df`.
+    - Preserves active column selection if `"opened file"` is selected.
+    - If a plot from the opened file already exists, automatically executes the `run_rpb!` pipeline (including change detection).
+    - If no plot exists yet, refreshes the Table Pane only and updates the baseline `SourceSignature`.
 
 ---
 
@@ -70,14 +87,14 @@ Formatting changes (Plot Type, Legend, Labels) are handled differently to preser
 ### A. Format Callback Logic
 
 - **Triggered by**: `selected_plottype`, `selected_theme`, `show_legend`, `legend_title_text`, axis limit/scale observables (`x_min`, `x_max`, `y_min`, `y_max`, `xreversed`, `yreversed`, `xlog`, `ylog`), and any dynamically registered attribute in `dynamic_attributes`.
-- **Implementations**:
-    - X,Y Mode: `setup_format_change_callbacks` (triggers `do_replot`)
-    - DataFrame Mode: Format callbacks within `setup_dataframe_callbacks` (triggers `update_dataframe_plot` -> `do_replot`)
-    - Theme: `setup_theme_callback` (applies theme globally, triggers replot)
-    - Dynamic Attributes: Callbacks automatically generated for all `AbstractPlotAttribute` configurations (triggers replot).
-    - Axis Limits & Log Scale: `setup_axis_limits_callbacks` (triggers immediate replot with current limits, reversal, and log scale options).
+- **Implementations** (unified across Array and DataFrame modes):
+    - Plot Type, Legend, & Dynamic Attributes: `setup_format_change_callbacks` (triggers `replot_from_cache!` -> `do_replot`)
+    - Theme: `setup_theme_callback` (applies theme globally via `apply_theme!`, triggers `replot_from_cache!` -> `do_replot`)
+    - Axis Limits, Reversal, & Log Scale: `setup_axis_limits_callbacks` (triggers immediate `replot_from_cache!` -> `do_replot` with current limits, reversal, and log scale options)
+    - Labels (X, Y, Title): `setup_label_update_callbacks` (updates axis attributes in-place via `update_plot_format!` without full replot)
 - **Shared Behavior**:
-    - **All format changes trigger full replot** using the unified `do_replot` function.
+    - **All format changes replot from cache** via `replot_from_cache!` -> `do_replot`.
+    - **Uses Cached Data**: All format callbacks replot using `state.misc.cached_cleaned_df[]` rather than re-reading `Main`. This guarantees that unplotted selection changes in the GUI or variables modified in the REPL are never prematurely plotted during a mere format or theme tweak.
     - **Visual Loading Indicator**: During plot processing / replot (including heavy initial JIT compilation), a loading indicator is displayed in `outputs.plot[]`.
     - **Categorical Axis Disabling**: When axis data is non-numeric (`!(T <: Union{Real, Unitful.Quantity})`), `x_is_categorical` or `y_is_categorical` is set to `true`, disabling the limits inputs, reversal checkbox (`rev.:`), and log scale checkbox (`log:`) for that axis.
     - **Preserves user labels and axis limits**: `format_is_default` dict tracks which options are customized. After replot, `apply_custom_formatting!` re-applies non-default values.
@@ -116,3 +133,21 @@ Reset behavior is driven by `RESET_FORMAT_OPTION` Dict (dynamically populated at
     - **New Plot**: Legend title is reset to empty.
     - **Format Change**: Legend title and visibility persist.
 - **User Override**: Checkbox allows manual toggle, persisting through format updates.
+
+---
+
+## 4. Structural Continuity & Warning Protocol (`source_continuity.jl`)
+
+1. **Baseline Capture (`SourceSignature`)**:
+   - Captured when the source is selected (XY: when Y is chosen; DataFrame/Matrix: when source is chosen).
+   - Records kind, row index bounds, column names, column element types, and matrix flag.
+2. **Fresh Verification on (Re-)Plot / Reload (`check_continuity`)**:
+   - Re-reads data from `Main` or `cp_file_df`.
+   - **Identical**: Proceeds with replot and table refresh without dialogs.
+   - **Resumable Changes** (e.g., row count changed within full range, or trailing columns added/removed after last selected column):
+     - Displays 2-button Warning Modal (`show_modal!(...; type=:warning)`).
+     - *Continue*: Updates baseline signature to fresh state, adjusts bounds/range inputs, and executes replot.
+     - *Select data anew*: Blanks plot and table, clears column selection, resets state.
+   - **Fatal Changes** (e.g., custom range out of bounds, selected column deleted/renamed/type changed, length mismatch):
+     - Throws `DataContinuityError`, caught at outer callback boundary.
+     - Displays Error Modal (`show_modal!(...; type=:error)`), blanks plot and table, and resets data selection.

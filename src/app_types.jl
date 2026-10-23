@@ -41,6 +41,11 @@ State observables for application-wide modal dialogs (errors, warnings, etc.).
 @kwdef struct Dialogs
     show_modal::Observable{Bool} = Observable(false)
     modal_type::Observable{Symbol} = Observable(:none)
+    modal_primary_label::Observable{String} = Observable("OK")
+    modal_secondary_label::Observable{Union{Nothing, String}} = Observable{Union{Nothing, String}}(nothing)
+    modal_action_primary::Observable{Int} = Observable(0)
+    modal_action_secondary::Observable{Int} = Observable(0)
+    modal_callbacks::Ref{Any} = Ref{Any}(nothing)
 end
 
 """
@@ -134,6 +139,8 @@ Includes anti-bounce update tracking (`last_update`), formatting block flags (`b
     cached_xcol_name::Ref{Union{Nothing, String}} = Ref{Union{Nothing, String}}(nothing)
     cached_y_names::Ref{Any} = Ref{Any}(nothing)
     cached_cols::Ref{Vector{String}} = Ref{Vector{String}}(String[])
+    source_signature::Ref{Union{Nothing, SourceSignature}} = Ref{Union{Nothing, SourceSignature}}(nothing)
+    source_refresh::Observable{Int} = Observable(0)
 end
 
 # ==========================================

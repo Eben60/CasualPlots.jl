@@ -78,71 +78,123 @@ function handle_open_file_click(outputs, state, current_xlsx_path, sheet_names, 
     end
 end
 """
-    store_and_display_dataframe!(df, filepath, outputs, state; info_suffix::AbstractString="") -> Nothing
+    store_and_display_dataframe!(df, filepath, outputs, state; info_suffix::AbstractString="", reload::Bool=false) -> Nothing
 
 Common helper for processing a loaded DataFrame: normalize strings, store in state, 
-and update the table display.
+assign global cp_file_df, and update the table display.
 """
-function store_and_display_dataframe!(df, filepath, outputs, state; info_suffix="")
+function store_and_display_dataframe!(df, filepath, outputs, state; info_suffix="", reload::Bool=false)
     # Normalize string columns for display compatibility
     normalize_strings!(df)
-    
-    # Reset selected_dataframe BEFORE setting opened_file_df
-    # This ensures the dropdown rebuild (triggered by opened_file_df change)
-    # sees selected_dataframe as nothing and shows placeholder, not "opened file"
-    state.data_selection.selected_dataframe[] = nothing
+    global cp_file_df = df
+
+    if !reload
+        # Reset selected_dataframe BEFORE setting opened_file_df
+        # This ensures the dropdown rebuild (triggered by opened_file_df change)
+        # sees selected_dataframe as nothing and shows placeholder, not "opened file"
+        state.data_selection.selected_dataframe[] = nothing
+    end
     state.file_opening.opened_file_df[] = df
     # Extract filename without path or extension
     state.file_opening.opened_file_name[] = splitext(basename(filepath))[1]
     # Store the full path for reload functionality
     state.file_opening.opened_file_path[] = abspath(filepath) |> normpath
 
-    
     # Build source info text with normalized absolute path (+ optional suffix)
     info_text = (abspath(filepath) |> normpath) * info_suffix
-    
-    # Update table title
-    outputs.table_title[] = "SOURCE: " * info_text
-    
-    # Update table display
-    outputs.table[] = create_table_with_info(Bonito.Table(df; row_renderer=cp_render_value))
+
+    is_opened_file_selected = state.data_selection.selected_dataframe[] == "__opened_file__"
+    if !reload || !is_opened_file_selected
+        # Update table title and display whole-file preview
+        outputs.table_title[] = "SOURCE: " * info_text
+        outputs.table[] = create_table_with_info(Bonito.Table(df; row_renderer=cp_render_value))
+    end
     return nothing
 end
 
 """
-    load_xlsx_sheet_to_table(filepath::AbstractString, sheet::AbstractString, outputs::OutputObservables, state::CasualPlotsState) -> Nothing
+    handle_after_reload!(state::CasualPlotsState, outputs::OutputObservables) -> Nothing
+
+Apply post-reload continuity and table refresh rules when `"__opened_file__"` is the active source.
+"""
+function handle_after_reload!(state, outputs)
+    is_opened_file_selected = state.data_selection.selected_dataframe[] == "__opened_file__"
+    is_opened_file_selected || return nothing
+
+    has_plot = !isnothing(state.plotting.handles.current_figure[])
+    has_plotted_opened_file = state.misc.last_plotted_dataframe[] == "__opened_file__"
+
+    if has_plot && has_plotted_opened_file
+        run_rpb!(state, outputs)
+    else
+        reloaded_df = state.file_opening.opened_file_df[]
+        if !isnothing(reloaded_df)
+            sel = selection_from_state(state)
+            avail_cols = names(reloaded_df)
+            current_cols = state.data_selection.selected_columns[]
+            vanished = filter(c -> c ∉ avail_cols, current_cols)
+
+            if !isempty(vanished)
+                state.data_selection.selected_columns[] = String[]
+                show_modal!(
+                    state,
+                    "The following selected column(s) are no longer present in reloaded data: $(join(vanished, ", ")). Selection reset.";
+                    type = :warning,
+                )
+            end
+
+            first_idx = 1
+            last_idx = nrow(reloaded_df)
+            state.data_selection.data_bounds_from[] = first_idx
+            state.data_selection.data_bounds_to[] = last_idx
+            if sel.full_range
+                state.data_selection.range_from[] = first_idx
+                state.data_selection.range_to[] = last_idx
+            end
+
+            state.misc.source_signature[] = capture_signature(:table, "__opened_file__", reloaded_df)
+            state.misc.source_refresh[] += 1
+            refresh_table!(state, outputs)
+        end
+    end
+    return nothing
+end
+
+"""
+    load_xlsx_sheet_to_table(filepath::AbstractString, sheet::AbstractString, outputs::OutputObservables, state::CasualPlotsState; reload::Bool=false) -> Bool
 
 Load a specific sheet from an XLSX file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_xlsx_sheet_to_table(filepath, sheet, outputs, state)
+function load_xlsx_sheet_to_table(filepath, sheet, outputs, state; reload::Bool=false)
     (; kwargs, skip_subheaders, skip_empty_rows) = collect_xlsx_options(state)
     try
         df = readtable_xlsx(filepath, sheet; infer_eltypes=true, kwargs...)
         skip_rows!(df, skip_subheaders, skip_empty_rows)
         # Store sheet name for code generation
         state.file_opening.sheet_name[] = string(sheet)
-        store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=":" * string(sheet))
+        store_and_display_dataframe!(df, filepath, outputs, state; info_suffix=":" * string(sheet), reload=reload)
+        return true
     catch e
         bt = catch_backtrace()
         msg = "Error loading XLSX sheet: $e"
         show_modal!(state, msg; type=:error, exception=(e, bt))
-        outputs.table[] = DOM.div("")
+        reload || (outputs.table[] = DOM.div(""))
+        return false
     end
-    return nothing
 end
 
 """
-    load_csv_to_table(filepath::AbstractString, outputs::OutputObservables, state::CasualPlotsState) -> Nothing
+    load_csv_to_table(filepath::AbstractString, outputs::OutputObservables, state::CasualPlotsState; reload::Bool=false) -> Bool
 
 Load a CSV/TSV file and display it in the table pane.
 Also stores the DataFrame in state for use in DataFrame mode.
 """
-function load_csv_to_table(filepath, outputs, state)
+function load_csv_to_table(filepath, outputs, state; reload::Bool=false)
     if !is_extension_available(:CSV)
         msg = "CSV extension not available"
         show_modal!(state, msg; type=:warning)
-        return nothing
+        return false
     end
 
     kwargs = collect_csv_options(state)
@@ -152,12 +204,13 @@ function load_csv_to_table(filepath, outputs, state)
         skip_rows!(df, 0, kwargs.ignoreemptyrows)
         # Clear sheet name (not an XLSX source)
         state.file_opening.sheet_name[] = ""
-        store_and_display_dataframe!(df, filepath, outputs, state)
+        store_and_display_dataframe!(df, filepath, outputs, state; reload=reload)
+        return true
     catch e
         bt = catch_backtrace()
         msg = "Error loading CSV file: $e"
         show_modal!(state, msg; type=:error, exception=(e, bt))
-        outputs.table[] = DOM.div("")
+        reload || (outputs.table[] = DOM.div(""))
+        return false
     end
-    return nothing
 end

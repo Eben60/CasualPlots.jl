@@ -38,7 +38,12 @@ end
 
 Base.@kwdef struct Dialogs
     show_modal::Observable{Bool}
-    modal_type::Observable{Symbol}         # :none, :success, :warning, :confirm
+    modal_type::Observable{Symbol}         # :none, :success, :warning, :confirm, :error
+    modal_primary_label::Observable{String}
+    modal_secondary_label::Observable{Union{Nothing, String}}
+    modal_action_primary::Observable{Int}
+    modal_action_secondary::Observable{Int}
+    modal_callbacks::Ref{Any}
 end
 
 Base.@kwdef struct DataSelection
@@ -88,6 +93,7 @@ Base.@kwdef struct PlotHandles
     legend_title_text::Observable{String}
     current_figure::Observable{Union{Figure, Nothing}}
     current_axis::Observable{Union{Axis, Nothing}}
+    plot_size::Observable{Any}
 end
 
 Base.@kwdef struct Plotting
@@ -103,6 +109,12 @@ Base.@kwdef struct Misc
     last_plotted_x::Observable{Union{Nothing, String}}  # Data source tracking (Array)
     last_plotted_y::Observable{Union{Nothing, String}}  # Data source tracking (Array)
     last_plotted_dataframe::Observable{Union{Nothing, String}}  # Data source tracking (DataFrame or Matrix)
+    cached_cleaned_df::Ref{Union{Nothing, DataFrame}}  # Cached cleaned data for format updates
+    cached_xcol_name::Ref{Union{Nothing, String}}
+    cached_y_names::Ref{Any}
+    cached_cols::Ref{Vector{String}}
+    source_signature::Ref{Union{Nothing, SourceSignature}}  # Snapshot baseline for continuity checks
+    source_refresh::Observable{Int}
 end
 ```
 

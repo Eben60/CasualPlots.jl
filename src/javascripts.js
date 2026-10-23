@@ -72,27 +72,15 @@ window.CasualPlots.handleTextInputBlur = (event, observable) => {
 
 /**
  * Handles changes on dataframe column checkboxes.
- * Adds/removes the value from the selected columns list.
+ * Preserves the original DataFrame / DOM column order in the selected columns list.
  * @param {Event} event - The DOM event
  * @param {Observable} selectedColumnsObs - Observable holding the list of selected columns
  */
 window.CasualPlots.handleColumnCheckboxChange = (event, selectedColumnsObs) => {
-    const checked = event.target.checked;
-    const value = event.target.value;
-    let current = selectedColumnsObs.value;
-    if (checked) {
-        if (!current.includes(value)) {
-            // We assume 'current' is an array we can mutate, or we should copy it.
-            // Original code mutated the value directly obtained from .value
-            current.push(value);
-        }
-    } else {
-        const index = current.indexOf(value);
-        if (index > -1) {
-            current.splice(index, 1);
-        }
-    }
-    selectedColumnsObs.notify(current);
+    const container = event.target.closest('.scroll-list') || document;
+    const checkedBoxes = container.querySelectorAll('.column-checkbox:checked');
+    const selected = Array.from(checkedBoxes).map(cb => cb.value);
+    selectedColumnsObs.notify(selected);
 }
 
 /**

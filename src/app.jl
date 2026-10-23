@@ -27,6 +27,7 @@ function casualplots_app()
     # Setup reactive callbacks
     setup_x_callback(state, y_node, outputs)
     setup_source_callback(state, outputs)
+    setup_dataframe_callbacks(state, outputs)
     setup_format_change_callbacks(state, outputs)
     setup_theme_callback(state, outputs)
     apply_theme!(state, state.plotting.format.selected_theme[])
@@ -36,14 +37,16 @@ function casualplots_app()
     
     # Create UI components
     control_panel = create_control_panel_ui(x_node, y_node, dataframe_node, plottype_node, theme_node, state)
-    
-    # Setup plot trigger callbacks for both modes
-    setup_array_plot_trigger_callback(state, outputs, control_panel.plot_trigger)  # Array mode callbacks
-    setup_dataframe_callbacks(state, outputs, control_panel.plot_trigger)  # DataFrame mode callbacks
+
+    # Setup unified (Re-)Plot button callback
+    on(control_panel.plot_trigger) do _
+        run_rpb!(state, outputs)
+    end
     
     # Setup axis limits callbacks
     setup_axis_limits_callbacks(state, outputs)
     setup_plot_resize_callback(state)
+    setup_table_refresh_callback(state, outputs)
     
     tabs_result = create_tab_content(control_panel, state, outputs)
     help_visibility = setup_help_section(outputs.plot)
@@ -52,8 +55,14 @@ function casualplots_app()
     js_content = read(joinpath(@__DIR__, "javascripts.js"), String)
     
     # Assemble and return final layout (with modal dialog)
-    layout = assemble_layout(tabs_result.tabs, help_visibility, outputs.plot, outputs.table, outputs.table_title,
-                           state, tabs_result.overwrite_trigger, tabs_result.cancel_trigger)
+    layout = assemble_layout(
+        tabs_result.tabs,
+        help_visibility,
+        outputs.plot,
+        outputs.table,
+        outputs.table_title,
+        state,
+    )
                            
     app = App() do session
         # Setup range input field synchronization

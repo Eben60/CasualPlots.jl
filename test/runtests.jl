@@ -18,3 +18,4 @@ using SafeTestsets
 @safetestset "Code Generation E2E" include("src/code_generation_e2e_test.jl")
 @safetestset "Unitful Integration" include("src/integrations_unitful_test.jl")
 @safetestset "Categorical Detection" include("src/categorical_detection_test.jl")
+@safetestset "Source Continuity" include("src/source_continuity_test.jl")

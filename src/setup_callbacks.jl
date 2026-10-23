@@ -202,10 +202,7 @@ function setup_theme_callback(state, outputs)
             return (from_val, to_val)
         end
         
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
+        replot_from_cache!(state, outputs)
     end
 end
 
@@ -295,14 +292,18 @@ function setup_source_callback(state, outputs)
             # Store current data for format callbacks
             current_plot_x[] = x
             current_plot_y[] = y
+            state.misc.source_signature[] = capture_signature(:array, x, y)
             # Note: actual plotting is now triggered by plot_trigger (via (Re-)Plot button)
         else
-            # Clear everything
+            # Clear everything except table (handled by refresh_table!)
             current_plot_x[] = nothing
             current_plot_y[] = nothing
+            state.misc.source_signature[] = nothing
+            state.misc.cached_cleaned_df[] = nothing
+            state.misc.cached_cols[] = String[]
+            state.misc.cached_xcol_name[] = nothing
+            state.misc.cached_y_names[] = nothing
             plot_observable[] = DOM.div("Plot Pane")
-            outputs.table_title[] = "Data Table (No source selected)"
-            table_observable[] = DOM.div("Table Pane")
             # Clear text fields, references, and format changed flags
             reset_format_defaults!(state.misc.format_is_default)
             xlabel_text[] = ""
@@ -339,58 +340,390 @@ function show_loading_indicator(outputs)
 end
 
 """
-    setup_array_plot_trigger_callback(state, outputs, plot_trigger)
+    acquire_source(state; override_cols=nothing) -> Union{NamedTuple, Nothing}
 
-Handle (Re-)Plot button click for X,Y Array mode.
-This is triggered when the user clicks the (Re-)Plot button with valid X,Y selection.
+Fetch fresh data source from Main or opened file based on active selection.
+Returns `(; df, display_name, valid_cols, is_array_mode)`.
+Throws `DataContinuityError` if variables are missing or invalid.
 """
-function setup_array_plot_trigger_callback(state, outputs, plot_trigger)
-    (; selected_x, selected_y, source_type, range_from, range_to,
-       data_bounds_from, data_bounds_to) = state.data_selection
-    (; last_plotted_x, last_plotted_y) = state.misc
-    
-    on(plot_trigger) do _
-        try
-        # Skip if not in Array mode
-        source_type[] != "X, Y Arrays" && return nothing
-        
-        x = selected_x[]
-        y = selected_y[]
-        is_valid = !isnothing(y) && y != "" && !isnothing(x) && x != ""
-        !is_valid && return
-        
-        # Get range values (use bounds as defaults)
-        from_val = range_from[]
-        to_val = range_to[]
-        if isnothing(from_val)
-            from_val = data_bounds_from[]
-        end
-        if isnothing(to_val)
-            to_val = data_bounds_to[]
-        end
-        
-        # Detect if this is a NEW data source (X or Y changed)
-        is_new_source = (x != last_plotted_x[] || y != last_plotted_y[])
-        
-        # Show loading indicator and yield
-        show_loading_indicator(outputs)
+function acquire_source(state; override_cols=nothing)
+    source_type = state.data_selection.source_type[]
+    is_array_mode = source_type == "X, Y Arrays"
 
-        update_unified_plot!(state, outputs; 
-                              is_new_data=is_new_source, update_table=true,
-                              range_from=from_val, range_to=to_val,
-                              reset_semipersistent=true) # Requirement 16: Reset on (Re-)Plot
-        
-        # Update last plotted source
-        last_plotted_x[] = x
-        last_plotted_y[] = y
-        catch e
-            bt = catch_backtrace()
-            show_modal!(state, "Error generating plot: " * sprint(showerror, e); type=:error, exception=(e, bt))
-            outputs.plot[] = DOM.div("")
-            outputs.table[] = DOM.div("")
-            outputs.table_title[] = "Data Table (Error)"
+    if is_array_mode
+        x = state.data_selection.selected_x[]
+        y = state.data_selection.selected_y[]
+        if isnothing(x) || isempty(x) || isnothing(y) || isempty(y)
+            return nothing
+        end
+
+        if !isdefined(Main, Symbol(x))
+            throw(DataContinuityError("Variable \"$x\" is no longer defined in Main."))
+        end
+        if !isdefined(Main, Symbol(y))
+            throw(DataContinuityError("Variable \"$y\" is no longer defined in Main."))
+        end
+
+        x_data = getfield(Main, Symbol(x))
+        y_data = getfield(Main, Symbol(y))
+
+        if !(x_data isa AbstractArray) || !(y_data isa AbstractArray)
+            throw(DataContinuityError("X or Y variable is not an array."))
+        end
+
+        if y_data isa AbstractVector
+            y_data = reshape(y_data, :, 1)
+        end
+
+        n_cols = size(y_data, 2)
+        ys = n_cols == 1 ? [String(y)] : ["$(y)_$n" for n in 1:n_cols]
+        valid_cols = vcat(String(x), ys)
+        df = DataFrame()
+        df[!, String(x)] = x_data
+        for i in 1:n_cols
+            df[!, ys[i]] = y_data[:, i]
+        end
+        display_name = "$(y) vs $(x)"
+        return (; df=df, display_name=display_name, valid_cols=valid_cols, is_array_mode=true)
+    else
+        cols = isnothing(override_cols) ? state.data_selection.selected_columns[] : override_cols
+        df_name = state.data_selection.selected_dataframe[]
+        if isnothing(df_name) || isempty(df_name) || length(cols) < 2
+            return nothing
+        end
+
+        if df_name == "__opened_file__"
+            df = state.file_opening.opened_file_df[]
+            display_name = state.file_opening.opened_file_name[]
+            if isnothing(df)
+                throw(DataContinuityError("No file has been opened. Use the Open tab to load a file."))
+            end
+        else
+            if !isdefined(Main, Symbol(df_name))
+                throw(DataContinuityError("Variable \"$df_name\" is no longer defined in Main."))
+            end
+            df = get_source_as_dataframe(df_name, state.file_opening.opened_file_df[])
+            if isnothing(df)
+                throw(DataContinuityError("Variable \"$df_name\" is neither a DataFrame nor a Matrix."))
+            end
+            display_name = df_name
+        end
+
+        available_columns = names(df)
+        valid_cols = filter(col -> col in available_columns, cols)
+
+        if length(valid_cols) < 2
+            throw(DataContinuityError("Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))"))
+        end
+
+        return (; df=df, display_name=display_name, valid_cols=valid_cols, is_array_mode=false)
+    end
+end
+
+"""
+    prepare_plot_data!(state, acquire; range_from=nothing, range_to=nothing) -> NamedTuple
+
+Applies row slicing, cleansing (`clean_plot_data!`), categorical detection, and caches the cleaned data.
+Returns `(; df_selected, xcol_name, y_names)`.
+"""
+function prepare_plot_data!(state, acquire; range_from=nothing, range_to=nothing)
+    (; df, display_name, valid_cols, is_array_mode) = acquire
+    cache = state.misc
+
+    # Slicing
+    df_selected = select(df, valid_cols)
+    n_rows = nrow(df_selected)
+    from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, max(1, n_rows))
+    to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, max(1, n_rows))
+    df_selected = df_selected[from_idx:to_idx, :]
+
+    # Clean data for plotting
+    df_selected = clean_plot_data!(df_selected, valid_cols, state)
+
+    # First column is X, rest are Y
+    xcol_name = valid_cols[1]
+    if is_array_mode
+        y_names = state.data_selection.selected_y[]
+    else
+        y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
+    end
+
+    # Check for categorical data to disable numeric-only UI controls
+    T_x = nonmissingtype(eltype(df_selected[!, xcol_name]))
+    x_is_cat = !(T_x <: Union{Real, Unitful.Quantity})
+    state.plotting.format.x_is_categorical[] = x_is_cat
+
+    if length(valid_cols) > 1
+        T_y = nonmissingtype(eltype(df_selected[!, valid_cols[2]]))
+        y_is_cat = !(T_y <: Union{Real, Unitful.Quantity})
+    else
+        y_is_cat = false
+    end
+    state.plotting.format.y_is_categorical[] = y_is_cat
+
+    # Update cache
+    cache.cached_cleaned_df[] = df_selected
+    cache.cached_cols[] = copy(valid_cols)
+    cache.cached_xcol_name[] = xcol_name
+    cache.cached_y_names[] = y_names
+
+    return (; df_selected=df_selected, xcol_name=xcol_name, y_names=y_names)
+end
+
+"""
+    replot_from_cache!(state, outputs; is_new_data=false, reset_semipersistent=false, catch_errors=true) -> Bool
+
+Re-renders the plot using previously cached and cleaned plot data.
+Used by format, theme, axis-limit, and label callbacks without re-reading the source or active selection.
+"""
+function replot_from_cache!(state, outputs; is_new_data=false, reset_semipersistent=false, catch_errors=true)
+    cache = state.misc
+    df_selected = cache.cached_cleaned_df[]
+    xcol_name = cache.cached_xcol_name[]
+    y_names = cache.cached_y_names[]
+
+    if isnothing(df_selected) || isnothing(xcol_name) || isnothing(y_names)
+        return false
+    end
+
+    function _do_cached_replot()
+        selected_plottype = state.plotting.format.selected_plottype[]
+        show_legend = state.plotting.format.show_legend
+        legend_title_text = state.plotting.handles.legend_title_text
+
+        dynamic_vals = Dict(k => v[] for (k, v) in state.plotting.format.dynamic_attributes)
+        base_format = merge((;
+            plottype = selected_plottype,
+            show_legend = is_new_data ? nothing : show_legend[],
+            legend_title = is_new_data ? "" : legend_title_text[],
+        ), NamedTuple(dynamic_vals))
+        plot_format = if is_new_data || reset_semipersistent
+            base_format
+        else
+            merge(get_current_axis_limits(state), base_format)
+        end
+
+        do_replot(
+            state,
+            outputs;
+            data = (; df = df_selected, x_name = xcol_name, y_name = y_names),
+            plot_format = plot_format,
+            is_new_data = is_new_data,
+            reset_semipersistent = reset_semipersistent,
+        )
+        return true
+    end
+
+    if !catch_errors
+        return _do_cached_replot()
+    end
+
+    try
+        return _do_cached_replot()
+    catch e
+        bt = catch_backtrace()
+        show_modal!(state, "Error updating plot: $e"; type=:error, exception=(e, bt))
+        outputs.plot[] = DOM.div("")
+        return false
+    end
+end
+
+"""
+    finish_rpb!(state, outputs, acquire, fresh_sig; is_new_source=false, adopt_baseline=false) -> Nothing
+
+Finalize the (Re-)Plot Button pipeline:
+1. Update bounds and range fields if full range.
+2. Prepare and clean data.
+3. Call `do_replot` with reset_semipersistent=true.
+4. Refresh Table.
+5. Update last_plotted observables and baseline signature if requested.
+"""
+function finish_rpb!(state, outputs, acquire, fresh_sig; is_new_source=false, adopt_baseline=false)
+    sel = selection_from_state(state)
+    if sel.full_range
+        state.data_selection.data_bounds_from[] = fresh_sig.first_index
+        state.data_selection.data_bounds_to[] = fresh_sig.last_index
+        state.data_selection.range_from[] = fresh_sig.first_index
+        state.data_selection.range_to[] = fresh_sig.last_index
+    end
+
+    if fresh_sig.kind == :table && fresh_sig.is_matrix && sel.all_columns
+        if state.data_selection.selected_columns[] != fresh_sig.colnames
+            state.data_selection.selected_columns[] = copy(fresh_sig.colnames)
         end
     end
+
+    range_from = state.data_selection.range_from[]
+    range_to = state.data_selection.range_to[]
+
+    prepare_plot_data!(state, acquire; range_from=range_from, range_to=range_to)
+
+    replot_from_cache!(state, outputs; is_new_data=is_new_source, reset_semipersistent=true, catch_errors=false)
+
+    refresh_table!(state, outputs)
+
+    if acquire.is_array_mode
+        state.misc.last_plotted_x[] = state.data_selection.selected_x[]
+        state.misc.last_plotted_y[] = state.data_selection.selected_y[]
+    else
+        state.misc.last_plotted_dataframe[] = state.data_selection.selected_dataframe[]
+    end
+
+    if adopt_baseline
+        state.misc.source_signature[] = fresh_sig
+    end
+    return nothing
+end
+
+"""
+    refresh_candidates!(state) -> Nothing
+
+Force refresh array dimensions and DataFrame candidate lists from Main without 30s throttling.
+"""
+function refresh_candidates!(state)
+    state.misc.last_update[] = 0.0
+    state.data_selection.dims_dict_obs[] = get_dims_of_arrays()
+    state.data_selection.dataframes_dict_obs[] = collect_dataframes_from_main()
+    state.misc.last_update[] = time()
+    return nothing
+end
+
+"""
+    reset_selection!(state, outputs; reset_dataframe=false) -> Nothing
+
+Reset data selections and views after a continuity error or "Select data anew".
+"""
+function reset_selection!(state, outputs; reset_dataframe=false)
+    source_type = state.data_selection.source_type[]
+    if source_type == "X, Y Arrays"
+        state.data_selection.selected_x[] = nothing
+        state.data_selection.selected_y[] = nothing
+        state.misc.last_plotted_x[] = nothing
+        state.misc.last_plotted_y[] = nothing
+    else
+        state.data_selection.selected_columns[] = String[]
+        state.misc.last_plotted_dataframe[] = nothing
+        if reset_dataframe
+            state.data_selection.selected_dataframe[] = nothing
+        else
+            df_name = state.data_selection.selected_dataframe[]
+            if !isnothing(df_name) && !isempty(df_name)
+                try
+                    opened_df = state.file_opening.opened_file_df[]
+                    (first_idx, last_idx) = get_dataframe_bounds(df_name, opened_df)
+                    state.data_selection.data_bounds_from[] = first_idx
+                    state.data_selection.data_bounds_to[] = last_idx
+                    state.data_selection.range_from[] = first_idx
+                    state.data_selection.range_to[] = last_idx
+                    state.misc.source_signature[] = capture_signature(:table, df_name, opened_df)
+                catch
+                    state.data_selection.selected_dataframe[] = nothing
+                    state.misc.source_signature[] = nothing
+                end
+            end
+            state.misc.source_refresh[] += 1
+        end
+    end
+
+    outputs.plot[] = DOM.div("Plot Pane")
+    if source_type == "X, Y Arrays" || reset_dataframe || isnothing(state.data_selection.selected_dataframe[])
+        outputs.table[] = DOM.div("Table Pane")
+        outputs.table_title[] = "Data Table (No source selected)"
+        state.misc.source_signature[] = nothing
+    else
+        refresh_table!(state, outputs)
+    end
+
+    state.plotting.handles.current_figure[] = nothing
+    state.plotting.handles.current_axis[] = nothing
+    clear_axis_limits(state)
+
+    state.misc.cached_cleaned_df[] = nothing
+    state.misc.cached_cols[] = String[]
+    state.misc.cached_xcol_name[] = nothing
+    state.misc.cached_y_names[] = nothing
+
+    refresh_candidates!(state)
+    return nothing
+end
+
+"""
+    run_rpb!(state, outputs) -> Nothing
+
+Unified (Re-)Plot Button execution pipeline.
+Reads fresh data from Main / opened file, validates continuity, handles 2-button warnings or error dialogs,
+and updates both Plot and Table.
+"""
+function run_rpb!(state, outputs)
+    source_type = state.data_selection.source_type[]
+    if source_type == "X, Y Arrays"
+        x = state.data_selection.selected_x[]
+        y = state.data_selection.selected_y[]
+        if isnothing(x) || isempty(x) || isnothing(y) || isempty(y)
+            return nothing
+        end
+    else
+        df_name = state.data_selection.selected_dataframe[]
+        cols = state.data_selection.selected_columns[]
+        if isnothing(df_name) || isempty(df_name) || length(cols) < 2
+            return nothing
+        end
+    end
+
+    show_loading_indicator(outputs)
+
+    try
+        fresh_sig = capture_signature(state)
+        baseline = state.misc.source_signature[]
+        sel = selection_from_state(state)
+        cont = check_continuity(baseline, fresh_sig, sel)
+
+        if cont.status == :fatal
+            throw(DataContinuityError(cont.reason))
+        end
+
+        override_cols = (fresh_sig.kind == :table && fresh_sig.is_matrix && sel.all_columns) ? fresh_sig.colnames : nothing
+        acquire = acquire_source(state; override_cols=override_cols)
+        if isnothing(acquire)
+            return nothing
+        end
+
+        is_new_source = if acquire.is_array_mode
+            (state.data_selection.selected_x[] != state.misc.last_plotted_x[] || state.data_selection.selected_y[] != state.misc.last_plotted_y[])
+        else
+            (state.data_selection.selected_dataframe[] != state.misc.last_plotted_dataframe[])
+        end
+
+        if cont.status == :resumable
+            show_modal!(
+                state,
+                join(cont.changes, "\n");
+                type = :warning,
+                primary_label = "Continue",
+                secondary_label = "Select data anew",
+                on_primary = () -> begin
+                    finish_rpb!(state, outputs, acquire, fresh_sig; is_new_source = is_new_source, adopt_baseline = true)
+                    state.misc.source_refresh[] += 1
+                end,
+                on_secondary = () -> begin
+                    reset_selection!(state, outputs)
+                end,
+            )
+            return nothing
+        else # :identical
+            finish_rpb!(state, outputs, acquire, fresh_sig; is_new_source = is_new_source, adopt_baseline = (baseline === nothing))
+            return nothing
+        end
+    catch e
+        bt = catch_backtrace()
+        msg = e isa DataContinuityError ? e.msg : "Error generating plot: " * sprint(showerror, e)
+        show_modal!(state, msg; type=:error, exception=(e, bt))
+        reset_selection!(state, outputs)
+        outputs.plot[] = DOM.div("")
+        outputs.table[] = DOM.div("")
+        outputs.table_title[] = "Data Table (Error)"
+    end
+    return nothing
 end
 
 """
@@ -437,10 +770,7 @@ function setup_format_change_callbacks(state, outputs)
             end
         end
         
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
+        replot_from_cache!(state, outputs)
     end
     
     # === Legend Visibility Change Handler ===
@@ -450,10 +780,7 @@ function setup_format_change_callbacks(state, outputs)
         # Mark as non-default
         state.misc.format_is_default[:show_legend] = false
         
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
+        replot_from_cache!(state, outputs)
     end
     
     # === Legend Title Change Handler ===
@@ -468,10 +795,7 @@ function setup_format_change_callbacks(state, outputs)
         # Skip replot if legend is not shown - title is saved for when legend becomes visible
         show_legend[] || return
         
-        from_val, to_val = get_range_values()
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
+        replot_from_cache!(state, outputs)
     end
     
     # === Dynamic Attributes Change Handlers ===
@@ -481,10 +805,7 @@ function setup_format_change_callbacks(state, outputs)
             
             state.misc.format_is_default[attr_name] = false
             
-            from_val, to_val = get_range_values()
-            update_unified_plot!(state, outputs; 
-                                  is_new_data=false, update_table=false,
-                                  range_from=from_val, range_to=to_val)
+            replot_from_cache!(state, outputs)
         end
     end
 end
@@ -494,199 +815,43 @@ end
 """
     update_unified_plot!(state, outputs; is_new_data=false, update_table=false, range_from=nothing, range_to=nothing, reset_semipersistent=false)
 
-Helper function to update plot with selected data and format settings.
-Handles data preparation (fetching, validation, caching, normalization) then delegates to do_replot.
-
-# Arguments
-- `state`: Application state struct `CasualPlotsState`
-- `outputs`: Output observables struct `Outputs`
-- `is_new_data`: If true, initializes text fields from plot defaults (for new plots)
-- `update_table`: If true, updates the table observable (only for new plot data)
-- `range_from`: Starting row index (1-based, uses 1 if nothing)
-- `range_to`: Ending row index (uses nrow if nothing)
-- `reset_semipersistent`: If true, resets axis limits to default.
+Legacy / test compatibility wrapper around the split plot pipeline.
 """
-function update_unified_plot!(state, outputs; 
-                               is_new_data=false, update_table=false,
-                               range_from::Union{Nothing,Int}=nothing, 
-                               range_to::Union{Nothing,Int}=nothing,
-                               reset_semipersistent::Bool=false)
-    (; show_modal, modal_type) = state.dialogs
-    (; selected_plottype, show_legend) = state.plotting.format
-    (; legend_title_text) = state.plotting.handles
-    (; source_type) = state.data_selection
-    plot_observable = outputs.plot
-    table_observable = outputs.table
-    
+function update_unified_plot!(
+    state,
+    outputs;
+    is_new_data=false,
+    update_table=false,
+    range_from=nothing,
+    range_to=nothing,
+    reset_semipersistent=false,
+)
     if !isnothing(range_from) && !isnothing(range_to) && range_from > range_to
         show_modal!(state, "Range Error: 'Range from' must be less than or equal to 'Range to'"; type=:warning)
         return false
     end
 
     try
-        local df
-        local display_name
-        local valid_cols
-        
-        is_array_mode = source_type[] == "X, Y Arrays"
-        
-        if is_array_mode
-            x = state.data_selection.selected_x[]
-            y = state.data_selection.selected_y[]
-            if isnothing(x) || x == "" || isnothing(y) || y == ""
-                return false
-            end
-            
-            x_data = getfield(Main, Symbol(x))
-            y_data = getfield(Main, Symbol(y))
-            
-            if y_data isa AbstractVector
-                y_data = reshape(y_data, :, 1)
-            end
-            
-            n_cols = size(y_data, 2)
-            ys = n_cols == 1 ? [y] : ["$(y)_$n" for n in 1:n_cols]
-            valid_cols = vcat(x, ys)
-            df = DataFrame()
-            df[!, x] = x_data
-            for i in 1:n_cols
-                df[!, ys[i]] = y_data[:, i]
-            end
-            display_name = "$(y) vs $(x)"
-        else
-            cols = state.data_selection.selected_columns[]
-            df_name = state.data_selection.selected_dataframe[]
-            if isnothing(df_name) || df_name == "" || length(cols) < 2
-                return false
-            end
-            
-            if df_name == "__opened_file__"
-                df = state.file_opening.opened_file_df[]
-                display_name = state.file_opening.opened_file_name[]
-                if isnothing(df)
-                    error("No file has been opened. Use the Open tab to load a file.")
-                end
-            else
-                df = get_source_as_dataframe(df_name, state.file_opening.opened_file_df[])
-            end
-            display_name = df_name
-            
-            available_columns = names(df)
-            valid_cols = filter(col -> col in available_columns, cols)
-            
-            if length(valid_cols) < 2
-                error("Selected columns not found in DataFrame $(display_name). Available columns: $(join(available_columns, ", "))")
-            end
+        acquire = acquire_source(state)
+        if isnothing(acquire)
+            return false
         end
-        
-        # Check cache validity
-        cache = state.misc
-        bypass_cache = is_new_data || reset_semipersistent || isnothing(cache.cached_cleaned_df[]) || cache.cached_cols[] != valid_cols
-        
-        local df_selected
-        local xcol_name
-        local y_names
-        
-        if bypass_cache
-            # Use select to get selected columns
-            df_selected = select(df, valid_cols)
-            
-            # Apply range slicing if provided
-            n_rows = nrow(df_selected)
-            from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
-            to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
-            
-            df_selected = df_selected[from_idx:to_idx, :]
-            
-            # Clean data for plotting
-            df_selected = clean_plot_data!(df_selected, valid_cols, state)
-            
-            # First column is X, rest are Y
-            xcol_name = valid_cols[1]
-            if is_array_mode
-                y_names = state.data_selection.selected_y[]
-            else
-                y_names = length(valid_cols) > 2 ? display_name : valid_cols[2]
-            end
-            
-            # Check for categorical data to disable numeric-only UI controls
-            T_x = nonmissingtype(eltype(df_selected[!, xcol_name]))
-            x_is_cat = !(T_x <: Union{Real, Unitful.Quantity})
-            state.plotting.format.x_is_categorical[] = x_is_cat
-            
-            if length(valid_cols) > 1
-                T_y = nonmissingtype(eltype(df_selected[!, valid_cols[2]]))
-                y_is_cat = !(T_y <: Union{Real, Unitful.Quantity})
-            else
-                y_is_cat = false
-            end
-            state.plotting.format.y_is_categorical[] = y_is_cat
-            
-            # Update cache
-            cache.cached_cleaned_df[] = df_selected
-            cache.cached_cols[] = copy(valid_cols)
-            cache.cached_xcol_name[] = xcol_name
-            cache.cached_y_names[] = y_names
-        else
-            df_selected = cache.cached_cleaned_df[]
-            xcol_name = cache.cached_xcol_name[]
-            y_names = cache.cached_y_names[]
-        end
-        
-        plottype_str = selected_plottype[]
-        
-        dynamic_vals = Dict(k => v[] for (k, v) in state.plotting.format.dynamic_attributes)
-        base_format = merge((;
-            plottype = plottype_str,
-            show_legend = is_new_data ? nothing : show_legend[],
-            legend_title = is_new_data ? "" : legend_title_text[],
-        ), NamedTuple(dynamic_vals))
-        plot_format = if is_new_data || reset_semipersistent
-            base_format
-        else
-            merge(get_current_axis_limits(state), base_format)
-        end
-        
-        do_replot(state, outputs;
-            data = (; df = df_selected, x_name = xcol_name, y_name = y_names),
-            plot_format = plot_format,
-            is_new_data = is_new_data,
-            reset_semipersistent = reset_semipersistent,
-        )
-        
-        # Update table if requested (only for new plot data)
+
+        from_val = isnothing(range_from) ? state.data_selection.range_from[] : range_from
+        to_val = isnothing(range_to) ? state.data_selection.range_to[] : range_to
+
+        prepare_plot_data!(state, acquire; range_from=from_val, range_to=to_val)
+        replot_from_cache!(state, outputs; is_new_data=is_new_data, reset_semipersistent=reset_semipersistent)
+
         if update_table
-            if is_array_mode
-                x = state.data_selection.selected_x[]
-                y = state.data_selection.selected_y[]
-                res = create_data_table(x, y; range_from=range_from, range_to=range_to)
-                outputs.table[] = res.table
-                outputs.table_title[] = "SOURCE: " * res.info_text
-            else
-                n_rows = nrow(df)
-                from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, n_rows)
-                to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, n_rows)
-                
-                if from_idx == 1 && to_idx == n_rows
-                    info_text = display_name
-                else
-                    info_text = "$display_name [$(from_idx):$(to_idx)]"
-                end
-                
-                df_with_index = select(df, valid_cols)
-                df_with_index = df_with_index[from_idx:to_idx, :]
-                insertcols!(df_with_index, 1, :Index => from_idx:to_idx)
-                outputs.table_title[] = "SOURCE: " * info_text
-                outputs.table[] = create_table_with_info(Bonito.Table(df_with_index; row_renderer=cp_render_value); has_generated_index=true)
-            end
+            refresh_table!(state, outputs)
         end
-        
         return true
     catch e
         bt = catch_backtrace()
         msg = "Error creating/updating plot: $e"
         show_modal!(state, msg; type=:error, exception=(e, bt))
-        plot_observable[] = DOM.div()
+        outputs.plot[] = DOM.div("")
         return false
     end
 end
@@ -702,7 +867,7 @@ Handles:
 - DataFrame selection (clears column selections, sets data bounds)
 - Plot button click (triggers plot update when columns are selected)
 """
-function setup_dataframe_callbacks(state, outputs, plot_trigger)
+function setup_dataframe_callbacks(state, outputs, plot_trigger=nothing)
     (; source_type, selected_dataframe, selected_columns, selected_x, selected_y,
        range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
     (; format, handles) = state.plotting
@@ -727,10 +892,15 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
             state.misc.last_plotted_dataframe[] = nothing
         end
         
-        # Clear plot, table, and range bounds
+        # Clear plot, table, cache, and range bounds
         plot_observable[] = DOM.div("Plot Pane")
         outputs.table_title[] = "Data Table (No source selected)"
         table_observable[] = DOM.div("Table Pane")
+        state.misc.source_signature[] = nothing
+        state.misc.cached_cleaned_df[] = nothing
+        state.misc.cached_cols[] = String[]
+        state.misc.cached_xcol_name[] = nothing
+        state.misc.cached_y_names[] = nothing
         # Clear format changed flags and text fields
         reset_format_defaults!(state.misc.format_is_default)
         xlabel_text[] = ""
@@ -752,75 +922,32 @@ function setup_dataframe_callbacks(state, outputs, plot_trigger)
         try
         selected_columns[] = String[]
         plot_observable[] = DOM.div("Plot Pane")
-        outputs.table_title[] = "Data Table (No source selected)"
-        table_observable[] = DOM.div("Table Pane")
+        current_figure[] = nothing
+        current_axis[] = nothing
+        state.misc.cached_cleaned_df[] = nothing
+        state.misc.cached_cols[] = String[]
+        state.misc.cached_xcol_name[] = nothing
+        state.misc.cached_y_names[] = nothing
+        clear_axis_limits(state)
         
-        # Set data bounds for the DataFrame
+        # Set data bounds and baseline signature for the DataFrame
         if !isnothing(df_name) && df_name != ""
             (first_idx, last_idx) = get_dataframe_bounds(df_name, opened_file_df[])
             data_bounds_from[] = first_idx
             data_bounds_to[] = last_idx
             range_from[] = first_idx
             range_to[] = last_idx
+            state.misc.source_signature[] = capture_signature(:table, df_name, opened_file_df[])
         else
             data_bounds_from[] = nothing
             data_bounds_to[] = nothing
             range_from[] = nothing
             range_to[] = nothing
+            state.misc.source_signature[] = nothing
         end
         catch e
             bt = catch_backtrace()
             show_modal!(state, "Error in DataFrame selection: " * sprint(showerror, e); type=:error, exception=(e, bt))
-        end
-    end
-    
-    # When Plot button is clicked, create plot if valid selection
-    on(plot_trigger) do _
-        try
-        # Skip if not in DataFrame mode
-        if source_type[] != "DataFrame"
-            return nothing
-        end
-        
-        cols = selected_columns[]
-        df_name = selected_dataframe[]
-        if isnothing(df_name) || df_name == "" || length(cols) < 2
-            # Need at least 2 columns (X and Y)
-            plot_observable[] = DOM.div("Select at least 2 columns (first = X, others = Y)")
-            outputs.table_title[] = "Data Table (No source selected)"
-            table_observable[] = DOM.div("Table Pane")
-            return
-        end
-        
-        # Get range values (use bounds as defaults)
-        from_val = range_from[]
-        to_val = range_to[]
-        if isnothing(from_val)
-            from_val = data_bounds_from[]
-        end
-        if isnothing(to_val)
-            to_val = data_bounds_to[]
-        end
-        
-        # Detect if this is a NEW data source (DataFrame changed)
-        is_new_source = (df_name != state.misc.last_plotted_dataframe[])
-        
-        # Show loading indicator and yield
-        show_loading_indicator(outputs)
-
-        update_unified_plot!(state, outputs; 
-                              is_new_data=is_new_source, update_table=true,
-                              range_from=from_val, range_to=to_val,
-                              reset_semipersistent=true) # Requirement 16: Reset on (Re-)Plot
-        
-        # Update last plotted source
-        state.misc.last_plotted_dataframe[] = df_name
-        catch e
-            bt = catch_backtrace()
-            show_modal!(state, "Error generating plot: " * sprint(showerror, e); type=:error, exception=(e, bt))
-            plot_observable[] = DOM.div("")
-            table_observable[] = DOM.div("")
-            outputs.table_title[] = "Data Table (Error)"
         end
     end
 end
@@ -828,22 +955,64 @@ end
 """
     setup_range_ui_sync(session, state)
 
-Set up a callback to sync range input field values with data bounds.
-When data_bounds_from or data_bounds_to changes, updates the HTML input fields
-with the new values. Uses requestAnimationFrame to ensure DOM is ready.
+Set up callbacks to sync range input field values and bounds with the UI,
+and attach event listeners to the range inputs (since BonitoWidgets.Tabs
+replaces inline event handlers during its initialization sequence).
 """
 function setup_range_ui_sync(session, state)
-    (; data_bounds_from, data_bounds_to) = state.data_selection
-    
+    (; range_from, range_to, data_bounds_from, data_bounds_to) = state.data_selection
+
+    # Workaround: manually attach JS event listeners since BonitoWidgets strips
+    # inline onchange/onkeydown handlers during its Tabs initialization sequence.
+    Bonito.evaljs(session, js"""
+        let attempts = 0;
+        const interval = setInterval(() => {
+            const fromInput = document.getElementById('range-from-input');
+            const toInput = document.getElementById('range-to-input');
+            if (fromInput && toInput) {
+                clearInterval(interval);
+
+                const cb_from = e => window.CasualPlots.updateIntObservable(e, $(range_from));
+                const kb_from = e => window.CasualPlots.handleIntEnterKey(e, $(range_from));
+                fromInput.addEventListener('change', cb_from);
+                fromInput.addEventListener('keydown', kb_from);
+
+                const cb_to = e => window.CasualPlots.updateIntObservable(e, $(range_to));
+                const kb_to = e => window.CasualPlots.handleIntEnterKey(e, $(range_to));
+                toInput.addEventListener('change', cb_to);
+                toInput.addEventListener('keydown', kb_to);
+            } else if (attempts > 50) {
+                clearInterval(interval);
+            }
+            attempts++;
+        }, 100);
+    """)
+
     onany(data_bounds_from, data_bounds_to) do from_val, to_val
-        # Update the input fields via JavaScript with a slight delay to ensure DOM is ready
-        # Pass actual values (or nothing/null) - Bonito handles the conversion
         from_js = isnothing(from_val) ? nothing : from_val
         to_js = isnothing(to_val) ? nothing : to_val
-        # Use requestAnimationFrame to ensure DOM updates are complete
         Bonito.evaljs(session, js"""
             requestAnimationFrame(() => {
                 window.CasualPlots.setRangeInputValues($from_js, $to_js);
+            });
+        """)
+    end
+
+    # Also sync the DOM input values whenever range_from or range_to changes in Julia
+    # (e.g., when reset to full bounds even if data_bounds_from/to did not change)
+    onany(range_from, range_to) do r_from, r_to
+        r_from_js = isnothing(r_from) ? "" : string(r_from)
+        r_to_js = isnothing(r_to) ? "" : string(r_to)
+        Bonito.evaljs(session, js"""
+            requestAnimationFrame(() => {
+                const fromInput = document.getElementById('range-from-input');
+                const toInput = document.getElementById('range-to-input');
+                if (fromInput && fromInput.value !== $r_from_js) {
+                    fromInput.value = $r_from_js;
+                }
+                if (toInput && toInput.value !== $r_to_js) {
+                    toInput.value = $r_to_js;
+                }
             });
         """)
     end
@@ -1028,13 +1197,7 @@ function setup_axis_limits_callbacks(state, outputs)
     # Helper to trigger replot
     function trigger_axis_replot()
         state.misc.block_format_update[] && return
-        
-        from_val = isnothing(range_from[]) ? data_bounds_from[] : range_from[]
-        to_val = isnothing(range_to[]) ? data_bounds_to[] : range_to[]
-        
-        update_unified_plot!(state, outputs; 
-                              is_new_data=false, update_table=false,
-                              range_from=from_val, range_to=to_val)
+        replot_from_cache!(state, outputs)
     end
     
     # === Axis Limit Change Handlers ===
@@ -1277,4 +1440,106 @@ function setup_plot_resize_callback(state)
             end
         end
     end
+end
+
+"""
+    refresh_table!(state, outputs) -> Nothing
+
+Refresh the Table view according to the active data selection and row range.
+Does not perform any plotting.
+"""
+function refresh_table!(state, outputs)
+    try
+        source_type = state.data_selection.source_type[]
+        range_from = state.data_selection.range_from[]
+        range_to = state.data_selection.range_to[]
+
+        if source_type == "X, Y Arrays"
+            x = state.data_selection.selected_x[]
+            y = state.data_selection.selected_y[]
+
+            if isnothing(x) || isempty(x)
+                outputs.table[] = DOM.div("Table Pane")
+                outputs.table_title[] = "Data Table (No source selected)"
+                return nothing
+            end
+
+            if !isdefined(Main, Symbol(x))
+                outputs.table[] = DOM.div("Table Pane")
+                outputs.table_title[] = "Data Table (No source selected)"
+                return nothing
+            end
+
+            res = create_data_table(x, y; range_from=range_from, range_to=range_to)
+            outputs.table[] = res.table
+            outputs.table_title[] = "SOURCE: " * res.info_text
+        else
+            df_name = state.data_selection.selected_dataframe[]
+            opened_file_df = state.file_opening.opened_file_df[]
+            cols = state.data_selection.selected_columns[]
+
+            if isnothing(df_name) || isempty(df_name)
+                outputs.table[] = DOM.div("Table Pane")
+                outputs.table_title[] = "Data Table (No source selected)"
+                return nothing
+            end
+
+            local df
+            local display_name
+            if df_name == "__opened_file__"
+                df = opened_file_df
+                display_name = state.file_opening.opened_file_name[]
+                if isempty(display_name)
+                    display_name = "opened file"
+                end
+            else
+                if !isdefined(Main, Symbol(df_name))
+                    outputs.table[] = DOM.div("Table Pane")
+                    outputs.table_title[] = "Data Table (No source selected)"
+                    return nothing
+                end
+                df = get_source_as_dataframe(df_name, opened_file_df)
+                display_name = df_name
+            end
+
+            if isnothing(df)
+                outputs.table[] = DOM.div("Table Pane")
+                outputs.table_title[] = "Data Table (No source selected)"
+                return nothing
+            end
+
+            selected_cols = isnothing(cols) ? String[] : cols
+            res = create_dataframe_table(df, selected_cols; range_from=range_from, range_to=range_to, display_name=display_name)
+            outputs.table[] = res.table
+            outputs.table_title[] = "SOURCE: " * res.info_text
+        end
+    catch e
+        bt = catch_backtrace()
+        show_modal!(state, "Error refreshing table: " * sprint(showerror, e); type=:error, exception=(e, bt))
+        outputs.table[] = DOM.div("")
+    end
+    return nothing
+end
+
+"""
+    setup_table_refresh_callback(state, outputs)
+
+Register reactive listeners to immediately refresh the data table on selection and range changes.
+"""
+function setup_table_refresh_callback(state, outputs)
+    (; source_type, selected_x, selected_y, selected_dataframe, selected_columns,
+       range_from, range_to) = state.data_selection
+
+    onany(
+        source_type,
+        selected_x,
+        selected_y,
+        selected_dataframe,
+        selected_columns,
+        range_from,
+        range_to,
+    ) do _...
+        refresh_table!(state, outputs)
+    end
+    return nothing
 end

@@ -16,12 +16,13 @@ function create_dataframe_column_checkboxes(columns, selected_columns)
         return DOM.div("No columns available")
     end
     
-    # Create checkboxes - NOT reactive on selected_columns
+    # Create checkboxes - NOT reactive on selected_columns, but preserves current selection on rebuild
+    current_selected = selected_columns[]
     checkboxes = map(columns) do col_name
         checkbox = DOM.input(
             type="checkbox",
             class="column-checkbox mr-1",
-            checked=false,
+            checked=(col_name in current_selected),
             value=col_name,
             onchange=js"event => window.CasualPlots.handleColumnCheckboxChange(event, $(selected_columns))"
         )
@@ -109,7 +110,7 @@ Create a "Select All" button for DataFrame column selection.
 # Returns
 Observable DOM.button that selects all columns when clicked
 """
-function create_select_all_button(selected_dataframe, selected_columns, opened_file_df=nothing)
+function create_select_all_button(selected_dataframe, selected_columns, opened_file_df=nothing, source_refresh=Observable(0))
     # Helper function to create the button
     function make_button(df_name, opened_df)
         enabled = !isnothing(df_name) && df_name != ""
@@ -134,13 +135,13 @@ function create_select_all_button(selected_dataframe, selected_columns, opened_f
         )
     end
     
-    # Use map with both observables if opened_file_df is provided
+    # Use map with observables including source_refresh
     if isnothing(opened_file_df)
-        map(selected_dataframe) do df_name
+        map(selected_dataframe, source_refresh) do df_name, _
             make_button(df_name, nothing)
         end
     else
-        map(selected_dataframe, opened_file_df) do df_name, opened_df
+        map(selected_dataframe, opened_file_df, source_refresh) do df_name, opened_df, _
             make_button(df_name, opened_df)
         end
     end
@@ -279,7 +280,7 @@ function create_dataframe_dropdown_row(dataframe_node, trigger_update)
 end
 
 """
-    create_dataframe_column_controls(selected_dataframe, selected_columns, opened_file_df)
+    create_dataframe_column_controls(selected_dataframe, selected_columns, opened_file_df, source_refresh)
 
 Create UI content for DataFrame column selection (Select All/Deselect All buttons + checkboxes).
 
@@ -287,13 +288,14 @@ Create UI content for DataFrame column selection (Select All/Deselect All button
 - `selected_dataframe::Observable`: Observable tracking the selected DataFrame
 - `selected_columns::Observable{Vector{String}}`: Observable tracking selected columns
 - `opened_file_df::Observable`: Observable containing the opened file DataFrame
+- `source_refresh::Observable`: Observable counter to trigger column refresh
 
 # Returns
 DOM.div containing button row and column checkboxes
 """
-function create_dataframe_column_controls(selected_dataframe, selected_columns, opened_file_df)
-    # Column checkboxes - reactive to both selected_dataframe and opened_file_df
-    column_checkboxes_node = map(selected_dataframe, opened_file_df) do df_name, opened_df
+function create_dataframe_column_controls(selected_dataframe, selected_columns, opened_file_df, source_refresh=Observable(0))
+    # Column checkboxes - reactive to selected_dataframe, opened_file_df, and source_refresh
+    column_checkboxes_node = map(selected_dataframe, opened_file_df, source_refresh) do df_name, opened_df, _
         if isnothing(df_name) || df_name == ""
             return DOM.div("Select a DataFrame first")
         end
@@ -308,7 +310,7 @@ function create_dataframe_column_controls(selected_dataframe, selected_columns, 
         return create_dataframe_column_checkboxes(columns, selected_columns)
     end
     
-    select_all_button = create_select_all_button(selected_dataframe, selected_columns, opened_file_df)
+    select_all_button = create_select_all_button(selected_dataframe, selected_columns, opened_file_df, source_refresh)
     deselect_all_button = create_deselect_all_button(selected_columns)
     
     # Button row: Select All and Deselect All buttons only

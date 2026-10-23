@@ -35,22 +35,29 @@ test/AgenticTesting/
 │   ├── casualplots_agent_test_utils.jl      # CasualPlots-specific test utilities
 │   ├── generating_screenshots.jl            # Core capture_gui_screenshot, run_screenshot_generator & helpers
 │   ├── image_comparison.jl                  # Image SSIM comparison utilities
+│   ├── rpb_testing_extensions.jl            # DOM query & modal action helpers for RPB/Table tests
+│   ├── rpb_test_scenarios.jl                # Autonomous test groups for RPB & reactive Table
 │   └── screenshot_generators/               # Individual generator files (1 function per file)
 │       ├── generate_Scatter_by_geometry_screenshot.jl
 │       ├── generate_dataframe_source_screenshot.jl
+│       ├── generate_dataframe_source_unplotted_screenshot.jl
 │       ├── generate_format_tab_barplot_dodged_screenshot.jl
 │       ├── generate_format_tab_barplot_stacked_screenshot.jl
 │       ├── generate_format_tab_limits_screenshot.jl
 │       ├── generate_format_tab_lines_screenshot.jl
 │       ├── generate_line_symbol_plot_screenshot.jl
+│       ├── generate_non_linear_discharge_screenshot.jl
 │       ├── generate_open_tab_screenshot.jl
 │       ├── generate_plot_pane_maximized_screenshot.jl
 │       ├── generate_save_tab_script_screenshot.jl
 │       ├── generate_table_view_screenshot.jl
-│       └── generate_xy_source_screenshot.jl
+│       ├── generate_xy_source_screenshot.jl
+│       └── generate_xy_source_unplotted_screenshot.jl
 ├── scripts/
 │   ├── run_all_screenshots.jl               # Runs all generators sequentially via run_screenshot_generator
-│   └── run_screenshots_with_scripts.jl      # Runs generators with script generation & verifies rendered plots
+│   ├── run_screenshots_with_scripts.jl      # Runs generators with script generation & verifies rendered plots
+│   ├── run_rpb_agentic_tests.jl             # Runs autonomous RPB & reactive Table test suite
+│   └── interactive_rpb_test.jl              # Interactive runner for RPB test scenarios
 ├── screenshots/
 │   ├── specifications/
 │   │   └── <name>.md                        # Detailed spec per screenshot (see §4)
@@ -251,7 +258,7 @@ The Kaimon `ex` tool may promote long-running executions to background jobs. Use
 
 ### Running All Screenshots
 
-To generate all 12 screenshots sequentially:
+To generate all 15 screenshots sequentially:
 
 ```julia
 include("test/AgenticTesting/scripts/run_all_screenshots.jl")
@@ -394,7 +401,8 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 | Y reversed checkbox | `input[type="checkbox"][id="axis-y-reversed-checkbox"]` |
 | Y log checkbox | `input[type="checkbox"][id="axis-y-log-checkbox"]` |
 | Save path input | `#save-path-input` |
-| Modal OK button | `#btn-modal-ok` |
+| Modal primary/OK button | `#btn-modal-ok` |
+| Modal secondary/cancel button | `#btn-modal-cancel` |
 | Range from input | `#range-from-input` |
 | Range to input | `#range-to-input` |
 | Column checkbox | `input.column-checkbox[value="<column_name>"]` |
@@ -411,7 +419,9 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 | :--- | :--- | :--- | :--- |
 | `open_file_tab.png` | `generate_open_tab_screenshot` | `generate_open_tab_screenshot.jl` | `run_screenshot_generator(generate_open_tab_screenshot)` |
 | `dataframe_source_selection.png` | `generate_dataframe_source_screenshot` | `generate_dataframe_source_screenshot.jl` | `run_screenshot_generator(generate_dataframe_source_screenshot)` |
+| `dataframe_source_selection_unplotted.png` | `generate_dataframe_source_unplotted_screenshot` | `generate_dataframe_source_unplotted_screenshot.jl` | `run_screenshot_generator(generate_dataframe_source_unplotted_screenshot)` |
 | `xy_source_selection.png` | `generate_xy_source_screenshot` | `generate_xy_source_screenshot.jl` | `run_screenshot_generator(generate_xy_source_screenshot)` |
+| `xy_source_selection_unplotted.png` | `generate_xy_source_unplotted_screenshot` | `generate_xy_source_unplotted_screenshot.jl` | `run_screenshot_generator(generate_xy_source_unplotted_screenshot)` |
 | `format_tab_barplot_dodged.png` | `generate_format_tab_barplot_dodged_screenshot` | `generate_format_tab_barplot_dodged_screenshot.jl` | `run_screenshot_generator(generate_format_tab_barplot_dodged_screenshot)` |
 | `format_tab_barplot_stacked.png` | `generate_format_tab_barplot_stacked_screenshot` | `generate_format_tab_barplot_stacked_screenshot.jl` | `run_screenshot_generator(generate_format_tab_barplot_stacked_screenshot)` |
 | `format_tab_limits.png` | `generate_format_tab_limits_screenshot` | `generate_format_tab_limits_screenshot.jl` | `run_screenshot_generator(generate_format_tab_limits_screenshot)` |
@@ -421,8 +431,9 @@ When asked to create a generator for a new screenshot that doesn't have one yet:
 | `save_tab_script.png` | `generate_save_tab_script_screenshot` | `generate_save_tab_script_screenshot.jl` | `run_screenshot_generator(generate_save_tab_script_screenshot)` |
 | `table_view.png` | `generate_table_view_screenshot` | `generate_table_view_screenshot.jl` | `run_screenshot_generator(generate_table_view_screenshot)` |
 | `Scatter_by_geometry.png` | `generate_Scatter_by_geometry_screenshot` | `generate_Scatter_by_geometry_screenshot.jl` | `run_screenshot_generator(generate_Scatter_by_geometry_screenshot)` |
+| `non-linear-discharge.png` | `generate_non_linear_discharge_screenshot` | `generate_non_linear_discharge_screenshot.jl` | `run_screenshot_generator(generate_non_linear_discharge_screenshot)` |
 
-All 12 generators listed above are verified and can be executed individually via `run_screenshot_generator(...)` or collectively via `include("test/AgenticTesting/scripts/run_all_screenshots.jl")`.
+All 15 generators listed above are verified and can be executed individually via `run_screenshot_generator(...)` or collectively via `include("test/AgenticTesting/scripts/run_all_screenshots.jl")`.
 
 ---
 

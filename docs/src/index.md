@@ -12,7 +12,7 @@ The package is intended for experimental scientists, engineers, and casual Julia
 
 **What it is not**: In no way is the intention to compete with any “serious” tools in terms of feature scope – not with standalone behemoths like commercial [Origin](https://www.originlab.com/) or free [Veusz](https://veusz.github.io/), nor with Julia graphic packages like [Makie.jl](https://github.com/MakieOrg/Makie.jl) or [Plots.jl](https://github.com/juliaplots/plots.jl).
 
-The main feature of `CasualPlots.jl` is the combination of a GUI for data visualization, both as table and plot, with direct access to the variables in the Julia REPL session. Once you create and format a plot, it can be saved, or CasualPlots can generate a standalone Julia script that reproduces the exact visualization. You can then polish that script to produce a publication-ready figure or integrate the code directly into a data processing pipeline.
+The main feature of `CasualPlots.jl` is the combination of a GUI for data visualization, both as table and plot, with direct access to the variables in the Julia REPL session. You can inspect or hot-patch workspace variables and loaded file data in the REPL—or reload modified files from disk—and click **(Re-)Plot** to update the visualization. Once you create and format a plot, it can be saved, or CasualPlots can generate a standalone Julia script that reproduces the exact visualization. You can then polish that script to produce a publication-ready figure or integrate the code directly into a data processing pipeline.
 
 !!! details "📸 Screenshot: Plotting data from a DataFrame"
     *🔍 [Click to view full resolution](Screenshots/dataframe_source_selection.png)*
@@ -21,13 +21,14 @@ The main feature of `CasualPlots.jl` is the combination of a GUI for data visual
 
 ## Features
 
-- **Data Sources**:
-  - Julia `Main` workspace variables (1D Vectors, Matrices, and DataFrames). [Unitful](https://github.com/JuliaPhysics/Unitful.jl) data are welcome
-  - External files on disk in CSV/TSV and XLSX format.
+- **Data Sources & Live Reloading**:
+  - Julia `Main` workspace variables (Vectors, Matrices, and DataFrames). [Unitful](https://github.com/JuliaPhysics/Unitful.jl) data are welcome.
+  - External files on disk in CSV/TSV and XLSX format, with live REPL access via `cp_file_df`.
+  - Hot-patching support: modify variables in `Main` in the REPL and click **(Re-)Plot** to refresh the plot and table with automatic structural validation.
 - **Plot Types**:   
   - Common 2D plot types: Scatter, Lines, Line+Symbol, and BarPlot (supporting vertical or horizontal orientation, and dodged or stacked modes).
   - Dataset grouping by color or geometry (marker shape or line style).
-- **Data Table Representation**: Displays the active dataset in a scrollable table. 
+- **Data Table Representation**: Displays the selected dataset and row range immediately in a scrollable table. 
 - **Script Generation**: Generates standalone Julia scripts replicating plots configured in the GUI using `AlgebraOfGraphics` and `Makie`.
 - **Saving Plots**: Exports static figures directly from the GUI as PNG, SVG, or PDF. 
 
@@ -125,8 +126,8 @@ For the full list, see the [API Reference](api.md).
 
 ```@autodocs; canonical = false
 Modules = [CasualPlots]
-Order   = [:function, :macro, :type]
-Filter = t -> Base.isexported(CasualPlots, Symbol(t))
+Order   = [:function, :macro, :type, :constant]
+Filter  = is_exported
 ```
 
 ### Public Entities 

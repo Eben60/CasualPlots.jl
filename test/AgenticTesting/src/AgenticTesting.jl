@@ -14,6 +14,8 @@ include("gui_testing_utils.jl")
 include("casualplots_agent_test_utils.jl")
 include("generating_screenshots.jl")
 include("image_comparison.jl")
+include("rpb_testing_extensions.jl")
+include("rpb_test_scenarios.jl")
 
 include("screenshot_generators/generate_open_tab_screenshot.jl")
 include("screenshot_generators/generate_format_tab_barplot_stacked_screenshot.jl")
@@ -24,9 +26,11 @@ include("screenshot_generators/generate_format_tab_barplot_dodged_screenshot.jl"
 include("screenshot_generators/generate_plot_pane_maximized_screenshot.jl")
 include("screenshot_generators/generate_line_symbol_plot_screenshot.jl")
 include("screenshot_generators/generate_xy_source_screenshot.jl")
+include("screenshot_generators/generate_xy_source_unplotted_screenshot.jl")
 include("screenshot_generators/generate_table_view_screenshot.jl")
 include("screenshot_generators/generate_save_tab_script_screenshot.jl")
 include("screenshot_generators/generate_dataframe_source_screenshot.jl")
+include("screenshot_generators/generate_dataframe_source_unplotted_screenshot.jl")
 include("screenshot_generators/generate_non_linear_discharge_screenshot.jl")
 
 # ==========================================
@@ -34,7 +38,8 @@ include("screenshot_generators/generate_non_linear_discharge_screenshot.jl")
 # ==========================================
 export run_screenshot_generator, with_screenshot_env, capture_gui_screenshot,
        compare_images_ssim, compare_directories_ssim, crop_screenshot_plot, compare_screenshot_plot_ssim
-export generate_open_tab_screenshot, generate_dataframe_source_screenshot, generate_xy_source_screenshot, 
+export generate_open_tab_screenshot, generate_dataframe_source_screenshot, generate_dataframe_source_unplotted_screenshot,
+       generate_xy_source_screenshot, generate_xy_source_unplotted_screenshot,
        generate_format_tab_barplot_dodged_screenshot, generate_format_tab_barplot_stacked_screenshot, 
        generate_format_tab_limits_screenshot, generate_format_tab_lines_screenshot, 
        generate_plot_pane_maximized_screenshot, generate_save_tab_script_screenshot, 
@@ -46,6 +51,11 @@ export generate_open_tab_screenshot, generate_dataframe_source_screenshot, gener
 # ==========================================
 public click_button, select_dropdown_value, set_radio_value, toggle_checkbox, get_dropdown_options, click_element_by_text
 public wait_for_session, get_active_session, wait_until, wait_for_observable, wait_for_ui_settle
+
+public get_table_headers_dom, get_table_row_count_dom, get_table_cell_dom, get_modal_info_dom
+public click_replot, click_modal_primary, click_modal_secondary
+public test_group_a_table_decoupling, test_group_b_hot_patching, test_group_c_structural_continuity,
+       test_group_d_file_import_continuity, test_group_e_format_cache_isolation
 
 public set_opened_file_path, verify_session_active, verify_file_loaded, verify_file_row_count, verify_range_selection,
        verify_x_selected, verify_y_selected, verify_y_options_filtered_dom, verify_plot_rendered,

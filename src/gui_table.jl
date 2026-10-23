@@ -50,74 +50,132 @@ function create_table_with_info(table_content; has_generated_index=false)
 end
 
 """
-    create_data_table(x, y; range_from=nothing, range_to=nothing)
+    create_data_table(x::AbstractString, y=nothing; range_from=nothing, range_to=nothing)
 
-Create a formatted data table displaying X and Y data.
+Creates a table representation of X and optional Y data with an Index column.
 
 # Arguments
-- `x::String`: Name of X variable in Main module
-- `y::String`: Name of Y variable in Main module
+- `x::AbstractString`: Name of the X variable in Main
+- `y`: Optional name of the Y variable in Main (if nothing, only X is included)
 - `range_from::Union{Nothing,Int}`: Starting index for data range (uses firstindex if nothing)
 - `range_to::Union{Nothing,Int}`: Ending index for data range (uses lastindex if nothing)
 
 # Returns
-DOM.div containing a Bonito.Table with the data
+NamedTuple `(; table, info_text)`
 """
-function create_data_table(x::AbstractString, y::AbstractString; range_from=nothing, range_to=nothing)
+function create_data_table(x::AbstractString, y=nothing; range_from=nothing, range_to=nothing)
     x_data = getfield(Main, Symbol(x))
-    y_data = getfield(Main, Symbol(y))
-    if y_data isa AbstractVector
-        y_data = reshape(y_data, :, 1)
-    end
-    
+
     # Get actual array bounds for X
     x_first = firstindex(x_data)
     x_last = lastindex(x_data)
-    
+
     # Use provided range or default to full bounds (in X's index space)
     from_idx = isnothing(range_from) ? x_first : range_from
     to_idx = isnothing(range_to) ? x_last : range_to
-    
+
     # Clamp to valid X range
     from_idx = clamp(from_idx, x_first, x_last)
     to_idx = clamp(to_idx, x_first, x_last)
-    
+
     # Slice X data using X's indices
-    x_slice = x_data[from_idx:to_idx]
-    
-    # Convert X indices to linear positions for Y
-    # For example: if X has indices -50:50 and we want -50:50,
-    # the linear positions for Y (1-based) are 1:101
-    y_first = firstindex(y_data, 1)  # Y's first row index
-    pos_from = from_idx - x_first + y_first
-    pos_to = to_idx - x_first + y_first
-    
-    # Slice Y using linear positions
-    if y_data isa AbstractMatrix
-        y_slice = y_data[pos_from:pos_to, :]
-    else
-        y_slice = y_data[pos_from:pos_to]
-    end
-    
-    num_y_cols = size(y_slice, 2)
-    
+    x_slice = from_idx <= to_idx ? x_data[from_idx:to_idx] : eltype(x_data)[]
+
     # Build DataFrame with actual X indices as the Index column
     df = DataFrame()
     df.Index = from_idx:to_idx
     df[!, x] = x_slice
-    
-    for i in 1:num_y_cols
-        col_name = num_y_cols > 1 ? "$(y)_$i" : y
-        df[!, col_name] = y_slice[:, i]
+
+    has_y = !isnothing(y) && !isempty(y) && isdefined(Main, Symbol(y))
+    if has_y
+        y_data = getfield(Main, Symbol(y))
+        if y_data isa AbstractVector
+            y_data = reshape(y_data, :, 1)
+        end
+
+        y_first = firstindex(y_data, 1)  # Y's first row index
+        pos_from = from_idx - x_first + y_first
+        pos_to = to_idx - x_first + y_first
+
+        y_last_row = lastindex(y_data, 1)
+        pos_from = clamp(pos_from, y_first, y_last_row)
+        pos_to = clamp(pos_to, y_first, y_last_row)
+
+        if y_data isa AbstractMatrix
+            y_slice = from_idx <= to_idx ? y_data[pos_from:pos_to, :] : y_data[1:0, :]
+        else
+            y_slice = from_idx <= to_idx ? y_data[pos_from:pos_to] : y_data[1:0]
+        end
+
+        num_y_cols = size(y_slice, 2)
+        for i in 1:num_y_cols
+            col_name = num_y_cols > 1 ? "$(y)_$i" : y
+            df[!, col_name] = y_slice[:, i]
+        end
     end
-    
+
     # Build source info text with range info
+    base_info = has_y ? "$y vs $x" : x
     if from_idx == x_first && to_idx == x_last
-        info_text = "$y vs $x"
+        info_text = base_info
     else
-        info_text = "$y vs $x [$(from_idx):$(to_idx)]"
+        info_text = "$base_info [$(from_idx):$(to_idx)]"
     end
-    
-    return (; table = create_table_with_info(Bonito.Table(df; row_renderer=cp_render_value); has_generated_index=true), info_text = info_text)
+
+    return (;
+        table = create_table_with_info(Bonito.Table(df; row_renderer=cp_render_value); has_generated_index=true),
+        info_text = info_text,
+    )
+end
+
+"""
+    create_dataframe_table(df::AbstractDataFrame, cols::AbstractVector=String[]; range_from=nothing, range_to=nothing, display_name::AbstractString="")
+
+Creates a table representation of a DataFrame or column subset with an Index column.
+
+# Arguments
+- `df::AbstractDataFrame`: Source DataFrame
+- `cols`: Vector of column names to display (empty for Index-only)
+- `range_from`: Starting row index (1-based)
+- `range_to`: Ending row index (1-based)
+- `display_name`: Display title for source
+
+# Returns
+NamedTuple `(; table, info_text)`
+"""
+function create_dataframe_table(
+    df::AbstractDataFrame,
+    cols::AbstractVector=String[];
+    range_from=nothing,
+    range_to=nothing,
+    display_name::AbstractString="",
+)
+    n_rows = nrow(df)
+
+    from_idx = isnothing(range_from) ? 1 : clamp(range_from, 1, max(1, n_rows))
+    to_idx = isnothing(range_to) ? n_rows : clamp(range_to, 1, max(1, n_rows))
+
+    if from_idx == 1 && to_idx == n_rows
+        info_text = isempty(display_name) ? "DataFrame" : display_name
+    else
+        info_text = isempty(display_name) ? "DataFrame [$(from_idx):$(to_idx)]" : "$display_name [$(from_idx):$(to_idx)]"
+    end
+
+    available = names(df)
+    valid_cols = filter(c -> c in available, cols)
+
+    row_indices = from_idx <= to_idx && n_rows > 0 ? (from_idx:to_idx) : Int[]
+    if isempty(valid_cols)
+        df_with_index = DataFrame(; Index = row_indices)
+    else
+        df_sliced = from_idx <= to_idx && n_rows > 0 ? select(df, valid_cols)[from_idx:to_idx, :] : DataFrame([c => eltype(df[!, c])[] for c in valid_cols])
+        df_with_index = df_sliced
+        insertcols!(df_with_index, 1, :Index => row_indices)
+    end
+
+    return (;
+        table = create_table_with_info(Bonito.Table(df_with_index; row_renderer=cp_render_value); has_generated_index=true),
+        info_text = info_text,
+    )
 end
 

@@ -1,5 +1,26 @@
 # Changelog
 
+### [0.12.0]
+
+_2026-10-23_
+
+**Added**
+- Exported [`cp_file_df`](@ref) to provide REPL access to the `DataFrame` loaded via the **Open** tab for inspection and in-place hot-patching.
+- Structural change detection on **(Re-)Plot** and file **Reload**, displaying a confirmation warning when changes are compatible with the active selection or an error dialog when incompatible.
+
+**Changed**
+- Decoupled the **Table Pane** from the **(Re-)Plot** button: selecting sources, toggling columns, or editing the row index range now updates the table immediately.
+- Clicking **(Re-)Plot** now always re-reads the active data source from `Main` (by variable name) or `cp_file_df`, picking up hot-patched data while keeping format and theme changes isolated to the currently plotted dataset.
+- Clicking **Reload** in the **Open** tab now preserves the active column selection and automatically replots if the opened file is currently plotted.
+
+### [0.11.1]
+
+_2026-10-19_
+
+**Changed**
+- Minor manual updates. 
+- Minor refactoring of test suite.
+
 ### [0.11.0]
 
 _2026-10-18_

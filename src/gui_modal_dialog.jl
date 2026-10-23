@@ -18,14 +18,32 @@ function last_error()
 end
 
 """
-    show_modal!(state::CasualPlotsState, msg::AbstractString; type::Symbol=:error, exception=nothing) -> Nothing
+    show_modal!(
+        state::CasualPlotsState,
+        msg::AbstractString;
+        type::Symbol,
+        exception=nothing,
+        primary_label::AbstractString="OK",
+        secondary_label::Union{Nothing, AbstractString}=nothing,
+        on_primary=nothing,
+        on_secondary=nothing,
+    ) -> Nothing
 
-Trigger a modal dialog with the given message and type. Type can be `:error`, `:warning`, `:info`, `:success`, or `:confirm`. 
+Trigger a modal dialog with the given message and type. Type can be `:error`, `:warning`, `:info`, `:success`, or `:confirm`.
 
 Automatically logs the message to the REPL based on the `type`, except for 
 `:confirm` case, which is an interactive UI prompt in GUI only.
 """
-function show_modal!(state, msg; type, exception=nothing)
+function show_modal!(
+    state,
+    msg;
+    type,
+    exception=nothing,
+    primary_label="OK",
+    secondary_label=nothing,
+    on_primary=nothing,
+    on_secondary=nothing,
+)
     if type == :error && isnothing(exception)
         throw(ArgumentError("An exception must be provided when type is :error"))
     end
@@ -43,9 +61,23 @@ function show_modal!(state, msg; type, exception=nothing)
     elseif type == :success || type == :info
         @info msg
     end
-    
+
+    actual_primary = primary_label
+    actual_secondary = secondary_label
+    if type == :confirm
+        if actual_primary == "OK"
+            actual_primary = "Overwrite"
+        end
+        if isnothing(actual_secondary)
+            actual_secondary = "Cancel"
+        end
+    end
+
     state.file_saving.save_status_message[] = msg
     state.dialogs.modal_type[] = type
+    state.dialogs.modal_primary_label[] = String(actual_primary)
+    state.dialogs.modal_secondary_label[] = isnothing(actual_secondary) ? nothing : String(actual_secondary)
+    state.dialogs.modal_callbacks[] = (; on_primary = on_primary, on_secondary = on_secondary)
     state.dialogs.show_modal[] = true
     return nothing
 end
@@ -154,114 +186,122 @@ function create_modal_title(modal_type)
 end
 
 """
-    create_ok_button(dismiss_trigger)
+    create_modal_buttons(state)
 
-Create an "OK" button for dismissing the modal.
+Create appropriate buttons based on modal type and labels.
 """
-function create_ok_button(dismiss_trigger)
-    DOM.button(
-        "OK";
-        id="btn-modal-ok",
-        onclick=js"() => window.CasualPlots.incrementObservable($(dismiss_trigger))",
-        style=Styles(
-            "padding" => "8px 24px",
-            "background-color" => "#007BFF",
-            "color" => "white",
-            "border" => "none",
-            "border-radius" => "4px",
-            "cursor" => "pointer",
-            "font-size" => "14px"
-        )
-    )
-end
+function create_modal_buttons(state)
+    (; modal_type, modal_primary_label, modal_secondary_label, modal_action_primary, modal_action_secondary) = state.dialogs
 
-"""
-    create_confirm_buttons(overwrite_trigger, cancel_trigger)
+    return map(modal_type, modal_primary_label, modal_secondary_label) do mtype, p_label, s_label
+        primary_bg = mtype == :confirm ? "#DC3545" : "#007BFF"
 
-Create "Overwrite" and "Cancel" buttons for confirmation dialogs.
-"""
-function create_confirm_buttons(overwrite_trigger, cancel_trigger)
-    DOM.div(
-        DOM.button(
-            "Overwrite";
-            id="btn-modal-overwrite",
-            onclick=js"() => window.CasualPlots.incrementObservable($(overwrite_trigger))",
+        primary_btn = DOM.button(
+            p_label;
+            id="btn-modal-ok",
+            onclick=js"() => window.CasualPlots.incrementObservable($(modal_action_primary))",
             style=Styles(
-                "padding" => "8px 20px",
-                "background-color" => "#DC3545",
+                "padding" => "8px 24px",
+                "background-color" => primary_bg,
                 "color" => "white",
                 "border" => "none",
                 "border-radius" => "4px",
                 "cursor" => "pointer",
                 "font-size" => "14px",
-                "margin-right" => "10px"
-            )
-        ),
-        DOM.button(
-            "Cancel";
-            id="btn-modal-cancel",
-            onclick=js"() => window.CasualPlots.incrementObservable($(cancel_trigger))",
-            style=Styles(
-                "padding" => "8px 20px",
-                "background-color" => "#6C757D",
-                "color" => "white",
-                "border" => "none",
-                "border-radius" => "4px",
-                "cursor" => "pointer",
-                "font-size" => "14px"
-            )
-        );
-        style=Styles("display" => "flex", "gap" => "10px")
-    )
-end
+            ),
+        )
 
-"""
-    create_modal_buttons(modal_type, dismiss_trigger, overwrite_trigger, cancel_trigger)
-
-Create appropriate buttons based on modal type.
-"""
-function create_modal_buttons(modal_type, dismiss_trigger, overwrite_trigger, cancel_trigger)
-    map(modal_type) do mtype
-        if mtype == :confirm
-            create_confirm_buttons(overwrite_trigger, cancel_trigger)
+        if isnothing(s_label)
+            return DOM.div(primary_btn)
         else
-            create_ok_button(dismiss_trigger)
+            secondary_btn = DOM.button(
+                s_label;
+                id="btn-modal-cancel",
+                onclick=js"() => window.CasualPlots.incrementObservable($(modal_action_secondary))",
+                style=Styles(
+                    "padding" => "8px 20px",
+                    "background-color" => "#6C757D",
+                    "color" => "white",
+                    "border" => "none",
+                    "border-radius" => "4px",
+                    "cursor" => "pointer",
+                    "font-size" => "14px",
+                ),
+            )
+            return DOM.div(
+                primary_btn,
+                secondary_btn;
+                style=Styles("display" => "flex", "gap" => "10px"),
+            )
         end
     end
 end
 
 """
-    create_modal_container(state, overwrite_trigger, cancel_trigger)
+    create_modal_container(state)
 
 Create the complete modal dialog container.
 
-The modal visibility is controlled by `state.show_modal`.
-The modal type (success/error/warning/confirm) is determined by `state.modal_type`.
-The message content comes from `state.save_status_message`.
+The modal visibility is controlled by `state.dialogs.show_modal`.
+The modal type (success/error/warning/confirm) is determined by `state.dialogs.modal_type`.
+The message content comes from `state.file_saving.save_status_message`.
 """
-function create_modal_container(state, overwrite_trigger, cancel_trigger)
-    (; show_modal, modal_type) = state.dialogs
+function create_modal_container(state; plot_observable=nothing, table_observable=nothing)
+    (; show_modal, modal_type, modal_action_primary, modal_action_secondary, modal_callbacks) = state.dialogs
     (; save_status_message) = state.file_saving
-    
-    # Create trigger for OK button (dismisses modal)
-    dismiss_trigger = Observable(0)
-    
-    # Setup dismiss callback
-    on(dismiss_trigger) do _
+
+    # Setup dismiss / action callbacks
+    on(modal_action_primary) do _
         show_modal[] = false
+        cbs = modal_callbacks[]
+        modal_callbacks[] = nothing
+        if !isnothing(cbs) && !isnothing(cbs.on_primary)
+            try
+                cbs.on_primary()
+            catch e
+                show_modal!(
+                    state,
+                    "Error executing modal action: $(e)";
+                    type=:error,
+                    exception=(e, catch_backtrace()),
+                )
+                !isnothing(plot_observable) && (plot_observable[] = DOM.div(""))
+                !isnothing(table_observable) && (table_observable[] = DOM.div(""))
+            end
+        end
     end
-    
+
+    on(modal_action_secondary) do _
+        show_modal[] = false
+        cbs = modal_callbacks[]
+        modal_callbacks[] = nothing
+        if !isnothing(cbs) && !isnothing(cbs.on_secondary)
+            try
+                cbs.on_secondary()
+            catch e
+                show_modal!(
+                    state,
+                    "Error executing modal action: $(e)";
+                    type=:error,
+                    exception=(e, catch_backtrace()),
+                )
+                !isnothing(plot_observable) && (plot_observable[] = DOM.div(""))
+                !isnothing(table_observable) && (table_observable[] = DOM.div(""))
+            end
+        end
+    end
+
     # Create reactive styles
     overlay_style = create_modal_overlay_style(show_modal)
     box_style = create_modal_box_style(modal_type)
-    
+
     # Create modal content
     icon = create_modal_icon(modal_type)
     title = create_modal_title(modal_type)
-    buttons = create_modal_buttons(modal_type, dismiss_trigger, overwrite_trigger, cancel_trigger)
-    
+    buttons = create_modal_buttons(state)
+
     # Build the modal structure
-    map(overlay_style, box_style, icon, title, save_status_message, buttons) do ostyle, bstyle, icn, ttl, msg, btns
+    return map(overlay_style, box_style, icon, title, save_status_message, buttons) do ostyle, bstyle, icn, ttl, msg, btns
         DOM.div(
             DOM.div(
                 # Header row with icon and title
@@ -271,26 +311,30 @@ function create_modal_container(state, overwrite_trigger, cancel_trigger)
                     style=Styles(
                         "display" => "flex",
                         "align-items" => "center",
-                        "margin-bottom" => "15px"
-                    )
+                        "margin-bottom" => "15px",
+                    ),
                 ),
                 # Message content
-                DOM.p(msg; style=Styles(
-                    "margin" => "0 0 20px 0",
-                    "color" => "#333",
-                    "line-height" => "1.5"
-                )),
+                DOM.p(
+                    msg;
+                    style=Styles(
+                        "margin" => "0 0 20px 0",
+                        "color" => "#333",
+                        "line-height" => "1.5",
+                        "white-space" => "pre-line",
+                    ),
+                ),
                 # Buttons
                 DOM.div(
                     btns;
                     style=Styles(
                         "display" => "flex",
-                        "justify-content" => "flex-end"
-                    )
+                        "justify-content" => "flex-end",
+                    ),
                 );
-                style=bstyle
+                style=bstyle,
             );
-            style=ostyle
+            style=ostyle,
         )
     end
 end

@@ -50,6 +50,9 @@ collect_arrays_from_main() = _collect_variables_from_main(is_main_numeric_iterab
 is_vector_like(dims::Tuple) = length(dims) == 1 || (length(dims) == 2 && dims[2] == 1)
 
 function is_main_dataframe_or_matrix(var)
+    if !isnothing(cp_file_df) && var === cp_file_df
+        return false
+    end
     isa(var, AbstractDataFrame) && return true
     if isa(var, AbstractMatrix)
         hasmethod(size, (typeof(var),)) || return false

@@ -50,11 +50,14 @@ function create_dataframe_dropdown(state)
         
         options = []
         
+        current_val = selected_dataframe[]
+
         # Add "opened file" option
         opened_file_enabled = !isnothing(opened_df)
         opened_file_option = DOM.option(
             "opened file";
             value="__opened_file__",
+            selected=(current_val == "__opened_file__"),
             disabled=!opened_file_enabled,
             style=opened_file_enabled ? "" : "color: #999;"
         )
@@ -63,7 +66,7 @@ function create_dataframe_dropdown(state)
         # Add regular DataFrame options
         for name in df_names_strings
             if !isempty(name)
-                push!(options, DOM.option(name; value=name))
+                push!(options, DOM.option(name; value=name, selected=(current_val == name)))
             end
         end
         

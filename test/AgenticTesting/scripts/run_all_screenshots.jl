@@ -15,7 +15,9 @@ try
         println("=== Running all screenshot generators ===")
 
         run_screenshot_generator(generate_dataframe_source_screenshot)
+        run_screenshot_generator(generate_dataframe_source_unplotted_screenshot)
         run_screenshot_generator(generate_xy_source_screenshot)
+        run_screenshot_generator(generate_xy_source_unplotted_screenshot)
         run_screenshot_generator(generate_open_tab_screenshot)
         run_screenshot_generator(generate_format_tab_barplot_dodged_screenshot)
         run_screenshot_generator(generate_format_tab_barplot_stacked_screenshot)

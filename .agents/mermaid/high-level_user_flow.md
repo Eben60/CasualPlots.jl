@@ -27,48 +27,52 @@ flowchart TD
     
     ReadError -->|No| SkipRows[skip_rows!]
     SkipRows --> NormalizeLoad[normalize_strings!]
-    NormalizeLoad --> StoreDF[Store in opened_file_df + opened_file_path]
+    NormalizeLoad --> StoreDF["Store in opened_file_df + Export cp_file_df + Preview in Table"]
     StoreDF --> DFMode
     
     %% Reload Flow
     ConfigOptions --> ReloadBtn{Reload Button}
-    ReloadBtn -->|File Loaded| ReloadFile[Reload with New Options]
+    ReloadBtn -->|File Loaded| ReloadFile["Reload with New Options (Preserves Selection; Auto-Replots if Plotted)"]
     ReloadFile --> FileType
     ReloadBtn -->|No File| ConfigOptions
     
     %% Array Mode Flow
     ArrayMode --> SelectX[Select X Variable from Dropdown]
-    SelectX --> SelectY[Select Y Variable from Dropdown]
+    SelectX --> UpdateTableX["Update Table with [Index, X]"]
+    UpdateTableX --> SelectY[Select Y Variable from Dropdown]
     SelectY --> ValidateArrays{Both X & Y Valid?}
     ValidateArrays -->|No| WaitArrays[Wait for Selection]
-    ValidateArrays -->|Yes| CheckNewSource{New Source?}
-    CheckNewSource -->|"x != last_x or y != last_y"| ResetFormat[Reset format_is_default]
-    CheckNewSource -->|Same Source| KeepFormat[Preserve Format Settings]
-    ResetFormat --> FetchData[Fetch Data from Main Module]
-    KeepFormat --> FetchData
-    FetchData --> CreatePlot[Generate Plot with Default Labels]
-    CreatePlot --> DisplayPlot[Display Plot + Table]
+    ValidateArrays -->|Yes| UpdateTableXY["Update Table with [Index, X, Y...]"]
+    UpdateTableXY --> ClickRPB["User Clicks (Re-)Plot Button"]
+    ClickRPB --> CheckContinuity{Structural Continuity?}
+    CheckContinuity -->|Fatal Error| ErrorModal[Show Error Modal & Reset]
+    CheckContinuity -->|Resumable Change| WarnModal["Show Warning Modal: Continue / Select data anew"]
+    WarnModal -->|Continue| FetchData[Fresh Read from Main Module]
+    WarnModal -->|Select data anew| ArrayMode
+    CheckContinuity -->|Identical / Valid| FetchData
+    FetchData --> CleanData[clean_plot_data! & Cache in cached_cleaned_df]
+    CleanData --> CreatePlot[Generate Plot with Default or User Labels]
+    CreatePlot --> DisplayPlot[Display Plot + Refreshed Table]
     
     %% DataFrame Mode Flow
     DFMode --> SelectDF["Select DataFrame or Matrix (Main or Opened File)"]
     ValidateDF{DataFrame or Matrix Valid?}
     SelectDF --> ValidateDF
     ValidateDF -->|No| WaitDF[Wait for Selection]
-    ValidateDF -->|Yes| ShowCols[Display Column Checkboxes]
-    ShowCols --> SelectCols[Select Columns via Checkboxes]
-    SelectCols --> TriggerPlot[Trigger plot_trigger Observable]
-    TriggerPlot --> ValidateCols{Columns Valid?}
-    ValidateCols -->|No| Error[Show Error]
-    ValidateCols -->|Yes| CheckNewDF{New Data Source?}
-    CheckNewDF -->|"df != last_dataframe"| ResetDFFormat[Reset format_is_default]
-    CheckNewDF -->|Same DataFrame| KeepDFFormat[Preserve Format Settings]
-    ResetDFFormat --> NormalizeNumeric[Normalize Numeric Columns]
-    KeepDFFormat --> NormalizeNumeric
-    NormalizeNumeric --> WarnDirty{Data Issues?}
-    WarnDirty -->|Yes| ShowDirtyWarning[Show Warning Popup]
-    WarnDirty -->|No| CreateDFPlot
-    ShowDirtyWarning --> CreateDFPlot[Generate DataFrame Plot]
-    CreateDFPlot --> DisplayDFPlot[Display Plot + Table]
+    ValidateDF -->|Yes| ShowTableIndex[Update Table with Index Only]
+    ShowTableIndex --> ShowCols[Display Column Checkboxes]
+    ShowCols --> SelectCols[Toggle Columns via Checkboxes]
+    SelectCols --> UpdateTableCols[Update Table Columns Immediately]
+    UpdateTableCols --> ClickDFRPB["User Clicks (Re-)Plot Button"]
+    ClickDFRPB --> CheckDFContinuity{Structural Continuity?}
+    CheckDFContinuity -->|Fatal Error| ErrorModal
+    CheckDFContinuity -->|Resumable Change| WarnDFModal["Show Warning Modal: Continue / Select data anew"]
+    WarnDFModal -->|Continue| FetchDFData[Fresh Read from Main or cp_file_df]
+    WarnDFModal -->|Select data anew| DFMode
+    CheckDFContinuity -->|Identical / Valid| FetchDFData
+    FetchDFData --> CleanDFData[clean_plot_data! & Cache in cached_cleaned_df]
+    CleanDFData --> CreateDFPlot[Generate DataFrame Plot]
+    CreateDFPlot --> DisplayDFPlot[Display Plot + Refreshed Table]
     
     %% Format Updates
     DisplayPlot --> FormatControls[Format Controls Available]
@@ -82,12 +86,12 @@ flowchart TD
     UserEdit -->|Axis Limits & Scales| AxisLimitEdit[Update Limits, Reversal, or Log Scale]
     UserEdit -->|Labels| UpdateLabels[Update Axis Labels Directly]
     
-    ApplyTheme --> DoReplot[do_replot with new format]
+    ApplyTheme --> DoReplot["replot_from_cache! -> do_replot"]
     GroupByChange --> DoReplot
     AxisLimitEdit --> DoReplot
     MarkNonDefault --> DoReplot
     DoReplot --> ApplyCustom[apply_custom_formatting!]
-    DoReplot -.- NoteLimits["Note: get_current_axis_limits preserves limits & scales"]
+    DoReplot -.- NoteLimits["Note: Uses cached_cleaned_df (no source re-read) & preserves limits/scales"]
     ApplyCustom -.- NoteCustom["Note: Re-apply non-default labels"]
     
     UpdateLabels --> RefreshPlot[Refresh Plot Display]
@@ -118,7 +122,7 @@ flowchart TD
     SaveSuccess -->|Click OK| SaveTab
     
     %% Export
-    DisplayPlot -.->|Exported to Main| GlobalVars[cp_figure, cp_figure_ax]
+    DisplayPlot -.->|Exported to Main| GlobalVars[cp_figure, cp_figure_ax, cp_file_df]
     DisplayDFPlot -.->|Exported to Main| GlobalVars
     
     style Start fill:#e1f5ff

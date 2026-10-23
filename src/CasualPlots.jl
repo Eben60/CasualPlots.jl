@@ -55,6 +55,7 @@ include("load_from_file.jl")
 include("gui_help_section.jl")
 include("gui_table.jl")
 include("gui_layout.jl")
+include("source_continuity.jl")
 include("app_types.jl")
 include("struct_CasualPlotApp.jl")
 include("app_state.jl")
@@ -83,7 +84,18 @@ Accessible in the REPL for manual inspection or fine-tuning of plot attributes.
 """
 global cp_figure_ax = nothing
 
-export cp_figure, cp_figure_ax
+"""
+    cp_file_df
+
+The active global `DataFrame` loaded from a file (CSV or XLSX) via the Open tab.
+Accessible in the REPL for inspection or in-place modification (e.g., `cp_file_df[5, :col] = ...`).
+
+Note: Rebinding `cp_file_df = ...` in the REPL creates an unrelated variable in `Main` and does not update the loaded file state.
+Generated Julia scripts re-read the file from disk and ignore interactive in-place edits.
+"""
+global cp_file_df = nothing
+
+export cp_figure, cp_figure_ax, cp_file_df
 export Ele
 
 @static VERSION ≥ v"1.11" && include("public.julia") # define public functions

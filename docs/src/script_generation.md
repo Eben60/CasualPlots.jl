@@ -21,7 +21,7 @@ Script generation is particularly useful for:
 
 The generated code consists of three main components:
 
-1. **`cp_load_data(...)`**: Loads data from disk if necessary, extracts and cleans the source data, and applies specified row and column selection. Returns the data as a DataFrame in "wide" format.
+1. **`cp_load_data(...)`**: Loads data from disk if necessary, extracts and cleans the source data, and applies specified row and column selection. Returns the data as a DataFrame in "wide" format. (Note: when the source is an opened file, the generated script re-reads the file from disk and therefore does not include interactive in-place edits made to `cp_file_df` in the REPL.)
 2. **`cp_create_plot(plot_data)`**: Converts the DataFrame into "long" (tall) format, constructs the `AoG` pipeline, sets themes, applies mappings, and returns the figure object.
 3. **Execution Block**: Provides commented-out examples for displaying the figure or saving it to PNG, SVG, or PDF formats.
 

@@ -168,3 +168,44 @@ end
     @test state.dialogs.modal_type[] == :error
     @test occursin("Error loading XLSX sheet", state.file_saving.save_status_message[])
 end
+
+@testset "load_csv_to_table sets cp_file_df and reload preserves selection" begin
+    using CasualPlots: load_csv_to_table, handle_after_reload!, CasualPlotsState, OutputObservables
+
+    state = CasualPlotsState()
+    outputs = OutputObservables()
+    csv_path = joinpath(ASSETS_DIR, "sample_data.csv")
+
+    @test load_csv_to_table(csv_path, outputs, state) == true
+    @test !isnothing(CasualPlots.cp_file_df)
+    @test CasualPlots.cp_file_df === state.file_opening.opened_file_df[]
+    @test state.data_selection.selected_dataframe[] === nothing
+
+    # Simulate user selecting opened file and columns (without plotting yet - Decision Q6)
+    state.data_selection.selected_dataframe[] = "__opened_file__"
+    state.data_selection.selected_columns[] = ["id", "value"]
+
+    # Reload with reload=true
+    @test load_csv_to_table(csv_path, outputs, state; reload=true) == true
+    handle_after_reload!(state, outputs)
+    @test state.data_selection.selected_dataframe[] == "__opened_file__"
+    @test state.data_selection.selected_columns[] == ["id", "value"]
+    @test CasualPlots.cp_file_df === state.file_opening.opened_file_df[]
+    @test !isnothing(state.misc.source_signature[])
+
+    # If a selected column vanished on reload without a plot, selection is cleared with a warning (Decision Q6)
+    state.data_selection.selected_columns[] = ["id", "vanished_col"]
+    handle_after_reload!(state, outputs)
+    @test isempty(state.data_selection.selected_columns[])
+    @test state.dialogs.show_modal[] == true
+    @test state.dialogs.modal_type[] == :warning
+    @test occursin("vanished_col", state.file_saving.save_status_message[])
+
+    # Failed reload leaves previous data untouched (Spec §E.5)
+    prev_df = state.file_opening.opened_file_df[]
+    prev_table = outputs.table[]
+    @test load_csv_to_table("nonexistent_reload.csv", outputs, state; reload=true) == false
+    @test state.file_opening.opened_file_df[] === prev_df
+    @test CasualPlots.cp_file_df === prev_df
+    @test outputs.table[] === prev_table
+end

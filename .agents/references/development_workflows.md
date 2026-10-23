@@ -32,7 +32,8 @@ Extracted from `AGENTS.md`.
     1. **Launch**: Agent starts the GUI locally (e.g., using `Kaimon` `ex` tool to run `Bonito.Server(app, "127.0.0.1", 8000)`).
     2. **Navigate**: User navigates to `http://localhost:8000` in their local browser and interacts with the GUI to reach the desired state.
     3. **Capture/Read**: Agent uses `browser_subagent` to capture a screenshot of `http://localhost:8000` (without modifying the state) OR the agent reads the necessary backend variables.
-- GUI agentic testing was not successful. See attempts and more info in Branch `v0.6.0-refactoring`
-- Additional testing tools are in [AgenticTesting.jl](../../test/AgenticTesting) subpackage.
-    - **Note for Documentation**: The JS hooks inside this package (e.g., `set_radio_value`, `click_button` in `gui_testing_utils.jl`) can be executed via `Bonito.evaljs` to visually drive the UI. This is highly useful for automating documentation screenshots.
+- **Agentic GUI Testing**: Supported via the `test/AgenticTesting/` subpackage:
+    - Automated tests run against headless/native Electron instances (e.g. `test/AgenticTesting/scripts/run_rpb_agentic_tests.jl`).
+    - Automated screenshot capture and visual regression tests via Electron's `capturePage` API and SSIM comparison (`compare_directories_ssim()` in `test/AgenticTesting/scripts/run_all_screenshots.jl`).
+    - The DOM helper hooks in `gui_testing_utils.jl` (e.g., `click_button`, `select_dropdown_value`, `set_radio_value`) allow programmatic driving of the UI.
 - Test suite is using SafeTestsets.jl package. Each `@safetestset` is in an included file. It can contain one more level of `@testset` if necessary, but not more.

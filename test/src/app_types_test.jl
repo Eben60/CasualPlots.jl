@@ -51,7 +51,7 @@ end
 end
 
 @testset "CasualPlotsState Field Type Assertions" begin
-    using CasualPlots: CasualPlotsState
+    using CasualPlots: CasualPlotsState, SourceSignature
 
     state = CasualPlotsState()
     
@@ -59,6 +59,68 @@ end
     @test state.plotting.format.x_min isa Observable{Union{Nothing, Float64}}
     @test state.file_opening.opened_file_path isa Observable{String}
     @test state.data_selection.selected_columns isa Observable{Vector{String}}
+    @test state.dialogs.modal_primary_label isa Observable{String}
+    @test state.dialogs.modal_secondary_label isa Observable{Union{Nothing, String}}
+    @test state.dialogs.modal_action_primary isa Observable{Int}
+    @test state.dialogs.modal_action_secondary isa Observable{Int}
+    @test state.dialogs.modal_callbacks isa Ref{Any}
+    @test state.misc.source_signature isa Ref{Union{Nothing, SourceSignature}}
+    @test state.misc.source_refresh isa Observable{Int}
+end
+
+@testset "show_modal! Unified Dialog States" begin
+    using CasualPlots: CasualPlotsState, show_modal!
+
+    state = CasualPlotsState()
+
+    # 1-button default
+    show_modal!(state, "Info msg"; type=:info)
+    @test state.dialogs.show_modal[] == true
+    @test state.dialogs.modal_type[] == :info
+    @test state.dialogs.modal_primary_label[] == "OK"
+    @test state.dialogs.modal_secondary_label[] === nothing
+    @test state.dialogs.modal_callbacks[].on_primary === nothing
+    @test state.dialogs.modal_callbacks[].on_secondary === nothing
+
+    # :confirm defaults
+    show_modal!(state, "Overwrite confirm?"; type=:confirm)
+    @test state.dialogs.show_modal[] == true
+    @test state.dialogs.modal_type[] == :confirm
+    @test state.dialogs.modal_primary_label[] == "Overwrite"
+    @test state.dialogs.modal_secondary_label[] == "Cancel"
+
+    # 2-button custom warning
+    called_primary = Ref(false)
+    called_secondary = Ref(false)
+    show_modal!(
+        state,
+        "Structural changes detected.";
+        type=:warning,
+        primary_label="Continue",
+        secondary_label="Select data anew",
+        on_primary=() -> (called_primary[] = true),
+        on_secondary=() -> (called_secondary[] = true),
+    )
+    @test state.dialogs.show_modal[] == true
+    @test state.dialogs.modal_type[] == :warning
+    @test state.dialogs.modal_primary_label[] == "Continue"
+    @test state.dialogs.modal_secondary_label[] == "Select data anew"
+    @test !isnothing(state.dialogs.modal_callbacks[].on_primary)
+    @test !isnothing(state.dialogs.modal_callbacks[].on_secondary)
+    state.dialogs.modal_callbacks[].on_primary()
+    @test called_primary[] == true
+    state.dialogs.modal_callbacks[].on_secondary()
+    @test called_secondary[] == true
+
+    # No leakage between calls: subsequent call clears custom labels and callbacks
+    show_modal!(state, "All good"; type=:success)
+    @test state.dialogs.modal_primary_label[] == "OK"
+    @test state.dialogs.modal_secondary_label[] === nothing
+    @test state.dialogs.modal_callbacks[].on_primary === nothing
+    @test state.dialogs.modal_callbacks[].on_secondary === nothing
+
+    # :error without exception throws ArgumentError
+    @test_throws ArgumentError show_modal!(state, "Error without exception"; type=:error)
 end
 
 @testset "OutputObservables Construction" begin

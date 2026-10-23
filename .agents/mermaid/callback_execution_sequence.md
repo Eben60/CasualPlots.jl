@@ -7,50 +7,59 @@ sequenceDiagram
     participant User
     participant UI as UI Controls
     participant Obs as Observables
-    participant SourceCB as Source Callback
+    participant SourceCB as Source & RPB Callbacks
+    participant TableCB as Table Callback
     participant FormatCB as Format Callback
     participant Plot as Plot Engine
     participant Table as Table View
-    participant SaveCB as Save Callbacks
+    participant SaveCB as Save & Modal Callbacks
     participant Cairo as CairoMakie
     
-    %% Initial Data Selection
-    Note over User,Table: Array Mode: User Selects Data
+    %% Initial Data Selection (Decoupled Table)
+    Note over User,Table: Array Mode: User Selects Data (Table Updates Immediately)
     User->>UI: Select X variable
     UI->>Obs: selected_x[] = "var_x"
+    Obs->>TableCB: Triggered (setup_table_refresh_callback)
+    TableCB->>Table: refresh_table! -> [Index, X]
     
     User->>UI: Select Y variable
     UI->>Obs: selected_y[] = "var_y"
+    Obs->>SourceCB: Triggered (setup_source_callback)
+    SourceCB->>Obs: source_signature[] = capture_signature(:array, x, y)
+    Obs->>TableCB: Triggered (setup_table_refresh_callback)
+    TableCB->>Table: refresh_table! -> [Index, X, Y...]
     
-    Obs->>SourceCB: Triggered (selected_x, selected_y changed)
+    %% (Re-)Plot Button Action
+    Note over User,Table: Unified (Re-)Plot Button Action (run_rpb!)
+    User->>UI: Click "(Re-)Plot" (#btn-replot)
+    UI->>Obs: plot_trigger[] += 1
+    Obs->>SourceCB: run_rpb!(state, outputs)
     activate SourceCB
     
-    SourceCB->>Obs: Check last_plotted_x[], last_plotted_y[]
-    Note over SourceCB: is_new_source = (x != last_x || y != last_y)
-    
-    SourceCB->>Obs: block_format_update[] = true
-    Note over SourceCB: Prevent format callback race
-    
     SourceCB->>Plot: show_loading_indicator(outputs)
-    SourceCB->>SourceCB: Fetch data from Main module
-    SourceCB->>Plot: do_replot(data, format, is_new_data=is_new_source)
-    Plot-->>SourceCB: fig_result (with defaults)
+    SourceCB->>SourceCB: fresh_sig = capture_signature(state)
+    SourceCB->>SourceCB: check_continuity(baseline, fresh_sig, selection)
     
-    alt is_new_source == true
-        SourceCB->>Obs: Reset format_is_default flags
-        SourceCB->>Obs: Initialize text fields from plot defaults
+    alt status == :fatal
+        SourceCB->>Obs: show_modal!(type=:error, exception=DataContinuityError)
+        SourceCB->>SourceCB: reset_selection! & blank Plot/Table
+    else status == :resumable
+        SourceCB->>Obs: show_modal!(type=:warning, "Continue" / "Select data anew")
+        Note over User,SourceCB: On "Continue": finish_rpb!(adopt_baseline=true)<br/>On "Select data anew": reset_selection!
+    else status == :identical
+        SourceCB->>SourceCB: acquire_source(state) (fresh read from Main or cp_file_df)
+        SourceCB->>SourceCB: prepare_plot_data! (slice, clean_plot_data!, detect categorical, update cached_cleaned_df[])
+        SourceCB->>Plot: replot_from_cache! -> do_replot(is_new_data=is_new_source, reset_semipersistent=true)
+        Note over Plot: Sets block_format_update[] = true during render,<br/>resets axis limits to defaults, applies custom formatting
+        Plot-->>SourceCB: fig_result
+        SourceCB->>Obs: plot[] = new figure
+        SourceCB->>Table: refresh_table!(state, outputs)
+        SourceCB->>Obs: Update last_plotted_*[]
     end
-    
-    SourceCB->>Obs: last_plotted_x[] = x
-    SourceCB->>Obs: last_plotted_y[] = y
-    SourceCB->>Table: Update table with data
-    SourceCB->>Obs: plot[] = new figure
-    
-    SourceCB->>Obs: block_format_update[] = false
     deactivate SourceCB
     
-    %% Format Change
-    Note over User,Table: User Changes Format
+    %% Format Change (Uses Cached Data)
+    Note over User,Table: User Changes Format (Uses Cached Data Only)
     User->>UI: Change plot type to "Scatter"
     UI->>Obs: selected_plottype[] = "Scatter"
     
@@ -61,25 +70,12 @@ sequenceDiagram
     alt block_format_update == true
         FormatCB->>FormatCB: Return early (blocked)
     else block_format_update == false
-        FormatCB->>Obs: Read current_plot_x[], current_plot_y[]
-        Note over FormatCB: Validate data exists
-        
         FormatCB->>Obs: format_is_default[:plottype] = false
-        Note over FormatCB: Mark as user-customized
-        
-        FormatCB->>FormatCB: get_current_axis_limits(state)
-        Note over FormatCB: Preserve axis limits & scales in plot_format
-        
-        FormatCB->>Plot: show_loading_indicator(outputs)
-        FormatCB->>Plot: do_replot(data, plot_format with limits & scales)
-        Note over Plot: Create new plot with format settings
+        FormatCB->>Plot: replot_from_cache!(state, outputs)
+        Note over Plot: Reads cached_cleaned_df[] (does NOT re-read Main)<br/>Merges get_current_axis_limits(state)<br/>Calls do_replot & apply_custom_formatting!
         Plot-->>FormatCB: fig_result
-        
-        FormatCB->>FormatCB: apply_custom_formatting!(fig, ax, state)
-        Note over FormatCB: Re-apply non-default labels/legend
-        
         FormatCB->>Obs: plot[] = new figure
-        Note over FormatCB: Table NOT updated (source unchanged)
+        Note over FormatCB: Table NOT updated
     end
     deactivate FormatCB
     
@@ -89,7 +85,7 @@ sequenceDiagram
     UI->>Obs: xlog[] / ylog[] / x_min[] / ... updated
     Obs->>FormatCB: Triggered (setup_axis_limits_callbacks)
     activate FormatCB
-    FormatCB->>Plot: trigger_axis_replot() -> do_replot
+    FormatCB->>Plot: trigger_axis_replot() -> replot_from_cache! -> do_replot
     Plot-->>FormatCB: fig_result
     FormatCB->>Obs: plot[] = new figure
     deactivate FormatCB
@@ -104,7 +100,7 @@ sequenceDiagram
     FormatCB->>FormatCB: apply_theme!("theme_dark")
     Note over FormatCB: set_theme!(theme_dark())
     FormatCB->>Obs: format_is_default[:theme] = false
-    FormatCB->>Plot: do_replot with current data + group_by
+    FormatCB->>Plot: replot_from_cache! -> do_replot
     Plot-->>FormatCB: fig_result (with new theme)
     FormatCB->>Obs: plot[] = new figure
     deactivate FormatCB
@@ -112,47 +108,37 @@ sequenceDiagram
     %% Group By Change
     Note over User,Table: User Changes Group Differentiation
     User->>UI: Select "Geometry" in group_by dropdown
-    UI->>Obs: selected_group_by[] = "Geometry"
+    UI->>Obs: dynamic_attributes[:group_by][] = "Geometry"
     
-    Obs->>FormatCB: Triggered (selected_group_by changed)
+    Obs->>FormatCB: Triggered (dynamic_attributes callback)
     activate FormatCB
-    Note over FormatCB: Lines: linestyle mapping<br/>Scatter: marker mapping<br/>BarPlot: falls back to color
-    FormatCB->>Plot: do_replot with group_by="Geometry"
+    Note over FormatCB: Lines: linestyle mapping<br/>Scatter: marker mapping
+    FormatCB->>Plot: replot_from_cache! -> do_replot
     Plot-->>FormatCB: fig_result (groups by line style/marker)
     FormatCB->>Obs: plot[] = new figure
     deactivate FormatCB
     
     %% DataFrame Mode
-    Note over User,Table: DataFrame or Matrix Mode: User Selects Columns
-    User->>UI: Select DataFrame/Matrix "df1"
+    Note over User,Table: DataFrame or Matrix Mode: Selection vs (Re-)Plot
+    User->>UI: Select DataFrame/Matrix "df1" (or "opened file")
     UI->>Obs: selected_dataframe[] = "df1"
+    Obs->>SourceCB: setup_dataframe_callbacks
+    SourceCB->>Obs: selected_columns[] = []
+    SourceCB->>Obs: source_signature[] = capture_signature(:table, "df1", opened_file_df[])
+    Obs->>TableCB: refresh_table! -> [Index]
     
-    User->>UI: Check columns [col1, col2, col3]
+    User->>UI: Check columns [col1, col2, col3] / Edit Range
     UI->>Obs: selected_columns[] = [col1, col2, col3]
-    UI->>Obs: plot_trigger[] += 1
+    Obs->>TableCB: refresh_table! -> [Index, col1, col2, col3]
+    Note over TableCB: Plot Pane remains unchanged until (Re-)Plot is clicked
     
-    Obs->>SourceCB: DataFrame callback triggered
-    activate SourceCB
-    SourceCB->>SourceCB: Validate columns exist in source
-    SourceCB->>SourceCB: clean_plot_data! & check categorical types
-    opt Categorical detected
-        SourceCB->>Obs: x_is_categorical[] / y_is_categorical[] = true
-        Note over SourceCB: Disables limits, rev., and log controls
-    end
-    SourceCB->>SourceCB: normalize_numeric_columns!
-    opt Data Dirty
-        SourceCB->>Obs: show_modal[] = true (Warning)
-    end
-    SourceCB->>Plot: show_loading_indicator(outputs)
-    SourceCB->>Plot: update_dataframe_plot(df, cols)
-    Plot-->>SourceCB: new fig
-    SourceCB->>Obs: plot[] = new figure
-    SourceCB->>Table: Update table (if requested)
-    deactivate SourceCB
+    User->>UI: Click "(Re-)Plot" (#btn-replot)
+    UI->>Obs: plot_trigger[] += 1
+    Obs->>SourceCB: Executes unified run_rpb!(state, outputs) (same pipeline as above)
     
     %% Save Flow
     Note over User,Cairo: Save Tab: User Saves Plot
-    User->>UI: Click "Choose Path" button
+    User->>UI: Click "Select File..." button
     UI->>Obs: dialog_trigger[] += 1
     
     Obs->>SaveCB: Triggered (dialog_trigger changed)
@@ -169,51 +155,32 @@ sequenceDiagram
     
     SaveCB->>Obs: Check current_figure[]
     alt current_figure == nothing
-        SaveCB->>Obs: save_status_message[] = "No plot to save"
-        SaveCB->>Obs: modal_type[] = :error
-        SaveCB->>Obs: show_modal[] = true
-        Note over SaveCB: Modal popup displays error
+        SaveCB->>Obs: show_modal!(state, "No plot to save"; type=:error, exception=...)
     else valid figure
         SaveCB->>SaveCB: validate_save_path(path)
         alt invalid path or extension
-            SaveCB->>Obs: save_status_message[] = error
-            SaveCB->>Obs: modal_type[] = :error
-            SaveCB->>Obs: show_modal[] = true
-            Note over SaveCB: Modal popup displays error
+            SaveCB->>Obs: show_modal!(state, error_msg; type=:error, exception=...)
         else valid path
             alt file exists
-                SaveCB->>Obs: modal_type[] = :confirm
-                SaveCB->>Obs: show_modal[] = true
-                Note over SaveCB: Modal popup asks for confirmation
+                SaveCB->>Obs: show_modal!(state, msg; type=:confirm, on_primary=do_save)
+                Note over SaveCB: 2-button modal ("Overwrite" / "Cancel")
             else file doesn't exist
-                SaveCB->>Cairo: CairoMakie.activate!()
-                SaveCB->>Cairo: CairoMakie.save(path, fig)
-                Cairo-->>SaveCB: save complete
+                SaveCB->>Cairo: CairoMakie.activate!() & CairoMakie.save(path, fig)
                 SaveCB->>Plot: WGLMakie.activate!()
-                SaveCB->>Obs: save_status_message[] = "Saved"
-                SaveCB->>Obs: modal_type[] = :success
-                SaveCB->>Obs: show_modal[] = true
-                Note over SaveCB: Modal popup displays success
+                SaveCB->>Obs: show_modal!(state, "Saved"; type=:success)
             end
         end
     end
     deactivate SaveCB
     
-    %% Overwrite Confirmation (via Modal)
-    User->>UI: Click "Overwrite" in modal
-    UI->>Obs: overwrite_trigger[] += 1
-    
-    Obs->>SaveCB: Triggered (overwrite_trigger changed)
+    %% Modal Primary / Secondary Action (Unified Modal Callbacks)
+    Note over User,SaveCB: Modal Dialog Button Click (#btn-modal-ok / #btn-modal-cancel)
+    User->>UI: Click primary ("OK" / "Continue" / "Overwrite") or secondary ("Select data anew" / "Cancel")
+    UI->>Obs: modal_action_primary[] += 1 (or modal_action_secondary[] += 1)
+    Obs->>SaveCB: Triggered in create_modal_container
     activate SaveCB
     SaveCB->>Obs: show_modal[] = false
-    SaveCB->>Cairo: CairoMakie.activate!()
-    SaveCB->>Cairo: CairoMakie.save(path, fig)
-    Cairo-->>SaveCB: save complete
-    SaveCB->>Plot: WGLMakie.activate!()
-    SaveCB->>Obs: save_status_message[] = "Saved"
-    SaveCB->>Obs: modal_type[] = :success
-    SaveCB->>Obs: show_modal[] = true
-    Note over SaveCB: Modal popup displays success
+    SaveCB->>SaveCB: Clear modal_callbacks[] & invoke on_primary() / on_secondary() inside try/catch
     deactivate SaveCB
     
     %% Resize Flow
@@ -225,10 +192,4 @@ sequenceDiagram
     FormatCB->>Plot: Makie.resize!(fig, w, h)
     Note over FormatCB: In-place resize (no re-render)
     deactivate FormatCB
-    
-    %% Modal Dismissal
-    User->>UI: Click "OK" in modal
-    UI->>Obs: dismiss_trigger[] += 1
-    Obs->>Obs: show_modal[] = false
-    Note over Obs: Modal popup closes
 ```
