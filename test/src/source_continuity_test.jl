@@ -382,7 +382,7 @@ end
 
     # Resumable change: shrink with full_range=true shows 2-button warning
     Main.eval(:(deleteat!(rpb_test_df, 4:5)))
-    run_rpb!(state, outputs)
+    @test_logs (:warn, r"Row count changed") run_rpb!(state, outputs)
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :warning
     @test state.dialogs.modal_primary_label[] == "Continue"
@@ -401,7 +401,7 @@ end
     state.data_selection.range_from[] = 1
     state.data_selection.range_to[] = 10
     Main.eval(:(deleteat!(rpb_test_df, 2:3))) # only 1 row left
-    run_rpb!(state, outputs)
+    @test_logs (:warn, r"exceeds the new row bounds") run_rpb!(state, outputs)
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :error
     @test isempty(state.data_selection.selected_columns[]) # selection reset
@@ -417,7 +417,7 @@ end
 
     # Grow matrix to 4 columns and click RPB -> resumable warning -> Continue selects all 4 columns
     Main.eval(:(rpb_test_mat = [1.0 2.0 3.0 4.0; 5.0 6.0 7.0 8.0; 9.0 10.0 11.0 12.0]))
-    run_rpb!(state, outputs)
+    @test_logs (:warn, r"Matrix column count changed") run_rpb!(state, outputs)
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :warning
     state.dialogs.modal_action_primary[] += 1

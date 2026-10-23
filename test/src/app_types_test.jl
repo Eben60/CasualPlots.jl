@@ -74,7 +74,7 @@ end
     state = CasualPlotsState()
 
     # 1-button default
-    show_modal!(state, "Info msg"; type=:info)
+    @test_logs (:info, "Info msg") show_modal!(state, "Info msg"; type=:info)
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :info
     @test state.dialogs.modal_primary_label[] == "OK"
@@ -92,7 +92,7 @@ end
     # 2-button custom warning
     called_primary = Ref(false)
     called_secondary = Ref(false)
-    show_modal!(
+    @test_logs (:warn, "Structural changes detected.") show_modal!(
         state,
         "Structural changes detected.";
         type=:warning,
@@ -113,7 +113,7 @@ end
     @test called_secondary[] == true
 
     # No leakage between calls: subsequent call clears custom labels and callbacks
-    show_modal!(state, "All good"; type=:success)
+    @test_logs (:info, "All good") show_modal!(state, "All good"; type=:success)
     @test state.dialogs.modal_primary_label[] == "OK"
     @test state.dialogs.modal_secondary_label[] === nothing
     @test state.dialogs.modal_callbacks[].on_primary === nothing

@@ -162,7 +162,7 @@ end
     
     # Test invalid sheet name triggers error pop-up states
     state.dialogs.show_modal[] = false
-    load_xlsx_sheet_to_table(xlsx_path, "NonexistentSheet", outputs, state)
+    @test_logs (:warn, r"^Error loading XLSX sheet:") load_xlsx_sheet_to_table(xlsx_path, "NonexistentSheet", outputs, state)
     
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :error
@@ -195,7 +195,7 @@ end
 
     # If a selected column vanished on reload without a plot, selection is cleared with a warning (Decision Q6)
     state.data_selection.selected_columns[] = ["id", "vanished_col"]
-    handle_after_reload!(state, outputs)
+    @test_logs (:warn, r"vanished_col") handle_after_reload!(state, outputs)
     @test isempty(state.data_selection.selected_columns[])
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :warning
@@ -204,7 +204,9 @@ end
     # Failed reload leaves previous data untouched (Spec §E.5)
     prev_df = state.file_opening.opened_file_df[]
     prev_table = outputs.table[]
-    @test load_csv_to_table("nonexistent_reload.csv", outputs, state; reload=true) == false
+    @test_logs (:warn, r"^Error loading CSV file:") begin
+        @test load_csv_to_table("nonexistent_reload.csv", outputs, state; reload=true) == false
+    end
     @test state.file_opening.opened_file_df[] === prev_df
     @test CasualPlots.cp_file_df === prev_df
     @test outputs.table[] === prev_table
