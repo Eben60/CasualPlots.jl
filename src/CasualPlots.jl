@@ -63,7 +63,8 @@ include("app.jl")
 include("code_generation.jl")
 include("extensions.jl")
 
-include("precompile.jl")
+
+(VERSION.major, VERSION.minor) >= (1, 14) || include("precompile.jl")
 
 export casualplots_app
 export CasualPlotApp

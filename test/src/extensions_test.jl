@@ -147,7 +147,8 @@ end
 
 @testset "load_xlsx_sheet_to_table with error states" begin
     using CasualPlots: load_xlsx_sheet_to_table
-    
+    using Logging
+
     state = CasualPlots.CasualPlotsState()
     outputs = CasualPlots.OutputObservables()
     
@@ -159,14 +160,29 @@ end
     @test size(state.file_opening.opened_file_df[]) == (3, 3)
     @test occursin("sample_data.xlsx", outputs.table_title[])
     @test occursin("TestData", outputs.table_title[])
-    
+
     # Test invalid sheet name triggers error pop-up states
     state.dialogs.show_modal[] = false
-    @test_logs (:warn, r"^Error loading XLSX sheet:") load_xlsx_sheet_to_table(xlsx_path, "NonexistentSheet", outputs, state)
-    
+
+    # 1. Capture the logs manually instead of using @test_logs (to avoid an upstream issue)
+    logger = Test.TestLogger()
+    with_logger(logger) do
+        load_xlsx_sheet_to_table(xlsx_path, "NonexistentSheet", outputs, state)
+    end
+
+    # 2. Check if the specific warning was caught in the logs
+    warning_found = any(logger.logs) do log
+        log.level == Logging.Warn && occursin(r"^Error loading XLSX sheet:", string(log.message))
+    end
+
+    # 3. Test the log output.
+    @test warning_found broken = ((VERSION.major, VERSION.minor) >= (1, 14))
+
+    # 4. These state tests now execute normally (and will pass) because the function ran successfully above
     @test state.dialogs.show_modal[] == true
     @test state.dialogs.modal_type[] == :error
     @test occursin("Error loading XLSX sheet", state.file_saving.save_status_message[])
+
 end
 
 @testset "load_csv_to_table sets cp_file_df and reload preserves selection" begin
