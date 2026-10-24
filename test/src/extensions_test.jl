@@ -176,7 +176,7 @@ end
     end
 
     # 3. Test the log output.
-    @test warning_found broken = ((VERSION.major, VERSION.minor) >= (1, 14))
+    @test warning_found
 
     # 4. These state tests now execute normally (and will pass) because the function ran successfully above
     @test state.dialogs.show_modal[] == true
