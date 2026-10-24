@@ -2,7 +2,7 @@
 
 ### [0.12.0]
 
-_2026-10-23_
+_2026-10-27_
 
 **Added**
 - Exported [`cp_file_df`](@ref) to provide REPL access to the `DataFrame` loaded via the **Open** tab for inspection and in-place hot-patching.
