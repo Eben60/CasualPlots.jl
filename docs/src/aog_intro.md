@@ -93,15 +93,14 @@ First, we calculate theoretical force values across a range of velocities at thr
     using WGLMakie, AlgebraOfGraphics, DataFrames, Unitful
 
     f_theor(v; T=25u"°C", d=10u"cm^2", Cp=0.47) = (13.6816e5u"(kg*K)/m^5" * Cp * v^2 * d^2 / (T |> u"K")) |> u"mN"
-    T = 20:60:140
-    Tc = collect(T) .* u"°C"
-    v = (0:0.2:10) .* u"m/s"
 
-    df = DataFrame(
-        v = [v for v in v for _ in Tc],
-        T = [t for _ in v for t in Tc],
-        f = [f_theor(v, T=t) for v in v for t in Tc]
-    )
+    Tc = collect(20:60.0:140) .* u"°C"
+    V = (0:0.2:10) .* u"m/s"
+
+    df = DataFrame([
+        (; v, T=t, f=f_theor(v; T=t))
+        for v in V for t in Tc
+    ])
     ```
 
 

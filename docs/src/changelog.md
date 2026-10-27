@@ -1,5 +1,12 @@
 # Changelog
 
+### [0.12.1]
+
+_2026-10-27_
+
+**Changed**
+- Minor edit of Julia example in docs for better readability
+
 ### [0.12.0]
 
 _2026-10-27_
